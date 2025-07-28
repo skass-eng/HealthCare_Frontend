@@ -1,0 +1,5 @@
+export { default as AnalyticsContent } from './AnalyticsContent'
+export { default as VueEnsemble } from './VueEnsemble'
+export { default as ParService } from './ParService'
+export { default as Tendances } from './Tendances'
+export { default as Performance } from './Performance' 
