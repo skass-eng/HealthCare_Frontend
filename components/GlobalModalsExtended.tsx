@@ -62,8 +62,8 @@ export default function GlobalModalsExtended() {
 
       {/* Modal global de création de plainte */}
       {ui.panels?.plainteModal?.isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
+          <div className="w-full max-w-6xl max-h-[85vh] overflow-y-auto">
             <SimplePlaintePanel 
               onClose={handleClosePlainteModal} 
               onSubmit={handleCreatePlainte} 

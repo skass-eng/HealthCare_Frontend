@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') || '10'
     
     const response = await fetch(
-      `${process.env.BACKEND_URL || 'http://localhost:8000'}/api/v1/plaintes/en-attente?page=${page}&limite=${limit}`
+      `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/plaintes/en-attente?page=${page}&limite=${limit}`
     )
     
     if (!response.ok) {

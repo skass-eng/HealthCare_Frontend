@@ -258,26 +258,28 @@ export default function AnalyticsContent({ selectedPeriod = '30j', className = '
   return (
     <div className={`space-y-4 lg:space-y-8 min-w-0 ${className}`}>
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-6">
-        {[
-          { id: 'overview', label: 'Vue d\'ensemble', icon: ChartBarIcon },
-          { id: 'services', label: 'Par Service', icon: ChartPieIcon },
-          { id: 'trends', label: 'Tendances', icon: ArrowTrendingUpIcon },
-          { id: 'performance', label: 'Performance', icon: ClockIcon }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-all duration-200 ${
-              activeTab === tab.id
-                ? 'bg-white text-blue-600 shadow-sm font-medium'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            <span>{tab.label}</span>
-          </button>
-        ))}
+      <div className="bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 p-2">
+        <div className="flex gap-1">
+          {[
+            { id: 'overview', label: 'Vue d\'ensemble', icon: ChartBarIcon },
+            { id: 'services', label: 'Par Service', icon: ChartPieIcon },
+            { id: 'trends', label: 'Tendances', icon: ArrowTrendingUpIcon },
+            { id: 'performance', label: 'Performance', icon: ClockIcon }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-6 py-3 text-sm rounded-xl transition-all duration-300 font-medium ${
+                activeTab === tab.id
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg transform scale-105'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50 hover:shadow-md'
+              }`}
+            >
+              <tab.icon className="w-5 h-5" />
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Contenu des tabs */}

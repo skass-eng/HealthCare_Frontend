@@ -330,6 +330,10 @@ class ApiUnified {
     });
   }
 
+  async getPlainteById(plainteId: string): Promise<Plainte> {
+    return this.request<Plainte>(`/plaintes/${plainteId}`);
+  }
+
   async rechercherPlaintes(filtres: any): Promise<{
     plaintes: Plainte[];
     total: number;
@@ -620,7 +624,7 @@ class ApiUnified {
     return this.request(`/pages/analytics?${searchParams.toString()}`);
   }
 
-  async getPagesAnalyticsV2(organisation_id?: number): Promise<any> {
+  async getPagesAdministration(organisation_id?: number): Promise<any> {
     const searchParams = new URLSearchParams();
     
     if (organisation_id !== undefined) {

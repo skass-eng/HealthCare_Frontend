@@ -69,7 +69,7 @@ frontend/components/Dashboard/
 ### Variables d'Environnement
 ```bash
 # Configuration API
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=http://localhost:6000
 NEXT_PUBLIC_DASHBOARD_ENDPOINT=/api/v1/dashboard
 
 # Configuration des filtres
@@ -189,7 +189,7 @@ npm start
 ```
 
 ### Accès
-- **URL** : http://localhost:3000/dashboard-unified
+- **URL** : http://localhost:4000/dashboard-unified
 - **Navigation** : Via la sidebar "Dashboard Unifié"
 
 ## 🔧 Personnalisation

@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { SparklesIcon, XMarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
+import { Cog8ToothIcon, XMarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 
-export default function AnalyticsV2Banner() {
+export default function AdministrationBanner() {
   const [isVisible, setIsVisible] = useState(true)
 
   if (!isVisible) return null
@@ -24,22 +24,21 @@ export default function AnalyticsV2Banner() {
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className="flex-shrink-0">
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-              <SparklesIcon className="w-6 h-6 text-white" />
+              <Cog8ToothIcon className="w-6 h-6 text-white" />
             </div>
           </div>
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-white font-bold text-lg">
-                Nouveau : Analytics V2
+                Administration
               </h3>
               <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                NOUVEAU
+                DISPONIBLE
               </span>
             </div>
             <p className="text-white/90 text-sm">
-              Découvrez la nouvelle plateforme d'analyse avancée avec IA, recherche intelligente, 
-              administration des organisations et audit complet.
+              Gérez les organisations, services et configurations du système avec l'interface d'administration avancée.
             </p>
           </div>
         </div>

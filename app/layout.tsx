@@ -24,9 +24,9 @@ export default function RootLayout({
     <html lang="fr">
       <body>
         <StoreProvider>
-          <div className="dashboard flex flex-col lg:grid lg:grid-cols-[380px_1fr] min-h-screen">
+          <div className="dashboard flex flex-col lg:flex-row">
             <Sidebar />
-            <main className="main-content p-4 lg:p-8 bg-white/10 flex-1 overflow-x-auto">
+            <main className="main-content p-4 lg:p-8 bg-white/10 flex-1 lg:ml-[380px]">
               {children}
             </main>
           </div>

@@ -27,8 +27,8 @@ npm install
 Créer le fichier `.env.local` :
 ```bash
 # Backend API URL
-BACKEND_URL=http://localhost:8000
-NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+BACKEND_URL=http://localhost:6000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:6000
 ```
 
 ### 4. Lancement
@@ -37,7 +37,7 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 npm run dev
 ```
 
-✅ **L'application sera accessible sur http://localhost:3000**
+✅ **L'application sera accessible sur http://localhost:4000**
 
 ---
 
@@ -45,9 +45,9 @@ npm run dev
 
 ### Checklist de démarrage :
 
-1. ✅ **Backend en marche** : `http://localhost:8000/docs` accessible
+1. ✅ **Backend en marche** : `http://localhost:6000/docs` accessible
 2. ✅ **Frontend lancé** : `npm run dev` sans erreurs
-3. ✅ **Interface accessible** : `http://localhost:3000` charge correctement
+3. ✅ **Interface accessible** : `http://localhost:4000` charge correctement
 4. ✅ **Design affiché** : Style glassmorphism violet/bleu visible
 5. ✅ **Navigation fonctionnelle** : Sidebar cliquable
 
@@ -148,7 +148,7 @@ const details = await getPlainteDetails('PL-2025-XXX')
 ## 🚀 Prochaines Étapes
 
 1. **Vérifier l'installation** avec cette checklist
-2. **Tester l'interface** sur `http://localhost:3000`
+2. **Tester l'interface** sur `http://localhost:4000`
 3. **Connecter les vraies données** en remplaçant les données mock
 4. **Ajouter l'upload** de fichiers
 5. **Implémenter les notifications**
@@ -174,7 +174,7 @@ npm run dev    # Relancer
 ```
 
 ### Backend non accessible
-- Vérifier que FastAPI fonctionne sur `http://localhost:8000`
+- Vérifier que FastAPI fonctionne sur `http://localhost:6000`
 - Contrôler le fichier `.env.local`
 
 ---

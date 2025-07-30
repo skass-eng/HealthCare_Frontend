@@ -5,6 +5,7 @@ import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/r
 import { apiUnified } from '@/lib/api-unified'
 import { ServiceEnum, PrioriteEnum } from '@/types'
 import { Plainte } from '@/lib/api-unified'
+import { API_CONFIG } from '@/lib/api-config'
 
 interface ComplaintItemWithSuggestions extends Plainte {
   aiSuggestion?: {
@@ -337,7 +338,7 @@ export default function ComplaintsPanel() {
     return (
       <div className="glass-card p-6 text-center">
         <p className="text-red-500">❌ {error}</p>
-        <p className="text-sm text-gray-500 mt-2">Vérifiez que le backend est en marche sur http://localhost:8000</p>
+        <p className="text-sm text-gray-500 mt-2">Vérifiez que le backend est en marche sur {API_CONFIG.BACKEND_URL}</p>
       </div>
     )
   }

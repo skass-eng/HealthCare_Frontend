@@ -5,6 +5,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { apiUnified } from '@/lib/api-unified'
 import { Plainte } from '@/types'
 import ComplaintCard from './ComplaintCard'
+import { API_CONFIG } from '@/lib/api-config'
 
 interface PlaintesListPanelProps {
   statut: string
@@ -95,7 +96,7 @@ export default function PlaintesListPanel({ statut, title }: PlaintesListPanelPr
     return (
       <div className="glass-card p-8 text-center">
         <p className="text-red-500">❌ {error}</p>
-        <p className="text-sm text-gray-500 mt-2">Vérifiez que le backend est en marche sur http://localhost:8000</p>
+        <p className="text-sm text-gray-500 mt-2">Vérifiez que le backend est en marche sur {API_CONFIG.BACKEND_URL}</p>
       </div>
     )
   }

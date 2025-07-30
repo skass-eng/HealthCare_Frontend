@@ -220,11 +220,11 @@ export default function SimplePlaintePanel({ onClose, onSubmit }: SimplePlainteP
   const selectedPriority = priorityOptions.find(p => p.value === formData.priorite)
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-8">
       <div 
         ref={modalRef}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col"
-        style={{height: '90vh'}}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col"
+        style={{height: '85vh'}}
       >
         {/* Header Banner (fixe) */}
         <header className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white flex-shrink-0">
@@ -283,7 +283,7 @@ export default function SimplePlaintePanel({ onClose, onSubmit }: SimplePlainteP
                     <DocumentTextIcon className={`w-4 h-4 ${mode === 'form' ? 'text-white' : 'text-blue-600'}`} />
                   </div>
                   <div className="text-left">
-                    <div className="font-bold">✨ Formulaire manuel</div>
+                    <div className="font-bold">Formulaire Manuel</div>
                     <div className={`text-xs ${mode === 'form' ? 'text-white/80' : 'text-gray-500'}`}>Saisie directe</div>
                   </div>
                 </button>
@@ -303,11 +303,11 @@ export default function SimplePlaintePanel({ onClose, onSubmit }: SimplePlainteP
                     <DocumentArrowUpIcon className={`w-4 h-4 ${mode === 'pdf' ? 'text-white' : 'text-blue-600'}`} />
                   </div>
                   <div className="text-left">
-                    <div className="font-bold">📄 Upload PDF</div>
+                    <div className="font-bold">Import PDF</div>
                     <div className={`text-xs ${mode === 'pdf' ? 'text-white/80' : 'text-gray-500'}`}>Traitement automatique</div>
                   </div>
                 </button>
-                {/* À partir d’une image */}
+                {/* À partir d'une image */}
                 <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 p-2 flex items-center gap-2 min-w-[180px] transition-all duration-300 hover:shadow-lg" style={{minHeight: 48}}>
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
                     {/* Icône image/photo */}
@@ -318,8 +318,8 @@ export default function SimplePlaintePanel({ onClose, onSubmit }: SimplePlainteP
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="font-bold text-gray-700">🖼️ À partir d’une image</div>
-                    <div className="text-xs text-gray-500">Importez une plainte via une photo</div>
+                    <div className="font-bold text-gray-700">Import Photo</div>
+                    <div className="text-xs text-gray-500">Importez une photo de plainte</div>
                   </div>
                   <span className="px-2 py-1 text-xs bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full font-medium absolute top-2 right-2">
                     Bientôt

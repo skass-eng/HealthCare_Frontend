@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { 
-  BuildingOfficeIcon,
   Cog8ToothIcon,
   UsersIcon,
   ChartBarIcon,
@@ -11,12 +10,11 @@ import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-  EyeIcon,
   CheckCircleIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline';
-import { useOrganisations, useServices, useUtilisateurs, apiUnified, useApiHealth } from '@/lib/api-unified';
-import { Organisation, Service } from '@/lib/api-unified';
+import { useServices, useUtilisateurs, apiUnified, useApiHealth } from '@/lib/api-unified';
+import { Service } from '@/lib/api-unified';
 import { useAppStore } from '@/store';
 
 interface AdminPanelV2Props {
@@ -24,14 +22,14 @@ interface AdminPanelV2Props {
 }
 
 const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
-  const [activeTab, setActiveTab] = useState<'organisations' | 'services' | 'utilisateurs' | 'systeme'>('organisations');
-  const [selectedOrganisation, setSelectedOrganisation] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'services' | 'utilisateurs' | 'systeme'>('services');
+
   
   const { actions: { openServiceConfigPanel, openUserConfigPanel, showNotification } } = useAppStore();
 
-  const { organisations, loading: orgsLoading, error: orgsError } = useOrganisations();
-  const { services, loading: servicesLoading, error: servicesError } = useServices(selectedOrganisation || undefined);
-  const { utilisateurs, loading: usersLoading, error: usersError, createUtilisateur, updateUtilisateur, deleteUtilisateur } = useUtilisateurs(selectedOrganisation || undefined);
+
+  const { services, loading: servicesLoading, error: servicesError } = useServices();
+  const { utilisateurs, loading: usersLoading, error: usersError, createUtilisateur, updateUtilisateur, deleteUtilisateur } = useUtilisateurs();
   
   // Pour avoir les vraies données système
   const { services: allServices } = useServices(); // Tous les services
@@ -39,11 +37,11 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
 
   // Fonctions de gestion des services
   const handleCreateService = () => {
-    openServiceConfigPanel(null, selectedOrganisation || 1);
+    openServiceConfigPanel(null, 1);
   };
 
   const handleEditService = (service: Service) => {
-    openServiceConfigPanel(service, selectedOrganisation || 1);
+    openServiceConfigPanel(service, 1);
   };
 
   // Cette fonction n'est plus nécessaire, gérée par GlobalModals
@@ -63,11 +61,11 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
 
   // Fonctions de gestion des utilisateurs
   const handleCreateUser = () => {
-    openUserConfigPanel(null, selectedOrganisation || 1);
+    openUserConfigPanel(null, 1);
   };
 
   const handleEditUser = (user: any) => {
-    openUserConfigPanel(user, selectedOrganisation || 1);
+    openUserConfigPanel(user, 1);
   };
 
   const handleDeleteUser = async (userId: number) => {
@@ -85,12 +83,6 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
   const { health, loading: healthLoading, error: healthError } = useApiHealth();
 
   const tabs = [
-    {
-      id: 'organisations' as const,
-      name: 'Organisations',
-      icon: BuildingOfficeIcon,
-      description: 'Gestion des établissements'
-    },
     {
       id: 'services' as const,
       name: 'Services',
@@ -132,118 +124,7 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
     </span>
   );
 
-  const OrganisationsPanel: React.FC = () => (
-    <div className="space-y-6">
-      {/* En-tête */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Organisations</h2>
-          <p className="text-gray-600 mt-1">
-            Gérez les établissements et leurs configurations
-          </p>
-        </div>
-        <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2">
-          <PlusIcon className="w-4 h-4" />
-          Nouvelle Organisation
-        </button>
-      </div>
 
-      {/* Liste des organisations */}
-      {orgsLoading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-          <p className="text-gray-600 mt-2">Chargement des organisations...</p>
-        </div>
-      ) : orgsError ? (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">Erreur : {orgsError}</p>
-        </div>
-      ) : (
-        <div className="grid gap-6">
-          {organisations.map((org) => (
-            <div key={org.id} className="bg-white p-6 rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <BuildingOfficeIcon className="w-8 h-8 text-blue-500" />
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900">{org.nom}</h3>
-                      <p className="text-gray-600">{org.nom_court}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Code Établissement</label>
-                      <p className="text-gray-900 font-mono">{org.code_etablissement}</p>
-                    </div>
-                    
-                    {org.email && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Email</label>
-                        <p className="text-gray-900">{org.email}</p>
-                      </div>
-                    )}
-                    
-                    {org.telephone && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Téléphone</label>
-                        <p className="text-gray-900">{org.telephone}</p>
-                      </div>
-                    )}
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Statut</label>
-                      <div className="mt-1">
-                        <StatusBadge active={org.est_actif} label={org.est_actif ? 'Actif' : 'Inactif'} />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <ClockIcon className="w-4 h-4" />
-                      Créé le {formatDate(org.date_creation)}
-                    </span>
-                    <span>
-                      Modifié le {org.date_modification ? formatDate(org.date_modification) : 'Non modifié'}
-                    </span>
-                  </div>
-                  
-                  {org.configuration && Object.keys(org.configuration).length > 0 && (
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <label className="text-sm font-medium text-gray-500 mb-2 block">Configuration</label>
-                      <pre className="text-xs text-gray-700 whitespace-pre-wrap">
-                        {JSON.stringify(org.configuration, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex gap-2 ml-4">
-                  <button
-                    onClick={() => setSelectedOrganisation(org.id)}
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="Voir les services"
-                  >
-                    <EyeIcon className="w-5 h-5" />
-                  </button>
-                  
-                  <button className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Modifier">
-                    <PencilIcon className="w-5 h-5" />
-                  </button>
-                  
-                  <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
-                    <TrashIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 
   const ServicesPanel: React.FC = () => (
     <div className="space-y-6">
@@ -255,27 +136,15 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
             Gérez les services médicaux et leurs configurations
           </p>
         </div>
-        <div className="flex gap-3">
-          {/* Sélecteur d'organisation */}
-          <select
-            value={selectedOrganisation || ''}
-            onChange={(e) => setSelectedOrganisation(e.target.value ? Number(e.target.value) : null)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Toutes les organisations</option>
-            {organisations.map(org => (
-              <option key={org.id} value={org.id}>{org.nom_court}</option>
-            ))}
-          </select>
-          
-          <button 
-            onClick={handleCreateService}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2"
-          >
-            <PlusIcon className="w-4 h-4" />
-            Nouveau Service
-          </button>
-        </div>
+                          <div className="flex gap-3">
+           <button 
+             onClick={handleCreateService}
+             className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2"
+           >
+             <PlusIcon className="w-4 h-4" />
+             Nouveau Service
+           </button>
+         </div>
       </div>
 
       {/* Liste des services */}
@@ -294,9 +163,7 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
             <div className="text-center py-8 text-gray-500">
               <Cog8ToothIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p>Aucun service trouvé</p>
-              {selectedOrganisation && (
-                <p className="text-sm mt-1">pour l'organisation sélectionnée</p>
-              )}
+              
             </div>
           ) : (
             services.map((service) => (
@@ -478,13 +345,7 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
               </p>
             </div>
             
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3">
-                <span className="text-lg font-bold text-blue-600">{organisations.length}</span>
-              </div>
-              <h4 className="font-medium text-gray-900">Organisations</h4>
-              <p className="text-sm text-gray-600">Enregistrées</p>
-            </div>
+            
             
             <div className="text-center">
               <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-3">
@@ -532,31 +393,7 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
             </div>
           </div>
 
-          {/* Répartition par organisation */}
-          <div className="bg-white p-6 rounded-xl border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">🏥 Répartition par Organisation</h3>
-            <div className="space-y-3">
-              {organisations.map((org) => {
-                const orgServices = allServices.filter(s => s.organisation_id === org.id);
-                const orgUsers = allUsers.filter(u => u.organisation_id === org.id);
-                
-                return (
-                  <div key={org.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{org.nom_court}</p>
-                      <p className="text-sm text-gray-600">{org.nom}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-purple-600">🔧 {orgServices.length}</span>
-                        <span className="text-green-600">👥 {orgUsers.length}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          
 
           {/* Services par type */}
           <div className="bg-white p-6 rounded-xl border border-gray-100">
@@ -635,9 +472,9 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
             <div className="bg-white p-8 rounded-xl border border-gray-100 text-center">
               <UsersIcon className="w-16 h-16 mx-auto text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun utilisateur</h3>
-              <p className="text-gray-600 mb-4">
-                {selectedOrganisation ? 'Aucun utilisateur dans cette organisation' : 'Sélectionnez une organisation pour voir les utilisateurs'}
-              </p>
+                             <p className="text-gray-600 mb-4">
+                 Aucun utilisateur trouvé
+               </p>
               <button 
                 onClick={handleCreateUser}
                 className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2 mx-auto"
@@ -762,7 +599,6 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
 
       {/* Contenu de l'onglet actif */}
       <div className="min-h-[600px]">
-        {activeTab === 'organisations' && <OrganisationsPanel />}
         {activeTab === 'services' && <ServicesPanel />}
         {activeTab === 'utilisateurs' && <UtilisateursPanel />}
         {activeTab === 'systeme' && <SystemePanel />}

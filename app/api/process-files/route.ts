@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:8000'}/api/v1/process-files`, {
+    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/process-files`, {
       method: 'POST'
     })
     

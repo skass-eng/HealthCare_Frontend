@@ -174,25 +174,46 @@ export interface AnalyticsResponse extends PageResponse {
   };
 }
 
-// ==================== PAGE ANALYTICS V2 ====================
+// ==================== PAGE ADMINISTRATION ====================
 
-export interface AnalyticsV2Data {
-  predictions_ia: Record<string, any>;
-  insights_avances: Array<{
+export interface AdministrationData {
+  organisations: Array<{
+    id: number;
+    nom: string;
     type: string;
-    titre: string;
-    description: string;
-    impact: string;
-    recommandation: string;
+    adresse: string;
+    ville: string;
+    code_postal: string;
+    telephone: string;
+    email: string;
+    statut: string;
+    nombre_services: number;
+    nombre_utilisateurs: number;
   }>;
-  recommandations: string[];
-  metriques_avancees: Record<string, any>;
+  services: Array<{
+    id: number;
+    nom: string;
+    organisation_id: number;
+    responsable: string;
+    nombre_plaintes: number;
+    statut: string;
+    priorite: string;
+  }>;
+  utilisateurs: Array<{
+    id: number;
+    nom: string;
+    email: string;
+    role: string;
+    organisation_id: number;
+    statut: string;
+    derniere_connexion: string;
+  }>;
+  configurations: Record<string, any>;
 }
 
-export interface AnalyticsV2Response extends PageResponse {
+export interface AdministrationResponse extends PageResponse {
   data: {
-    analytics_v2: AnalyticsV2Data;
-    modeles_ia_utilises: string[];
+    administration: AdministrationData;
     apis_utilisees: string[];
   };
 }
@@ -381,9 +402,9 @@ class ApiPages {
     return this.request(`/analytics?${params.toString()}`);
   }
 
-  // ==================== PAGE ANALYTICS V2 ====================
+  // ==================== PAGE ADMINISTRATION ====================
 
-  async getAnalyticsV2Data(organisation_id?: number): Promise<AnalyticsV2Response> {
+  async getAdministrationData(organisation_id?: number): Promise<AdministrationResponse> {
     const params = new URLSearchParams();
     
     if (organisation_id !== undefined) {
@@ -613,8 +634,8 @@ export function useAnalyticsData(
   return { data, loading, error, refetch };
 }
 
-export function useAnalyticsV2Data(organisation_id?: number) {
-  const [data, setData] = React.useState<AnalyticsV2Response['data'] | null>(null);
+export function useAdministrationData(organisation_id?: number) {
+  const [data, setData] = React.useState<AdministrationResponse['data'] | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -622,7 +643,7 @@ export function useAnalyticsV2Data(organisation_id?: number) {
     try {
       setLoading(true);
       setError(null);
-      const result = await apiPages.getAnalyticsV2Data(organisation_id);
+      const result = await apiPages.getAdministrationData(organisation_id);
       setData(result.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');

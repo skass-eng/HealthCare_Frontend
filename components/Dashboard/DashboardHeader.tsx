@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowDownTrayIcon, PlusIcon, ExclamationTriangleIcon, SparklesIcon, ChartPieIcon } from '@heroicons/react/24/outline'
+import { ArrowDownTrayIcon, PlusIcon, ExclamationTriangleIcon, SparklesIcon, ChartPieIcon, Cog8ToothIcon } from '@heroicons/react/24/outline'
 import { apiUnified } from '@/lib/api-unified'
 import { useAppStore } from '@/hooks/useAppStore'
 import ExportModal from './ExportModal'
@@ -63,11 +63,10 @@ export default function DashboardHeader({ onOpenUpload }: DashboardHeaderProps) 
         </button>
         <button 
           onClick={() => router.push('/analytics-v2')}
-          className="btn-secondary flex items-center justify-center gap-2 text-sm lg:text-base bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 relative"
+          className="btn-secondary flex items-center justify-center gap-2 text-sm lg:text-base bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
         >
-          <SparklesIcon className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">Analytics V2</span>
-          <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 rounded-full">NEW</span>
+          <Cog8ToothIcon className="w-4 h-4 flex-shrink-0" />
+          <span className="truncate">Administration</span>
         </button>
         <button 
           onClick={openGlobalServiceSelector}

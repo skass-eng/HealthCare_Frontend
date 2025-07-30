@@ -7,6 +7,7 @@ import { useServices, useUtilisateurs } from '@/lib/api-unified'
 import ServiceConfigModal from './ServiceConfigModal'
 import UserConfigModal from './UserConfigModal'
 import ToastNotification from './ToastNotification'
+import { buildApiUrl, API_CONFIG } from '@/lib/api-config'
 
 export default function GlobalModals() {
   const { 
@@ -80,7 +81,7 @@ export default function GlobalModals() {
   // Handlers pour les services
   const handleSaveService = async (serviceData: any) => {
     try {
-      const url = `http://localhost:8000/api/v2/services${panels?.serviceConfig?.editingService ? `/${panels.serviceConfig.editingService.id}` : ''}`
+              const url = buildApiUrl(API_CONFIG.ENDPOINTS.SERVICES + (panels?.serviceConfig?.editingService ? `/${panels.serviceConfig.editingService.id}` : ''))
       const method = panels?.serviceConfig?.editingService ? 'PUT' : 'POST'
       
       const response = await fetch(url, {
@@ -129,7 +130,7 @@ export default function GlobalModals() {
     <>
       {/* Service Config Modal */}
       {panels?.serviceConfig?.isOpen && (
-        <div ref={serviceModalRef} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div ref={serviceModalRef} className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-8">
           <div data-modal-content>
             <ServiceConfigModal
               isOpen={panels.serviceConfig.isOpen}
@@ -144,7 +145,7 @@ export default function GlobalModals() {
 
       {/* User Config Modal */}
       {panels?.userConfig?.isOpen && (
-        <div ref={userModalRef} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div ref={userModalRef} className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-8">
           <div data-modal-content>
             <UserConfigModal
               isOpen={panels.userConfig.isOpen}

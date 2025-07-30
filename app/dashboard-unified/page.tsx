@@ -1,30 +1,27 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { buildApiUrl, API_CONFIG } from '@/lib/api-config'
 import { useAppStore } from '@/store'
-import DashboardUnifiedFilters from '@/components/Dashboard/DashboardUnifiedFilters'
 import DashboardUnifiedStats from '@/components/Dashboard/DashboardUnifiedStats'
 import ServicesOverview from '@/components/Dashboard/ServicesOverview'
-import DashboardNavigationBar from '@/components/Dashboard/DashboardNavigationBar'
 import AnalyticsContent from '@/components/Analytics/AnalyticsContent'
 import { apiUnified } from '@/lib/api-unified'
+import { 
+  ArrowDownTrayIcon, 
+  PlusIcon,
+  ShieldCheckIcon,
+  ClipboardDocumentListIcon,
+  PlayIcon,
+  CheckCircleIcon,
+  ClockIcon
+} from '@heroicons/react/24/outline'
 
 export default function DashboardUnifiedPage() {
   const { ui: { selectedService }, actions } = useAppStore()
   
-  // État pour les filtres
-  const [filters, setFilters] = useState({
-    type_service: '',
-    categorie_principale: '',
-    sous_categorie: '',
-    priorite: '',
-    statut: '',
-    organisation_id: 1
-  })
-
   // État pour les données
   const [statistiques, setStatistiques] = useState(null)
-  const [filtresDisponibles, setFiltresDisponibles] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const [stats, setStats] = useState({
@@ -34,39 +31,20 @@ export default function DashboardUnifiedPage() {
     tempsMoyen: '0j'
   })
 
-
-
-
-
-  // Charger les filtres disponibles
-  useEffect(() => {
-    const loadFiltresDisponibles = async () => {
-      try {
-        const response = await fetch('http://localhost:8000/api/v1/dashboard/filtres-disponibles')
-        const data = await response.json()
-        setFiltresDisponibles(data.filtres)
-      } catch (error) {
-        console.error('Erreur lors du chargement des filtres:', error)
-      }
-    }
-
-    loadFiltresDisponibles()
-  }, [])
-
-  // Charger les statistiques avec filtres
+  // Charger les statistiques
   const loadStatistiques = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams()
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value.toString())
-      })
-
-      const response = await fetch(`http://localhost:8000/api/v1/dashboard/statistiques?${params}`)
-      const data = await response.json()
-      setStatistiques(data)
+      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.STATISTIQUES))
       
-      // Calculer les statistiques pour les cartes
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      console.log('Statistiques reçues:', data)
+      
+      // Calculer le total en additionnant tous les statuts
       const total = (data.nouvelles_plaintes || 0) + (data.plaintes_en_attente || 0) + (data.en_cours_traitement || 0) + (data.traitees_ce_mois || 0)
       
       setStats({
@@ -75,6 +53,8 @@ export default function DashboardUnifiedPage() {
         resolues: data.traitees_ce_mois || 0,
         tempsMoyen: '3.2j'
       })
+      
+      setStatistiques(data)
     } catch (error) {
       console.error('Erreur lors du chargement des statistiques:', error)
     } finally {
@@ -82,39 +62,15 @@ export default function DashboardUnifiedPage() {
     }
   }
 
-  // Effet pour recharger les données quand les filtres changent
+  // Effet pour recharger les données
   useEffect(() => {
-    if (filtresDisponibles) {
-      loadStatistiques()
-    }
-  }, [filters, filtresDisponibles])
-
-  // Gestionnaire de changement de filtres
-  const handleFilterChange = (filterName: string, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterName]: value
-    }))
-  }
+    loadStatistiques()
+  }, [])
 
   // Gestionnaire de sélection de service
   const handleServiceSelect = (serviceType: string) => {
-    setFilters(prev => ({
-      ...prev,
-      type_service: serviceType
-    }))
-  }
-
-  // Réinitialiser les filtres
-  const resetFilters = () => {
-    setFilters({
-      type_service: '',
-      categorie_principale: '',
-      sous_categorie: '',
-      priorite: '',
-      statut: '',
-      organisation_id: 1
-    })
+    // Mise à jour du service sélectionné dans le store
+    actions.setSelectedService(serviceType)
   }
 
   // Gestionnaires pour la barre de navigation
@@ -143,131 +99,80 @@ export default function DashboardUnifiedPage() {
   }
 
   return (
-    <div className="space-y-6 lg:space-y-8 min-w-0 p-6">
+    <div className="space-y-4 lg:space-y-6 min-w-0 p-4">
 
-                  {/* Header */}
-      <div className="max-w-full mx-auto px-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative">
-            {/* Effet de fond avec gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 rounded-2xl blur-xl"></div>
-            
-            {/* Contenu du titre */}
-            <div className="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-2xl">
-              <div className="flex items-center gap-4">
-                {/* Icône avec effet */}
-                <div className="relative">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <span className="text-2xl">🛡️</span>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl opacity-20 animate-pulse"></div>
+      {/* Header */}
+      <div className="relative">
+        {/* Effet de fond avec gradient */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-teal-600/10 to-emerald-600/10 rounded-xl blur-lg"></div>
+        
+        {/* Contenu du titre */}
+        <div className="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* Icône avec effet */}
+              <div className="relative">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <ShieldCheckIcon className="w-6 h-6 text-white" />
                 </div>
-                
-                {/* Texte du titre */}
-                <div>
-                  <h1 className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent leading-tight">
-                    Vue d'Ensemble
-                  </h1>
-                  <p className="mt-2 text-lg lg:text-xl text-gray-700 font-medium">
-                    Interface Agent - Suivi et Validation des Réclamations
-                  </p>
-                  {/* Badge de statut */}
-                  <div className="mt-3 inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                    <span>Système Actif</span>
-                  </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-teal-500 rounded-lg opacity-20 animate-pulse"></div>
+              </div>
+              
+              {/* Texte du titre */}
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-teal-700 bg-clip-text text-transparent leading-tight">
+                  Vue d'Ensemble
+                </h1>
+                <p className="mt-1 text-sm lg:text-base text-slate-700 font-medium">
+                  Interface Agent - Suivi et Validation des Réclamations
+                </p>
+                {/* Badge de statut */}
+                <div className="mt-2 inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                  <span>Système Actif</span>
                 </div>
               </div>
+            </div>
+            
+            {/* Boutons d'action */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleExport}
+                className="px-4 py-2 bg-gradient-to-r from-slate-500 to-slate-600 text-white rounded-lg font-medium hover:from-slate-600 hover:to-slate-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2"
+              >
+                <ArrowDownTrayIcon className="h-5 w-5 text-white" />
+                <span className="text-sm">Exporter</span>
+              </button>
+              
+              <button
+                onClick={handleNewComplaint}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2"
+              >
+                <PlusIcon className="h-5 w-5 text-white" />
+                <span className="text-sm">Créer une plainte</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
       
-      {/* Barre de navigation */}
-      <DashboardNavigationBar
-        onRefresh={handleRefresh}
-        onExport={handleExport}
-        onNewComplaint={handleNewComplaint}
-      />
-
-
-
-      {/* Barre de statistiques */}
-      <div className="max-w-full mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold">{stats.total}</div>
-                <div className="text-blue-100 text-sm">Total Plaintes</div>
-              </div>
-              <div className="text-4xl">📋</div>
-            </div>
+      {/* Contenu principal */}
+      <div className="max-w-full mx-auto">
+        <div className="space-y-6">
+          {/* Vue d'ensemble des services */}
+          <div className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-xl p-4 shadow-lg">
+            <ServicesOverview 
+              selectedService={selectedService}
+              onServiceSelect={handleServiceSelect}
+            />
           </div>
-          
-          <div className="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold">{stats.enCours}</div>
-                <div className="text-yellow-100 text-sm">En Cours</div>
-              </div>
-              <div className="text-4xl">⏳</div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold">{stats.resolues}</div>
-                <div className="text-green-100 text-sm">Résolues</div>
-              </div>
-              <div className="text-4xl">✅</div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-indigo-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold">{stats.tempsMoyen}</div>
-                <div className="text-indigo-100 text-sm">Temps Moyen</div>
-              </div>
-              <div className="text-4xl">⏱️</div>
-            </div>
+
+          {/* Analytics Content */}
+          <div className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-xl p-4 shadow-lg">
+            <AnalyticsContent selectedPeriod="30j" />
           </div>
         </div>
       </div>
-
-      {/* Filtres */}
-      <div className="max-w-full mx-auto px-4">
-        <DashboardUnifiedFilters
-          filters={filters}
-          filtresDisponibles={filtresDisponibles}
-          onFilterChange={handleFilterChange}
-          onReset={resetFilters}
-        />
-      </div>
-
-
-
-              {/* Contenu principal */}
-        <div className="max-w-full mx-auto px-4">
-          <div className="space-y-8">
-            {/* Vue d'ensemble des services */}
-            <div className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-lg">
-              <ServicesOverview 
-                selectedService={filters.type_service}
-                onServiceSelect={handleServiceSelect}
-              />
-            </div>
-
-            {/* Analytics Content */}
-            <div className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-lg">
-              <AnalyticsContent selectedPeriod="30j" />
-            </div>
-
-
-          </div>
-        </div>
 
     </div>
   )

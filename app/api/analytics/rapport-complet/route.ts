@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
     const periode = searchParams.get('periode') || '30j'
     
     // Appeler l'API backend pour récupérer les données analytics
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
     let backendData = null
     
     try {

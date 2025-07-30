@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { XMarkIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline'
 import { apiUnified } from '@/lib/api-unified'
 import { ServiceEnum } from '@/types'
+import { buildApiUrl, API_CONFIG } from '@/lib/api-config'
 
 interface ExportModalProps {
   isOpen: boolean
@@ -43,7 +44,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
       
       const query = searchParams.toString()
       // Utiliser l'URL de l'API unifiée avec le préfixe /api/v1/
-      const url = `http://localhost:8000/api/v1/plaintes/export${query ? `?${query}` : ''}`
+      const url = buildApiUrl(API_CONFIG.ENDPOINTS.EXPORT_PLAINTES, query ? Object.fromEntries(searchParams) : undefined)
       
       // Faire la requête fetch directement pour gérer le téléchargement
       const response = await fetch(url)
@@ -108,8 +109,18 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
 
   if (!isOpen) return null
 
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    // Fermer seulement si on clique sur l'overlay, pas sur le modal
+    if (e.target === e.currentTarget) {
+      onClose()
+    }
+  }
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-8"
+      onClick={handleOverlayClick}
+    >
       <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

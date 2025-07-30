@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const periode = searchParams.get('periode') || '7j'
     
     const response = await fetch(
-      `${process.env.BACKEND_URL || 'http://localhost:8000'}/api/v1/statistiques/tendances?periode=${periode}`
+      `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/statistiques/tendances?periode=${periode}`
     )
     
     if (!response.ok) {

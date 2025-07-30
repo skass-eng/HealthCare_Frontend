@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:8000'}/api/v1/suggestions/par-service`)
+    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/suggestions/par-service`)
     
     if (!response.ok) {
       const error = await response.json()

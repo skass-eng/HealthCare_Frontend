@@ -77,8 +77,8 @@ export default function ServiceSelectorModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="glass-card p-8 w-full max-w-4xl mx-auto max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center z-50 p-4 pt-8">
+      <div className="glass-card p-8 w-full max-w-4xl mx-auto max-h-[85vh] flex flex-col">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-semibold text-slate-800 flex items-center gap-3">
             <SparklesIcon className="w-7 h-7 text-green-600" />

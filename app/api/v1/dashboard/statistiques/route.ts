@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
+import { API_CONFIG } from '@/lib/api-config'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     
     // Construire l'URL avec les paramètres
-    const backendUrl = new URL('/api/v1/dashboard/statistiques', BACKEND_URL)
+    const backendUrl = new URL('/api/v1/dashboard/statistiques', API_CONFIG.BACKEND_URL)
     searchParams.forEach((value, key) => {
       backendUrl.searchParams.append(key, value)
     })

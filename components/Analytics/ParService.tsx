@@ -2,6 +2,7 @@
 
 import React from 'react'
 import dynamic from 'next/dynamic'
+import { ChartPieIcon } from '@heroicons/react/24/outline'
 
 const PlotlyChart = dynamic(() => import('@/components/PlotlyChart'), {
   ssr: false,
@@ -35,121 +36,130 @@ interface ParServiceProps {
 
 export default function ParService({ analyticsData }: ParServiceProps) {
   return (
-    <div className="glass-card p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Graphique en barres */}
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Répartition par Service (Barres)</h3>
-          <PlotlyChart
-            data={[
-              {
-                x: analyticsData?.plaintesParService.map(s => s.service) || [],
-                y: analyticsData?.plaintesParService.map(s => s.count) || [],
-                type: 'bar',
-                marker: {
-                  color: ['#ef4444', '#f97316', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'],
-                  line: { color: 'white', width: 1 }
-                },
-                text: analyticsData?.plaintesParService.map(s => s.count) || [],
-                textposition: 'auto',
-                hovertemplate: '<b>%{x}</b><br>Plaintes: %{y}<extra></extra>'
-              }
-            ]}
-            layout={{
-              margin: { l: 50, r: 20, t: 20, b: 60 },
-              xaxis: { 
-                title: { text: 'Services', font: { color: '#6b7280' } },
-                tickfont: { color: '#6b7280' }
-              },
-              yaxis: { 
-                title: { text: 'Nombre de plaintes', font: { color: '#6b7280' } },
-                tickfont: { color: '#6b7280' }
-              },
-              plot_bgcolor: 'rgba(0,0,0,0)',
-              paper_bgcolor: 'rgba(0,0,0,0)',
-              font: { color: '#374151' }
-            }}
-            className="h-80"
-          />
-        </div>
-
-        {/* Graphique circulaire */}
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Répartition par Service (Circulaire)</h3>
-          <PlotlyChart
-            data={[
-              {
-                values: analyticsData?.plaintesParService.map(s => s.count) || [],
-                labels: analyticsData?.plaintesParService.map(s => s.service) || [],
-                type: 'pie',
-                hole: 0.4,
-                marker: {
-                  colors: ['#ef4444', '#f97316', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'],
-                  line: { color: 'white', width: 2 }
-                },
-                textinfo: 'percent',
-                textposition: 'inside',
-                hovertemplate: '<b>%{label}</b><br>Plaintes: %{value}<br>Pourcentage: %{percent}<extra></extra>'
-              }
-            ]}
-            layout={{
-              margin: { l: 20, r: 20, t: 20, b: 20 },
-              plot_bgcolor: 'rgba(0,0,0,0)',
-              paper_bgcolor: 'rgba(0,0,0,0)',
-              font: { color: '#374151' },
-              showlegend: false
-            }}
-            className="h-80"
-          />
-        </div>
+    <div className="bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500">
+      <div className="px-8 py-6 border-b border-white/20">
+        <h3 className="text-lg font-semibold text-slate-800 flex items-center">
+          <ChartPieIcon className="h-6 w-6 mr-3 text-blue-600" />
+          Analyse par Service
+        </h3>
       </div>
+      
+      <div className="p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Graphique en barres */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/30 shadow-lg">
+            <h4 className="text-md font-semibold text-slate-800 mb-4">Répartition par Service (Barres)</h4>
+            <PlotlyChart
+              data={[
+                {
+                  x: analyticsData?.plaintesParService.map(s => s.service) || [],
+                  y: analyticsData?.plaintesParService.map(s => s.count) || [],
+                  type: 'bar',
+                  marker: {
+                    color: ['#64748b', '#10b981', '#14b8a6', '#f97316', '#8b5cf6', '#ec4899'], // Slate, Emerald, Teal, Orange, Violet, Pink
+                    line: { color: 'white', width: 1 }
+                  },
+                  text: analyticsData?.plaintesParService.map(s => s.count) || [],
+                  textposition: 'auto',
+                  hovertemplate: '<b>%{x}</b><br>Plaintes: %{y}<extra></extra>'
+                }
+              ]}
+              layout={{
+                margin: { l: 50, r: 20, t: 20, b: 60 },
+                xaxis: { 
+                  title: { text: 'Services', font: { color: '#6b7280' } },
+                  tickfont: { color: '#6b7280' }
+                },
+                yaxis: { 
+                  title: { text: 'Nombre de plaintes', font: { color: '#6b7280' } },
+                  tickfont: { color: '#6b7280' }
+                },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#374151' }
+              }}
+              className="h-80"
+            />
+          </div>
 
-      {/* Tableau détaillé des services */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">Détails par Service</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white rounded-lg overflow-hidden shadow-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Service
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nombre de Plaintes
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Pourcentage
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statut
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {analyticsData?.plaintesParService.map((service, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {service.service}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {service.count}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {service.percentage.toFixed(1)}%
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      service.count > 10 ? 'bg-red-100 text-red-800' :
-                      service.count > 5 ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {service.count > 10 ? 'Élevé' : service.count > 5 ? 'Moyen' : 'Faible'}
-                    </span>
-                  </td>
+          {/* Graphique circulaire */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/30 shadow-lg">
+            <h4 className="text-md font-semibold text-slate-800 mb-4">Répartition par Service (Circulaire)</h4>
+            <PlotlyChart
+              data={[
+                {
+                  values: analyticsData?.plaintesParService.map(s => s.count) || [],
+                  labels: analyticsData?.plaintesParService.map(s => s.service) || [],
+                  type: 'pie',
+                  hole: 0.4,
+                  marker: {
+                    colors: ['#64748b', '#10b981', '#14b8a6', '#f97316', '#8b5cf6', '#ec4899'], // Slate, Emerald, Teal, Orange, Violet, Pink
+                    line: { color: 'white', width: 2 }
+                  },
+                  textinfo: 'percent',
+                  textposition: 'inside',
+                  hovertemplate: '<b>%{label}</b><br>Plaintes: %{value}<br>Pourcentage: %{percent}<extra></extra>'
+                }
+              ]}
+              layout={{
+                margin: { l: 20, r: 20, t: 20, b: 20 },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#374151' },
+                showlegend: false
+              }}
+              className="h-80"
+            />
+          </div>
+        </div>
+
+        {/* Tableau détaillé des services */}
+        <div className="mt-8">
+          <h4 className="text-md font-semibold text-slate-800 mb-4">Détails par Service</h4>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white/80 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg border border-white/30">
+              <thead className="bg-slate-50/80">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
+                    Service
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
+                    Nombre de Plaintes
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
+                    Pourcentage
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
+                    Statut
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white/60 divide-y divide-slate-200/60">
+                {analyticsData?.plaintesParService.map((service, index) => (
+                  <tr key={index} className="hover:bg-slate-50/80 transition-colors duration-200">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
+                      {service.service}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                      {service.count}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                      {service.percentage.toFixed(1)}%
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                        service.count > 10 ? 'bg-orange-100 text-orange-800' :
+                        service.count > 5 ? 'bg-teal-100 text-teal-800' :
+                        'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {service.count > 10 ? 'Élevé' : service.count > 5 ? 'Moyen' : 'Faible'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

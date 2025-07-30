@@ -44,7 +44,7 @@ export default function ApisUtiliseesCardUnified({ className = '' }: ApisUtilise
     { key: 'traitees', label: 'Traitées', icon: '✅' },
     { key: 'ameliorations', label: 'Améliorations', icon: '💡' },
     { key: 'analytics', label: 'Analytics', icon: '📈' },
-    { key: 'analytics-v2', label: 'Analytics V2', icon: '🤖' },
+    { key: 'analytics-v2', label: 'Administration', icon: '⚙️' },
     { key: 'parametres', label: 'Paramètres', icon: '⚙️' }
   ];
 
@@ -211,7 +211,7 @@ export default function ApisUtiliseesCardUnified({ className = '' }: ApisUtilise
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
           <span className="text-xs text-blue-700">
-            Intégré via API Unifiée (Port 8000) → API Pages (Port 8002)
+            Intégré via API Unifiée (Port 6000) → API Pages (Port 8002)
           </span>
         </div>
       </div>

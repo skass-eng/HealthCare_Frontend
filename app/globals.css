@@ -97,10 +97,10 @@
   }
   
   body {
-    @apply bg-gradient-to-br from-blue-500 via-purple-500 to-purple-700 min-h-screen font-sans;
-    font-family: 'Inter', system-ui, sans-serif;
-    /* Empêcher le débordement horizontal */
-    overflow-x: hidden;
+    @apply bg-gradient-to-br from-blue-500 via-purple-500 to-purple-700 font-sans;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    color: #1f2937;
   }
   
   html {

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { ShieldCheckIcon, ChartBarIcon, DocumentTextIcon, CogIcon, LightBulbIcon, BoltIcon } from '@heroicons/react/24/outline'
+import { ShieldCheckIcon, ChartBarIcon, DocumentTextIcon, CogIcon, LightBulbIcon, BoltIcon, SparklesIcon, FaceSmileIcon, TagIcon, LightBulbIcon as BulbIcon, ChartBarIcon as AnalyticsIcon, ExclamationTriangleIcon, DocumentTextIcon as SummaryIcon, Cog8ToothIcon } from '@heroicons/react/24/outline'
 
 export default function HealthCareAIPage() {
   const router = useRouter()
@@ -23,7 +23,7 @@ export default function HealthCareAIPage() {
       case 'IA & Optimisation':
         router.push('/ameliorations')
         break
-      case 'Analytics Avancés':
+      case 'Administration':
         router.push('/analytics-v2')
         break
       case 'Traitement Rapide':
@@ -50,18 +50,6 @@ export default function HealthCareAIPage() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-300/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
         
         <div className="relative z-10 container mx-auto px-6 py-16">
-          {/* Bouton de retour */}
-          <div className="text-left mb-8">
-            <button 
-              onClick={() => router.push('/dashboard-unified')}
-              className="inline-flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors duration-300 font-medium"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Retour au Dashboard
-            </button>
-          </div>
           
           {/* Logo et Titre */}
           <div className="text-center mb-16">
@@ -130,11 +118,11 @@ export default function HealthCareAIPage() {
               bgColor: 'from-teal-50 to-teal-100'
             },
             {
-              icon: ChartBarIcon,
-              title: 'Analytics Avancés',
-              description: 'Analyses détaillées et rapports personnalisés pour une prise de décision éclairée',
-              color: 'from-emerald-500 to-emerald-600',
-              bgColor: 'from-emerald-50 to-emerald-100'
+              icon: Cog8ToothIcon,
+              title: 'Administration',
+              description: 'Gestion des organisations et services avec configuration avancée',
+              color: 'from-purple-500 to-purple-600',
+              bgColor: 'from-purple-50 to-purple-100'
             },
             {
               icon: BoltIcon,
@@ -158,19 +146,108 @@ export default function HealthCareAIPage() {
               bgColor: 'from-cyan-50 to-cyan-100'
             }
           ].map((feature, index) => (
-            <div key={index} className="relative group cursor-pointer" onClick={() => handleFeatureClick(feature.title)}>
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-teal-600/10 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-              <div className={`relative bg-gradient-to-br ${feature.bgColor} rounded-3xl p-8 shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2`}>
-                <div className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r ${feature.color} rounded-2xl shadow-lg mb-6`}>
-                  <feature.icon className="w-8 h-8 text-white" />
-                </div>
-                <h4 className="text-xl font-bold text-slate-800 mb-4">{feature.title}</h4>
-                <p className="text-slate-600 leading-relaxed">{feature.description}</p>
-                <div className="mt-4 text-sm text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  Cliquer pour explorer →
-                </div>
-              </div>
-            </div>
+                         <div key={index} className="relative group cursor-pointer h-full" onClick={() => handleFeatureClick(feature.title)}>
+               <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-teal-600/10 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+               <div className={`relative bg-gradient-to-br ${feature.bgColor} rounded-3xl p-8 shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 h-full flex flex-col`}>
+                 <div className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r ${feature.color} rounded-2xl shadow-lg mb-6`}>
+                   <feature.icon className="w-8 h-8 text-white" />
+                 </div>
+                 <h4 className="text-xl font-bold text-slate-800 mb-4">{feature.title}</h4>
+                 <p className="text-slate-600 leading-relaxed flex-grow">{feature.description}</p>
+                 <div className="mt-4 text-sm text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                   Cliquer pour explorer →
+                 </div>
+               </div>
+             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Fonctionnalités IA & Analytics Avancées */}
+      <div className="container mx-auto px-6 py-16">
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl shadow-2xl mb-8">
+            <SparklesIcon className="w-10 h-10 text-white" />
+          </div>
+          <h3 className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-teal-700 bg-clip-text text-transparent mb-6">
+            Fonctionnalités IA & Analytics Avancées
+          </h3>
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+            Cette section intègre l'intelligence artificielle pour l'analyse automatique des plaintes, la classification intelligente, et les insights prédictifs.
+          </p>
+        </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                       {[
+              {
+                icon: FaceSmileIcon,
+                title: 'Analyse de Sentiment',
+                description: 'Détection automatique du sentiment (positif, négatif, neutre) dans les plaintes',
+                color: 'from-blue-500 to-blue-600',
+                badge: '+ Disponible avec l\'API V2',
+                badgeColor: 'text-blue-600',
+                badgeIcon: SparklesIcon
+              },
+              {
+                icon: TagIcon,
+                title: 'Classification Auto',
+                description: 'Catégorisation intelligente des plaintes par type, priorité et service',
+                color: 'from-teal-500 to-teal-600',
+                badge: 'IA Intégrée',
+                badgeColor: 'text-teal-600',
+                badgeIcon: CogIcon
+              },
+              {
+                icon: BulbIcon,
+                title: 'Suggestions IA',
+                description: 'Recommandations automatiques pour le traitement des plaintes',
+                color: 'from-indigo-500 to-indigo-600',
+                badge: 'Machine Learning',
+                badgeColor: 'text-indigo-600',
+                badgeIcon: SparklesIcon
+              },
+              {
+                icon: AnalyticsIcon,
+                title: 'Analytics Prédictive',
+                description: 'Prédiction des tendances et identification des risques',
+                color: 'from-slate-500 to-slate-600',
+                badge: 'Big Data',
+                badgeColor: 'text-slate-600',
+                badgeIcon: DocumentTextIcon
+              },
+              {
+                icon: ExclamationTriangleIcon,
+                title: 'Détection d\'Anomalies',
+                description: 'Identification automatique des patterns inhabituels',
+                color: 'from-cyan-500 to-cyan-600',
+                badge: 'Temps Réel',
+                badgeColor: 'text-cyan-600',
+                badgeIcon: BoltIcon
+              },
+              {
+                icon: SummaryIcon,
+                title: 'Résumé Auto',
+                description: 'Génération automatique de résumés et points clés',
+                color: 'from-emerald-500 to-emerald-600',
+                badge: 'NLP Avancé',
+                badgeColor: 'text-emerald-600',
+                badgeIcon: DocumentTextIcon
+              }
+            ].map((feature, index) => (
+                         <div key={index} className="relative group h-full">
+               <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-teal-600/10 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+               <div className="relative bg-white/90 backdrop-blur-md rounded-3xl p-8 shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 h-full flex flex-col">
+                                   <div className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r ${feature.color} rounded-2xl shadow-lg mb-6`}>
+                    <feature.icon className="w-8 h-8 text-white" />
+                  </div>
+                 <h4 className="text-xl font-bold text-slate-800 mb-4">{feature.title}</h4>
+                 <p className="text-slate-600 leading-relaxed mb-4 flex-grow">{feature.description}</p>
+                                   <div className={`text-sm font-medium ${feature.badgeColor} flex items-center gap-2 mt-auto`}>
+                    <feature.badgeIcon className="w-4 h-4" />
+                    {feature.badge}
+                  </div>
+               </div>
+             </div>
           ))}
         </div>
       </div>
@@ -197,18 +274,18 @@ export default function HealthCareAIPage() {
               { step: '03', title: 'Traitement', description: 'Résolution et suivi des actions correctives', icon: '⚡', color: 'from-emerald-500 to-emerald-600' },
               { step: '04', title: 'Validation', description: 'Contrôle qualité et clôture des dossiers', icon: '✅', color: 'from-slate-500 to-slate-600' }
             ].map((step, index) => (
-              <div key={index} className="relative text-center">
-                <div className="relative z-10">
-                  <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r ${step.color} rounded-3xl shadow-2xl mb-6 mx-auto`}>
-                    <span className="text-3xl">{step.icon}</span>
-                  </div>
-                  <div className="bg-white/90 backdrop-blur-md rounded-3xl p-6 shadow-xl border border-white/40">
-                    <div className="text-sm font-bold text-slate-500 mb-2">{step.step}</div>
-                    <h4 className="text-lg font-bold text-slate-800 mb-3">{step.title}</h4>
-                    <p className="text-sm text-slate-600">{step.description}</p>
-                  </div>
-                </div>
-              </div>
+                           <div key={index} className="relative text-center h-full">
+               <div className="relative z-10 h-full flex flex-col">
+                 <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r ${step.color} rounded-3xl shadow-2xl mb-6 mx-auto`}>
+                   <span className="text-3xl">{step.icon}</span>
+                 </div>
+                 <div className="bg-white/90 backdrop-blur-md rounded-3xl p-6 shadow-xl border border-white/40 flex-1 flex flex-col">
+                   <div className="text-sm font-bold text-slate-500 mb-2">{step.step}</div>
+                   <h4 className="text-lg font-bold text-slate-800 mb-3">{step.title}</h4>
+                   <p className="text-sm text-slate-600 flex-grow">{step.description}</p>
+                 </div>
+               </div>
+             </div>
             ))}
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { apiUnified } from '@/lib/api-unified'
 import { Plainte, ServiceEnum, PrioriteEnum } from '@/types'
 import { ChevronDownIcon } from '@heroicons/react/24/outline'
+import { API_CONFIG } from '@/lib/api-config'
 
 const serviceDisplayNames = {
   [ServiceEnum.CARDIOLOGIE]: 'Cardiologie',
@@ -221,7 +222,7 @@ export default function PlaintesSemaine() {
     return (
       <div className="glass-card p-6 text-center">
         <p className="text-red-500">❌ {error}</p>
-        <p className="text-sm text-gray-500 mt-2">Vérifiez que le backend est en marche sur http://localhost:8000</p>
+        <p className="text-sm text-gray-500 mt-2">Vérifiez que le backend est en marche sur {API_CONFIG.BACKEND_URL}</p>
       </div>
     )
   }

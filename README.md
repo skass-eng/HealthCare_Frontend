@@ -6,7 +6,7 @@ Interface moderne de gestion des plaintes médicales alimentée par IA.
 
 ### Prérequis
 - **Node.js** 18+ et **npm** 
-- Backend FastAPI en cours d'exécution sur `http://localhost:8000`
+- Backend FastAPI en cours d'exécution sur `http://localhost:6000`
 
 ### 1. Installation des dépendances
 
@@ -21,10 +21,10 @@ Créer un fichier `.env.local` :
 
 ```bash
 # Backend API URL
-BACKEND_URL=http://localhost:8000
+BACKEND_URL=http://localhost:6000
 
 # Next.js Configuration
-NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:6000
 ```
 
 ### 3. Lancement en développement
@@ -33,7 +33,7 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 npm run dev
 ```
 
-L'application sera accessible sur **http://localhost:3000**
+L'application sera accessible sur **http://localhost:4000**
 
 ## 🎨 Stack Technique
 
@@ -144,7 +144,7 @@ npm run type-check
 - Redémarrer le serveur de développement : `Ctrl+C` puis `npm run dev`
 
 ### Problèmes de connexion API
-- Vérifier que le backend FastAPI fonctionne sur `http://localhost:8000`
+- Vérifier que le backend FastAPI fonctionne sur `http://localhost:6000`
 - Contrôler la configuration CORS du backend
 - Vérifier le fichier `.env.local`
 

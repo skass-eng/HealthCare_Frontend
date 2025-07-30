@@ -44,7 +44,7 @@ export default function ApisUtiliseesCard({ className = '' }: ApisUtiliseesCardP
     { key: 'traitees', label: 'Traitées', icon: '✅' },
     { key: 'ameliorations', label: 'Améliorations', icon: '💡' },
     { key: 'analytics', label: 'Analytics', icon: '📈' },
-    { key: 'analytics-v2', label: 'Analytics V2', icon: '🤖' },
+    { key: 'analytics-v2', label: 'Administration', icon: '⚙️' },
     { key: 'parametres', label: 'Paramètres', icon: '⚙️' }
   ];
 
