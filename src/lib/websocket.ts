@@ -1,0 +1,213 @@
+import { io, Socket } from 'socket.io-client';
+import { WebSocketMessage, Task, TaskStatus } from '@/types';
+
+class WebSocketService {
+  private socket: Socket | null = null;
+  private baseURL: string;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 1000;
+
+  constructor() {
+    // Configuration forcée pour le développement
+    this.baseURL = 'http://localhost:8000';
+    console.log('🔌 WebSocket URL configurée:', this.baseURL);
+  }
+
+  connect(token?: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        this.socket = io(this.baseURL, {
+          auth: {
+            token: token || localStorage.getItem('token'),
+          },
+          transports: ['websocket', 'polling'],
+          timeout: 20000,
+        });
+
+        this.socket.on('connect', () => {
+          console.log('✅ WebSocket connecté avec succès');
+          console.log('🆔 Socket ID:', this.socket?.id);
+          this.reconnectAttempts = 0;
+          resolve();
+        });
+
+        this.socket.on('disconnect', (reason) => {
+          console.log('WebSocket disconnected:', reason);
+          if (reason === 'io server disconnect') {
+            // Le serveur a déconnecté, on ne reconnecte pas automatiquement
+            this.socket?.connect();
+          }
+        });
+
+        this.socket.on('connect_error', (error) => {
+          console.error('❌ Erreur de connexion WebSocket:', error);
+          console.error('🔍 Détails:', {
+            message: error.message,
+            description: error.description,
+            context: error.context
+          });
+          reject(error);
+        });
+
+        this.socket.on('reconnect', (attemptNumber) => {
+          console.log('WebSocket reconnected after', attemptNumber, 'attempts');
+        });
+
+        this.socket.on('reconnect_error', (error) => {
+          console.error('WebSocket reconnection error:', error);
+        });
+
+        this.socket.on('reconnect_failed', () => {
+          console.error('WebSocket reconnection failed');
+        });
+
+      } catch (error) {
+        console.error('Error creating WebSocket connection:', error);
+        reject(error);
+      }
+    });
+  }
+
+  disconnect(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
+  isConnected(): boolean {
+    return this.socket?.connected || false;
+  }
+
+  // Écouter les mises à jour de tâches
+  onTaskUpdate(callback: (task: Task) => void): void {
+    if (!this.socket) return;
+
+    this.socket.on('task_update', (data: Task) => {
+      console.log('Task update received:', data);
+      callback(data);
+    });
+  }
+
+  // Écouter la completion de tâches
+  onTaskComplete(callback: (task: Task) => void): void {
+    if (!this.socket) return;
+
+    this.socket.on('task_complete', (data: Task) => {
+      console.log('Task completed:', data);
+      callback(data);
+    });
+  }
+
+  // Écouter les erreurs de tâches
+  onTaskError(callback: (error: { taskId: string; error: string }) => void): void {
+    if (!this.socket) return;
+
+    this.socket.on('task_error', (data: { taskId: string; error: string }) => {
+      console.error('Task error:', data);
+      callback(data);
+    });
+  }
+
+  // Écouter les notifications
+  onNotification(callback: (notification: any) => void): void {
+    if (!this.socket) return;
+
+    this.socket.on('notification', (data: any) => {
+      console.log('Notification received:', data);
+      callback(data);
+    });
+  }
+
+  // S'abonner à une tâche spécifique
+  subscribeToTask(taskId: string): void {
+    if (!this.socket) return;
+
+    this.socket.emit('subscribe_task', { taskId });
+  }
+
+  // Se désabonner d'une tâche
+  unsubscribeFromTask(taskId: string): void {
+    if (!this.socket) return;
+
+    this.socket.emit('unsubscribe_task', { taskId });
+  }
+
+  // S'abonner à un dashboard
+  subscribeToDashboard(dashboardId: string): void {
+    if (!this.socket) return;
+
+    this.socket.emit('subscribe_dashboard', { dashboardId });
+  }
+
+  // Se désabonner d'un dashboard
+  unsubscribeFromDashboard(dashboardId: string): void {
+    if (!this.socket) return;
+
+    this.socket.emit('unsubscribe_dashboard', { dashboardId });
+  }
+
+  // Envoyer un message personnalisé
+  emit(event: string, data: any): void {
+    if (!this.socket) {
+      console.warn('WebSocket not connected');
+      return;
+    }
+
+    this.socket.emit(event, data);
+  }
+
+  // Écouter un événement personnalisé
+  on(event: string, callback: (data: any) => void): void {
+    if (!this.socket) return;
+
+    this.socket.on(event, callback);
+  }
+
+  // Arrêter d'écouter un événement
+  off(event: string): void {
+    if (!this.socket) return;
+
+    this.socket.off(event);
+  }
+
+  // Obtenir l'état de la connexion
+  getConnectionState(): string {
+    if (!this.socket) return 'disconnected';
+    return this.socket.connected ? 'connected' : 'connecting';
+  }
+
+  // Reconnecter manuellement
+  reconnect(): void {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+      
+      setTimeout(() => {
+        this.connect();
+      }, this.reconnectDelay * this.reconnectAttempts);
+    } else {
+      console.error('Max reconnection attempts reached');
+    }
+  }
+
+  // Nettoyer tous les listeners
+  cleanup(): void {
+    if (!this.socket) return;
+
+    this.socket.off('task_update');
+    this.socket.off('task_complete');
+    this.socket.off('task_error');
+    this.socket.off('notification');
+    this.socket.off('connect');
+    this.socket.off('disconnect');
+    this.socket.off('connect_error');
+    this.socket.off('reconnect');
+    this.socket.off('reconnect_error');
+    this.socket.off('reconnect_failed');
+  }
+}
+
+export const wsService = new WebSocketService();
+export default wsService; 
