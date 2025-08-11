@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { openExportModal } from '@/store/slices/uiSlice';
 import { DashboardUnifiedPlaintes } from '@/components';
 import { Download as DownloadIcon } from '@mui/icons-material';
@@ -9,6 +10,7 @@ import { Plainte } from '@/types';
 
 const PlaintesDashboard: React.FC = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [plaintes, setPlaintes] = useState<Plainte[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +67,11 @@ const PlaintesDashboard: React.FC = () => {
     console.log('🔄 Changement de type de plainte:', type);
     setCurrentStatut(type);
     loadPlaintes(1, type);
+  };
+
+  // Fonction pour gérer la création d'une nouvelle plainte
+  const handleNewComplaint = () => {
+    navigate('/plaintes/nouvelles');
   };
 
   return (

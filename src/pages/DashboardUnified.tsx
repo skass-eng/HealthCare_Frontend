@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Download as DownloadIcon,
   Add as AddIcon,
@@ -21,6 +22,7 @@ import AnalyticsContent from '@/components/AnalyticsContent';
 
 const DashboardUnified: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const { 
     statistiquesGlobales, 
     statistiquesDepartements, 
@@ -65,7 +67,7 @@ const DashboardUnified: React.FC = () => {
   };
 
   const handleNewComplaint = () => {
-    console.log('Nouvelle plainte');
+    navigate('/plaintes/nouvelles');
   };
 
   // Fonction pour obtenir l'icône et la couleur selon le type de service

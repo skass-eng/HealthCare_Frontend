@@ -173,111 +173,178 @@ export default function FormulaireManuel({ formData, errors, handleChange, handl
               className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all bg-white border-gray-200 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-800 mb-1">
-              Service concerné *
-            </label>
-            <Select
-              options={services.map((service: any) => ({
-                value: service.id,
-                label: service.nom || service.name || `Service ${service.id}`
-              }))}
-              value={services
-                .map((service: any) => ({
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-800 mb-1">
+                Service concerné *
+              </label>
+              <Select
+                options={services.map((service: any) => ({
                   value: service.id,
                   label: service.nom || service.name || `Service ${service.id}`
-                }))
-                .find((option: any) => option.value.toString() === formData.service_id) || null}
-              onChange={(option: any) => handleChange('service_id', option ? option.value.toString() : '')}
-              placeholder="Sélectionnez un service"
-              isClearable
-              classNamePrefix="react-select"
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  borderRadius: '0.75rem',
-                  borderColor: errors.service_id ? '#ef4444' : '#10b981',
-                  boxShadow: '0 2px 8px rgba(16,185,129,0.08)',
-                  minHeight: '44px',
-                  fontWeight: '600',
-                  background: 'white',
-                }),
-                option: (base, state) => ({
-                  ...base,
-                  backgroundColor: state.isSelected ? '#10b981' : state.isFocused ? '#d1fae5' : 'white',
-                  color: state.isSelected ? 'white' : '#1e293b',
-                  fontWeight: state.isSelected ? '700' : '500',
-                  fontSize: '1rem',
-                }),
-                menu: (base) => ({
-                  ...base,
-                  borderRadius: '0.75rem',
-                  boxShadow: '0 8px 32px rgba(16,185,129,0.15)',
-                  zIndex: 20,
-                }),
-              }}
-            />
-            {errors.service_id && (
-              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                {errors.service_id}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-800 mb-1">
-              Assigné à *
-            </label>
-            <Select
-              options={users.map((user: any) => ({
-                value: user.id,
-                label: user.nom && user.prenom ? `${user.nom} ${user.prenom}` : user.nom || user.name || user.email || `Utilisateur ${user.id}`
-              }))}
-              value={users
-                .map((user: any) => ({
+                }))}
+                value={services
+                  .map((service: any) => ({
+                    value: service.id,
+                    label: service.nom || service.name || `Service ${service.id}`
+                  }))
+                  .find((option: any) => option.value.toString() === formData.service_id) || null}
+                onChange={(option: any) => handleChange('service_id', option ? option.value.toString() : '')}
+                placeholder="Sélectionnez un service"
+                isClearable
+                classNamePrefix="react-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: '0.75rem',
+                    borderColor: errors.service_id ? '#ef4444' : '#10b981',
+                    boxShadow: '0 2px 8px rgba(16,185,129,0.08)',
+                    minHeight: '44px',
+                    fontWeight: '600',
+                    background: 'white',
+                  }),
+                  option: (base, state) => ({
+                    ...base,
+                    backgroundColor: state.isSelected ? '#10b981' : state.isFocused ? '#d1fae5' : 'white',
+                    color: state.isSelected ? 'white' : '#1e293b',
+                    fontWeight: state.isSelected ? '700' : '500',
+                    fontSize: '1rem',
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    borderRadius: '0.75rem',
+                    boxShadow: '0 8px 32px rgba(16,185,129,0.15)',
+                    zIndex: 20,
+                  }),
+                }}
+              />
+              {errors.service_id && (
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.service_id}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-800 mb-1">
+                Assigné à *
+              </label>
+              <Select
+                options={users.map((user: any) => ({
                   value: user.id,
                   label: user.nom && user.prenom ? `${user.nom} ${user.prenom}` : user.nom || user.name || user.email || `Utilisateur ${user.id}`
-                }))
-                .find((option: any) => option.value === formData.assigned_user) || null}
-              onChange={(option: any) => handleChange('assigned_user', option ? option.value : '')}
-              placeholder="Sélectionnez un utilisateur"
-              isClearable
-              classNamePrefix="react-select"
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  borderRadius: '0.75rem',
-                  borderColor: errors.assigned_user ? '#ef4444' : '#3b82f6',
-                  boxShadow: '0 2px 8px rgba(59,130,246,0.08)',
-                  minHeight: '44px',
-                  fontWeight: '600',
-                  background: 'white',
-                }),
-                option: (base, state) => ({
-                  ...base,
-                  backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#e0e7ff' : 'white',
-                  color: state.isSelected ? 'white' : '#1e293b',
-                  fontWeight: state.isSelected ? '700' : '500',
-                  fontSize: '1rem',
-                }),
-                menu: (base) => ({
-                  ...base,
-                  borderRadius: '0.75rem',
-                  boxShadow: '0 8px 32px rgba(59,130,246,0.15)',
-                  zIndex: 20,
-                }),
-              }}
-            />
-            {errors.assigned_user && (
-              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                {errors.assigned_user}
-              </p>
-            )}
+                }))}
+                value={users
+                  .map((user: any) => ({
+                    value: user.id,
+                    label: user.nom && user.prenom ? `${user.nom} ${user.prenom}` : user.nom || user.name || user.email || `Utilisateur ${user.id}`
+                  }))
+                  .find((option: any) => option.value === formData.assigned_user) || null}
+                onChange={(option: any) => handleChange('assigned_user', option ? option.value : '')}
+                placeholder="Sélectionnez un utilisateur"
+                isClearable
+                classNamePrefix="react-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: '0.75rem',
+                    borderColor: errors.assigned_user ? '#ef4444' : '#3b82f6',
+                    boxShadow: '0 2px 8px rgba(59,130,246,0.08)',
+                    minHeight: '44px',
+                    fontWeight: '600',
+                    background: 'white',
+                  }),
+                  option: (base, state) => ({
+                    ...base,
+                    backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#e0e7ff' : 'white',
+                    color: state.isSelected ? 'white' : '#1e293b',
+                    fontWeight: state.isSelected ? '700' : '500',
+                    fontSize: '1rem',
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    borderRadius: '0.75rem',
+                    boxShadow: '0 8px 32px rgba(59,130,246,0.15)',
+                    zIndex: 20,
+                  }),
+                }}
+              />
+              {errors.assigned_user && (
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.assigned_user}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-800 mb-1">
+                Priorité de la plainte *
+              </label>
+              <Select
+                options={
+                  [
+                    { nom: 'URGENT', name: 'URGENT' },
+                    { nom: 'BAS', name: 'BAS' },
+                    { nom: 'MOYEN', name: 'MOYEN' },
+                    { nom: 'ELEVE', name: 'ELEVE' }
+                  ].map((priority: any) => ({
+                    value: priority.nom || priority.name,
+                    label: priority.nom || priority.name || `Priorité ${priority.nom}`
+                  }))
+                }
+                value={[
+                  { nom: 'URGENT', name: 'URGENT' },
+                  { nom: 'BAS', name: 'BAS' },
+                  { nom: 'MOYEN', name: 'MOYEN' },
+                  { nom: 'ELEVE', name: 'ELEVE' }
+                ]
+                  .map((priority: any) => ({
+                    value: priority.nom || priority.name,
+                    label: priority.nom || priority.name || `Priorité ${priority.nom}`
+                  }))
+                  .find((option: any) => option.value === formData.priority) || null}
+                onChange={(option: any) => handleChange('priority', option ? option.value : '')}
+                placeholder="Sélectionnez une priorité"
+                isClearable
+                classNamePrefix="react-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: '0.75rem',
+                    borderColor: errors.priority ? '#ef4444' : '#f59e0b',
+                    boxShadow: '0 2px 8px rgba(245,158,11,0.08)',
+                    minHeight: '44px',
+                    fontWeight: '600',
+                    background: 'white',
+                  }),
+                  option: (base, state) => ({
+                    ...base,
+                    backgroundColor: state.isSelected ? '#f59e0b' : state.isFocused ? '#fef3c7' : 'white',
+                    color: state.isSelected ? 'white' : '#1e293b',
+                    fontWeight: state.isSelected ? '700' : '500',
+                    fontSize: '1rem',
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    borderRadius: '0.75rem',
+                    boxShadow: '0 8px 32px rgba(245,158,11,0.15)',
+                    zIndex: 20,
+                  }),
+                }}
+              />
+              {errors.priority && (
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.priority}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
