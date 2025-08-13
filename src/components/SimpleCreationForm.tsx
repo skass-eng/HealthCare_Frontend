@@ -65,6 +65,9 @@ export default function SimpleCreationForm({ onPlainteCreated, onCancel }: Simpl
     }
 
     setLoading(true);
+    
+    // 🚀 Affichage immédiat que la soumission a commencé
+    console.log('🚀 Début création de la plainte...');
 
     try {
       const plainteData: PlainteCreate = {
@@ -77,7 +80,8 @@ export default function SimpleCreationForm({ onPlainteCreated, onCancel }: Simpl
       const response = await apiService.createPlainte(plainteData);
       
       if (response.success && response.data) {
-        alert('Plainte créée avec succès !');
+        // 🎉 Succès - notification immédiate
+        alert('✅ Plainte créée avec succès !\n\n Génération du rapport PDF en cours...\n🤖 Analyse IA démarrée...\n\nVous serez notifié(e) une fois terminé.');
         
         // Notifier le parent
         if (onPlainteCreated) {
@@ -92,11 +96,13 @@ export default function SimpleCreationForm({ onPlainteCreated, onCancel }: Simpl
           date_incident: ''
         });
       } else {
-        alert('Erreur lors de la création de la plainte');
+        // ❌ Erreur de réponse
+        alert('❌ Erreur lors de la création de la plainte');
       }
     } catch (error) {
       console.error('Erreur lors de la création:', error);
-      alert('Erreur lors de la création de la plainte');
+      // ❌ Erreur de network/API
+      alert('❌ Erreur de connexion. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
