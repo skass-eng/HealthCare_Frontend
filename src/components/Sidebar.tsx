@@ -20,7 +20,8 @@ import {
   Add as PlusIcon,
   Description as ClipboardDocumentListIcon,
   Settings as Cog8ToothIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Security as SecurityIcon
 } from '@mui/icons-material'
 import { useAuth } from '../lib/AppClientContext'
 
@@ -121,13 +122,11 @@ export default function Sidebar() {
           sx={{
             width: 48,
             height: 48,
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-            fontSize: '1.5rem',
-            fontWeight: 'bold'
+            background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
+            boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)',
           }}
         >
-          🏥
+          <SecurityIcon sx={{ fontSize: 24, color: 'white' }} />
         </Avatar>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography

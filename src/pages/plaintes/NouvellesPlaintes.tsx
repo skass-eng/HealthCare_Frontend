@@ -10,7 +10,7 @@ import { apiService } from '../../lib/api';
 import { toast } from 'sonner';
 
 export default function NouvellesPlaintesPage() {
-  const [activePanel, setActivePanel] = useState<'manual' | 'pdf' | 'photo' | null>(null);
+  const [activePanel, setActivePanel] = useState<'manual' | 'pdf' | 'photo' | null>('manual');
   const [loading, setLoading] = useState(false);
 
   const handleCreatePlainte = async (plainteData: any) => {

@@ -25,6 +25,16 @@ export const register = createAsyncThunk(
   'auth/register',
   async (userData: { email: string; password: string; name: string }) => {
     const response = await apiService.register(userData);
+    console.log('🔍 Réponse API register:', response);
+    
+    if (response.success) {
+      console.log('✅ Sauvegarde du token après inscription:', response.data.token);
+      apiService.setAuthToken(response.data.token);
+      // Sauvegarder le token dans localStorage
+      localStorage.setItem('token', response.data.token);
+    } else {
+      console.error('❌ Échec de l\'inscription:', response);
+    }
     return response.data;
   }
 );

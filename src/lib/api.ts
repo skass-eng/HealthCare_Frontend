@@ -133,9 +133,20 @@ class ApiService {
     } as ApiResponse<{ user: User; token: string }>;
   }
 
-  // Note: Register endpoint not available in current backend
-  async register(userData: { email: string; password: string; name: string }): Promise<ApiResponse<User>> {
-    throw new Error('Registration endpoint not available in current backend');
+  // Inscription d'un nouvel utilisateur
+  async register(userData: { email: string; password: string; name: string }): Promise<ApiResponse<{ user: User; token: string }>> {
+    const response = await this.api.post('/auth/register', userData);
+    
+    // Adapter la réponse du backend au format attendu par le frontend
+    const backendResponse = response.data;
+    return {
+      success: true,
+      data: {
+        user: backendResponse.user,
+        token: backendResponse.access_token
+      },
+      message: backendResponse.message || 'Inscription réussie'
+    } as ApiResponse<{ user: User; token: string }>;
   }
 
   async getCurrentUser(): Promise<ApiResponse<User>> {

@@ -96,21 +96,30 @@ export class AuthService extends BaseService {
   }
 
   /**
-   * Inscription d'un nouvel utilisateur (si disponible)
+   * Inscription d'un nouvel utilisateur
    */
-  async register(userData: UserCreate): Promise<ApiResponse<User>> {
+  async register(userData: UserCreate): Promise<ApiResponse<{ user: User; token: string }>> {
     try {
-      const response = await this.api.post<User>('/register', userData);
+      const response = await this.api.post<{ success: boolean; message: string; user: User; access_token: string }>('/auth/register', userData);
+      
+      // Sauvegarder le token et l'utilisateur
+      if (response.data.access_token) {
+        this.saveTokenToLocalStorage(response.data.access_token);
+        this.saveUserToLocalStorage(response.data.user);
+      }
       
       return {
         success: true,
-        data: response.data,
-        message: 'Utilisateur créé avec succès'
+        data: {
+          user: response.data.user,
+          token: response.data.access_token
+        },
+        message: response.data.message || 'Inscription réussie'
       };
       
     } catch (error) {
       console.error('❌ Erreur inscription:', error);
-      return this.handleAuthError(error);
+      return this.handleAuthError(error) as ApiResponse<{ user: User; token: string }>;
     }
   }
 
