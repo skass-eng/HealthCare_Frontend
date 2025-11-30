@@ -19,8 +19,10 @@ import {
   Lightbulb as LightBulbIcon,
   Add as PlusIcon,
   Description as ClipboardDocumentListIcon,
-  Settings as Cog8ToothIcon
+  Settings as Cog8ToothIcon,
+  Logout as LogoutIcon
 } from '@mui/icons-material'
+import { useAuth } from '../lib/AppClientContext'
 
 const navigationItems = [
   {
@@ -58,8 +60,13 @@ const navigationItems = [
 export default function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { logout } = useAuth()
   const [nouvellesPlaintesCount, setNouvellesPlaintesCount] = useState<string | number | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const handleLogout = () => {
+    logout()
+  }
   
   useEffect(() => {
     const fetchNouvellesPlaintes = async () => {
@@ -221,6 +228,40 @@ export default function Sidebar() {
             </ListItem>
           )
         })}
+        
+        {/* Bouton de déconnexion */}
+        <ListItem disablePadding sx={{ mb: 1 }}>
+          <ListItemButton
+            onClick={handleLogout}
+            sx={{
+              borderRadius: 2,
+              p: 2,
+              transition: 'all 0.3s',
+              '&:hover': {
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }
+            }}
+          >
+            <ListItemIcon
+              sx={{
+                minWidth: 40,
+                color: '#3b82f6'
+              }}
+            >
+              <LogoutIcon />
+            </ListItemIcon>
+            <ListItemText
+              primary="Déconnexion"
+              sx={{
+                '& .MuiListItemText-primary': {
+                  fontWeight: 600,
+                  fontSize: { xs: '0.875rem', lg: '1rem' }
+                }
+              }}
+            />
+          </ListItemButton>
+        </ListItem>
       </List>
       
       {/* Floating Action Button for Mobile */}

@@ -143,68 +143,224 @@ const Register: React.FC = () => {
               </Alert>
             )}
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="name"
-              label="Nom complet"
-              name="name"
-              autoComplete="name"
-              autoFocus
-              value={formData.name}
-              onChange={handleChange}
-              error={!!formErrors.name}
-              helperText={formErrors.name}
-              sx={{ mb: 2 }}
-            />
+            {/* Nom complet avec label fixe */}
+            <Box sx={{ mb: 2 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mb: 1, 
+                  fontWeight: 600,
+                  color: 'rgba(0, 0, 0, 0.87)',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Nom complet *
+              </Typography>
+              <TextField
+                required
+                fullWidth
+                id="name"
+                name="name"
+                autoComplete="name"
+                autoFocus
+                value={formData.name}
+                onChange={handleChange}
+                error={!!formErrors.name}
+                helperText={formErrors.name}
+                placeholder="Votre nom complet"
+                variant="outlined"
+                InputLabelProps={{ shrink: false }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'white',
+                    '& fieldset': {
+                      borderColor: formErrors.name ? '#d32f2f' : 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: formErrors.name ? '#d32f2f' : 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: formErrors.name ? '#d32f2f' : '#3b82f6',
+                      borderWidth: '2px',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    backgroundColor: 'white',
+                    color: 'black',
+                    padding: '12px 14px',
+                    fontSize: '1rem',
+                    '&::placeholder': {
+                      color: 'rgba(0, 0, 0, 0.4)',
+                      opacity: 1,
+                    }
+                  }
+                }}
+              />
+            </Box>
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Adresse email"
-              name="email"
-              autoComplete="email"
-              value={formData.email}
-              onChange={handleChange}
-              error={!!formErrors.email}
-              helperText={formErrors.email}
-              sx={{ mb: 2 }}
-            />
+            {/* Adresse email avec label fixe */}
+            <Box sx={{ mb: 2 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mb: 1, 
+                  fontWeight: 600,
+                  color: 'rgba(0, 0, 0, 0.87)',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Adresse email *
+              </Typography>
+              <TextField
+                required
+                fullWidth
+                id="email"
+                name="email"
+                autoComplete="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={!!formErrors.email}
+                helperText={formErrors.email}
+                placeholder="votre.email@exemple.com"
+                variant="outlined"
+                InputLabelProps={{ shrink: false }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'white',
+                    '& fieldset': {
+                      borderColor: formErrors.email ? '#d32f2f' : 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: formErrors.email ? '#d32f2f' : 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: formErrors.email ? '#d32f2f' : '#3b82f6',
+                      borderWidth: '2px',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    backgroundColor: 'white',
+                    color: 'black',
+                    padding: '12px 14px',
+                    fontSize: '1rem',
+                    '&::placeholder': {
+                      color: 'rgba(0, 0, 0, 0.4)',
+                      opacity: 1,
+                    }
+                  }
+                }}
+              />
+            </Box>
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Mot de passe"
-              type="password"
-              id="password"
-              autoComplete="new-password"
-              value={formData.password}
-              onChange={handleChange}
-              error={!!formErrors.password}
-              helperText={formErrors.password}
-              sx={{ mb: 2 }}
-            />
+            {/* Mot de passe avec label fixe */}
+            <Box sx={{ mb: 2 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mb: 1, 
+                  fontWeight: 600,
+                  color: 'rgba(0, 0, 0, 0.87)',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Mot de passe *
+              </Typography>
+              <TextField
+                required
+                fullWidth
+                name="password"
+                type="password"
+                id="password"
+                autoComplete="new-password"
+                value={formData.password}
+                onChange={handleChange}
+                error={!!formErrors.password}
+                helperText={formErrors.password}
+                placeholder="••••••••"
+                variant="outlined"
+                InputLabelProps={{ shrink: false }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'white',
+                    '& fieldset': {
+                      borderColor: formErrors.password ? '#d32f2f' : 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: formErrors.password ? '#d32f2f' : 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: formErrors.password ? '#d32f2f' : '#3b82f6',
+                      borderWidth: '2px',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    backgroundColor: 'white',
+                    color: 'black',
+                    padding: '12px 14px',
+                    fontSize: '1rem',
+                    '&::placeholder': {
+                      color: 'rgba(0, 0, 0, 0.4)',
+                      opacity: 1,
+                    }
+                  }
+                }}
+              />
+            </Box>
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="confirmPassword"
-              label="Confirmer le mot de passe"
-              type="password"
-              id="confirmPassword"
-              autoComplete="new-password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              error={!!formErrors.confirmPassword}
-              helperText={formErrors.confirmPassword}
-              sx={{ mb: 3 }}
-            />
+            {/* Confirmer mot de passe avec label fixe */}
+            <Box sx={{ mb: 3 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mb: 1, 
+                  fontWeight: 600,
+                  color: 'rgba(0, 0, 0, 0.87)',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Confirmer le mot de passe *
+              </Typography>
+              <TextField
+                required
+                fullWidth
+                name="confirmPassword"
+                type="password"
+                id="confirmPassword"
+                autoComplete="new-password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                error={!!formErrors.confirmPassword}
+                helperText={formErrors.confirmPassword}
+                placeholder="••••••••"
+                variant="outlined"
+                InputLabelProps={{ shrink: false }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'white',
+                    '& fieldset': {
+                      borderColor: formErrors.confirmPassword ? '#d32f2f' : 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: formErrors.confirmPassword ? '#d32f2f' : 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: formErrors.confirmPassword ? '#d32f2f' : '#3b82f6',
+                      borderWidth: '2px',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    backgroundColor: 'white',
+                    color: 'black',
+                    padding: '12px 14px',
+                    fontSize: '1rem',
+                    '&::placeholder': {
+                      color: 'rgba(0, 0, 0, 0.4)',
+                      opacity: 1,
+                    }
+                  }
+                }}
+              />
+            </Box>
 
             <Button
               type="submit"

@@ -62,8 +62,12 @@ export class AuthService extends BaseService {
    * Déconnexion utilisateur
    */
   logout(): void {
+    console.log('👋 AuthService.logout() - Nettoyage complet');
     this.removeAuthToken();
     this.removeUserFromLocalStorage();
+    
+    // Supprimer aussi le token utilisé par Redux/authSlice
+    localStorage.removeItem('token');
     
     // Redirection vers la page de connexion
     window.location.href = '/login';

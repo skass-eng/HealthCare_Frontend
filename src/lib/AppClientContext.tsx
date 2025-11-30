@@ -80,9 +80,17 @@ export const AppClientProvider: React.FC<AppClientProviderProps> = ({ children }
 
   // Fonction pour gérer la déconnexion
   const handleLogout = () => {
+    console.log('👋 Déconnexion utilisateur...');
     setUser(null);
     setIsAuthenticated(false);
     setCurrentPageState(null);
+    
+    // Supprimer tous les tokens du localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('odyssee_healthcare_jwt_token');
+    localStorage.removeItem('odyssee_healthcare_user');
+    
+    // Appeler le logout de l'appClient
     appClient.logout();
   };
 

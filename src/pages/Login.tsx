@@ -121,33 +121,111 @@ const Login: React.FC = () => {
               </Alert>
             )}
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Adresse email"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={formData.email}
-              onChange={handleChange}
-              sx={{ mb: 2 }}
-            />
+            {/* Adresse email avec label fixe */}
+            <Box sx={{ mb: 2 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mb: 1, 
+                  fontWeight: 600,
+                  color: 'rgba(0, 0, 0, 0.87)',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Adresse email *
+              </Typography>
+              <TextField
+                required
+                fullWidth
+                id="email"
+                name="email"
+                autoComplete="email"
+                autoFocus
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="votre.email@exemple.com"
+                variant="outlined"
+                InputLabelProps={{ shrink: false }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'white',
+                    '& fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#3b82f6',
+                      borderWidth: '2px',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    backgroundColor: 'white',
+                    color: 'black',
+                    padding: '12px 14px',
+                    fontSize: '1rem',
+                    '&::placeholder': {
+                      color: 'rgba(0, 0, 0, 0.4)',
+                      opacity: 1,
+                    }
+                  }
+                }}
+              />
+            </Box>
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Mot de passe"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={formData.password}
-              onChange={handleChange}
-              sx={{ mb: 3 }}
-            />
+            {/* Mot de passe avec label fixe */}
+            <Box sx={{ mb: 3 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mb: 1, 
+                  fontWeight: 600,
+                  color: 'rgba(0, 0, 0, 0.87)',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Mot de passe *
+              </Typography>
+              <TextField
+                required
+                fullWidth
+                name="password"
+                type="password"
+                id="password"
+                autoComplete="current-password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                variant="outlined"
+                InputLabelProps={{ shrink: false }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'white',
+                    '& fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#3b82f6',
+                      borderWidth: '2px',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    backgroundColor: 'white',
+                    color: 'black',
+                    padding: '12px 14px',
+                    fontSize: '1rem',
+                    '&::placeholder': {
+                      color: 'rgba(0, 0, 0, 0.4)',
+                      opacity: 1,
+                    }
+                  }
+                }}
+              />
+            </Box>
 
             <Button
               type="submit"

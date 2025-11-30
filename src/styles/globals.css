@@ -744,9 +744,14 @@ input, textarea, select, button {
   color: black !important;
 }
 
-/* S'assurer que les labels sont visibles */
+/* S'assurer que les labels sont visibles - Styles simplifiés pour compatibilité */
 .MuiInputLabel-root {
   color: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Styles de base pour les champs Material-UI */
+.MuiOutlinedInput-root {
+  background-color: white !important;
 }
 
 /* S'assurer que les boutons sont cliquables */
