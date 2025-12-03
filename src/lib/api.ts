@@ -163,14 +163,44 @@ class ApiService {
 
   // ==================== GESTION DES PLAINTES ====================
 
-  // Récupérer une plainte par ID
-  async getPlainte(plainteId: number): Promise<ApiResponse<Plainte>> {
+  // Récupérer une plainte par ID avec tous les détails (documents, analyse IA, etc.)
+  async getPlainte(plainteId: number): Promise<ApiResponse<any>> {
     const response = await this.api.get(`/api/v1/plaintes/${plainteId}`);
     return {
       success: true,
       data: response.data,
       message: 'Plainte récupérée avec succès'
-    } as ApiResponse<Plainte>;
+    } as ApiResponse<any>;
+  }
+
+  // Récupérer les documents d'une plainte
+  async getPlainteDocuments(plainteId: number): Promise<ApiResponse<{
+    plainte_id: number;
+    documents: any[];
+    pdf_rapport: any;
+    total_documents: number;
+  }>> {
+    const response = await this.api.get(`/api/v1/plaintes/${plainteId}/documents`);
+    return {
+      success: true,
+      data: response.data,
+      message: 'Documents récupérés avec succès'
+    } as ApiResponse<{
+      plainte_id: number;
+      documents: any[];
+      pdf_rapport: any;
+      total_documents: number;
+    }>;
+  }
+
+  // Télécharger un document d'une plainte
+  getDocumentDownloadUrl(plainteId: number, documentId: number): string {
+    return `${this.api.defaults.baseURL}/api/v1/plaintes/${plainteId}/documents/${documentId}/download`;
+  }
+
+  // Télécharger le PDF rapport d'une plainte
+  getPdfRapportDownloadUrl(plainteId: number): string {
+    return `${this.api.defaults.baseURL}/api/v1/plaintes/${plainteId}/pdf-rapport/download`;
   }
 
   // Lister les plaintes avec filtres

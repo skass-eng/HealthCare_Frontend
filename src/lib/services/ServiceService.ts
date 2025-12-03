@@ -88,23 +88,30 @@ export class ServiceService extends BaseService {
    */
   async createService(serviceData: ServiceCreateRequest): Promise<ApiResponse<Service>> {
     try {
-      const response = await this.post<Service>(`/services`, serviceData);
+      const response = await this.api.post(`/services`, serviceData);
       
-      // La réponse de BaseService.post est déjà un ApiResponse
-      if (response.success) {
-        return response;
+      // L'API retourne directement l'objet service créé, pas un ApiResponse
+      const createdService = response.data;
+      
+      // Vérifier que le service a bien été créé (a un ID)
+      if (createdService && createdService.id) {
+        return {
+          success: true,
+          data: createdService,
+          message: `Service "${createdService.nom}" créé avec succès`
+        };
       } else {
         return {
           success: false,
-          error: response.error || 'Erreur lors de la création du service',
-          message: response.message || 'Impossible de créer le service'
+          error: 'Erreur lors de la création du service',
+          message: 'Réponse inattendue du serveur'
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la création du service:', error);
       return {
         success: false,
-        error: 'Erreur lors de la création du service',
+        error: error.response?.data?.detail || 'Erreur lors de la création du service',
         message: 'Impossible de créer le service'
       };
     }
@@ -115,23 +122,30 @@ export class ServiceService extends BaseService {
    */
   async updateService(serviceId: number, serviceData: ServiceUpdateRequest): Promise<ApiResponse<Service>> {
     try {
-      const response = await this.put<Service>(`/services/${serviceId}`, serviceData);
+      const response = await this.api.put(`/services/${serviceId}`, serviceData);
       
-      // La réponse de BaseService.put est déjà un ApiResponse
-      if (response.success) {
-        return response;
+      // L'API retourne directement l'objet service mis à jour
+      const updatedService = response.data;
+      
+      // Vérifier que le service a bien été mis à jour (a un ID)
+      if (updatedService && updatedService.id) {
+        return {
+          success: true,
+          data: updatedService,
+          message: `Service "${updatedService.nom}" mis à jour avec succès`
+        };
       } else {
         return {
           success: false,
-          error: response.error || 'Erreur lors de la mise à jour du service',
-          message: response.message || 'Impossible de mettre à jour le service'
+          error: 'Erreur lors de la mise à jour du service',
+          message: 'Réponse inattendue du serveur'
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la mise à jour du service:', error);
       return {
         success: false,
-        error: 'Erreur lors de la mise à jour du service',
+        error: error.response?.data?.detail || 'Erreur lors de la mise à jour du service',
         message: 'Impossible de mettre à jour le service'
       };
     }
@@ -142,24 +156,25 @@ export class ServiceService extends BaseService {
    */
   async deleteService(serviceId: number): Promise<ApiResponse<void>> {
     try {
-      const response = await this.delete<{message: string}>(`/services/${serviceId}`);
+      const response = await this.api.delete(`/services/${serviceId}`);
       
       // L'API retourne {"message": "Service supprimé avec succès"}
-      // Si la réponse contient un message, c'est un succès
-      if (response.success && response.data && response.data.message) {
+      const result = response.data;
+      
+      if (result && result.message) {
         return {
           success: true,
-          message: response.data.message,
+          message: result.message,
           data: undefined
         };
       } else {
         return {
-          success: false,
-          error: 'Erreur lors de la suppression du service',
-          message: 'Impossible de supprimer le service'
+          success: true,
+          message: 'Service supprimé avec succès',
+          data: undefined
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la suppression du service:', error);
       return {
         success: false,

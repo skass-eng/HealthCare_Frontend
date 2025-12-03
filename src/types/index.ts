@@ -340,8 +340,14 @@ export interface PlainteUpdate {
   titre?: string;
   description?: string;
   statut?: StatutPlainte;
+  priorite?: string;
   service_id?: number;
   date_incident?: string;
+  // Informations du plaignant
+  nom_plaignant?: string;
+  prenom_plaignant?: string;
+  email_plaignant?: string;
+  telephone_plaignant?: string;
 }
 
 export interface AnalyseTaskRequest {

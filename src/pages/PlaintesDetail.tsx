@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { apiService } from '../lib/api';
 import { 
   ArrowLeft as ArrowLeftIcon,
   Assignment as DocumentTextIcon, 
@@ -31,20 +32,64 @@ const STATUS_STEPS: StatusStep[] = [
   { id: 'CLOTURE', label: 'Clôturé', icon: '🔒', color: 'text-slate-600', bgColor: 'bg-slate-100' }
 ];
 
+interface PlainteDocument {
+  id: number;
+  nom_fichier: string;
+  nom_stockage: string;
+  chemin_fichier: string;
+  type_fichier: string;
+  taille_fichier: number;
+  mime_type: string;
+  est_piece_jointe_originale: boolean;
+  date_upload: string;
+  fichier_existe?: boolean;
+}
+
+interface PdfRapport {
+  nom_fichier: string;
+  chemin: string;
+  type: string;
+  taille?: number;
+  date_creation: string;
+}
+
+interface AnalyseIA {
+  id: number;
+  sentiment: string;
+  score_sentiment: number;
+  service_suggere: string;
+  priorite_ia: string;
+  resume_ia: string;
+  reponse_suggeree: string;
+  mots_cles_detectes: string[];
+  statut_analyse: string;
+  date_analyse: string;
+}
+
 interface Plainte {
-  id: string;
-  plainte_id: string;
+  id: string | number;
+  numero_plainte?: string;
+  plainte_id?: string;
   titre: string;
   description: string;
-  service: string;
+  service: string | { id: number; nom: string; code_service: string } | null;
+  service_id?: number;
   statut: string;
   priorite: string;
   date_creation: string;
+  date_modification?: string;
   nom_plaignant: string;
+  prenom_plaignant?: string;
+  email_plaignant?: string;
   telephone_plaignant: string;
+  mode_reception?: string;
   type_service?: string;
   categorie_principale?: string;
   contenu?: string;
+  documents?: PlainteDocument[];
+  pdf_rapport?: PdfRapport | null;
+  analyse_ia?: AnalyseIA | null;
+  assigned_user?: { id: number; nom: string; prenom: string; email: string } | null;
 }
 
 interface EditFormData {
@@ -66,7 +111,9 @@ const PlaintesDetail: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [aiResponse, setAiResponse] = useState<string>('');
   const [generatingResponse, setGeneratingResponse] = useState(false);
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<PlainteDocument[]>([]);
+  const [pdfRapport, setPdfRapport] = useState<PdfRapport | null>(null);
+  const [analyseIA, setAnalyseIA] = useState<AnalyseIA | null>(null);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
   
   // États pour l'édition
@@ -86,7 +133,7 @@ const PlaintesDetail: React.FC = () => {
 
   // États pour l'édition inline
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [currentPriority, setCurrentPriority] = useState('HAUTE');
+  const [currentPriority, setCurrentPriority] = useState('MOYEN');
   const [currentStatus, setCurrentStatus] = useState('TRAITE');
   const [manualResponse, setManualResponse] = useState<string>('');
   const [showResponseEditor, setShowResponseEditor] = useState<boolean>(false);
@@ -101,43 +148,97 @@ const PlaintesDetail: React.FC = () => {
     try {
       setLoading(true);
       
-      // Données mockées pour démonstration
-      const testPlainte: Plainte = {
-        id: id || '1',
-        plainte_id: id || 'PL-2024-001',
-        titre: "Plainte - Temps d'attente excessif",
-        description: "Cette plainte concerne un temps d'attente trop long aux urgences. Le patient a attendu plus de 4 heures avant d'être pris en charge par l'équipe médicale. Cette situation a causé un stress important au patient et à sa famille.",
-        service: "Urgences",
-        statut: "EN_COURS",
-        priorite: "HAUTE",
-        date_creation: "2024-01-15T10:00:00Z",
-        nom_plaignant: "Dupont Jean",
-        telephone_plaignant: "0123456789",
-        type_service: "URGENCES",
-        categorie_principale: "Temps d'attente",
-        contenu: "Le patient se plaint d'un temps d'attente excessif lors de sa visite aux urgences le 15/01/2024."
-      };
+      // Appel API réel pour récupérer la plainte avec ses documents
+      const plainteId = parseInt(id || '0');
+      if (!plainteId) {
+        console.error('ID de plainte invalide');
+        return;
+      }
+
+      const response = await apiService.getPlainte(plainteId);
       
-      setPlainte(testPlainte);
-      const statusIndex = STATUS_STEPS.findIndex(step => step.id === testPlainte.statut);
-      setCurrentStep(statusIndex >= 0 ? statusIndex : 0);
-      setCurrentPriority(testPlainte.priorite);
-      
-      loadDocuments();
+      if (response.success && response.data) {
+        const data = response.data;
+        
+        // Formater les données de la plainte
+        const plainteData: Plainte = {
+          id: data.id,
+          numero_plainte: data.numero_plainte,
+          plainte_id: data.numero_plainte || `PL-${data.id}`,
+          titre: data.titre,
+          description: data.description,
+          contenu: data.contenu || data.description,
+          service: data.service,
+          service_id: data.service_id,
+          statut: data.statut,
+          priorite: data.priorite,
+          date_creation: data.date_creation,
+          date_modification: data.date_modification,
+          nom_plaignant: data.nom_plaignant || '',
+          prenom_plaignant: data.prenom_plaignant || '',
+          email_plaignant: data.email_plaignant || '',
+          telephone_plaignant: data.telephone_plaignant || '',
+          mode_reception: data.mode_reception,
+          type_service: typeof data.service === 'object' ? data.service?.code_service : undefined,
+          categorie_principale: data.categorie_principale,
+          documents: data.documents || [],
+          pdf_rapport: data.pdf_rapport,
+          analyse_ia: data.analyse_ia,
+          assigned_user: data.assigned_user
+        };
+        
+        setPlainte(plainteData);
+        
+        // Mettre à jour les documents
+        if (data.documents && data.documents.length > 0) {
+          setDocuments(data.documents);
+        }
+        
+        // Mettre à jour le PDF rapport
+        if (data.pdf_rapport) {
+          setPdfRapport(data.pdf_rapport);
+        }
+        
+        // Mettre à jour l'analyse IA et pré-remplir la réponse suggérée
+        if (data.analyse_ia) {
+          setAnalyseIA(data.analyse_ia);
+          if (data.analyse_ia.reponse_suggeree) {
+            setAiResponse(data.analyse_ia.reponse_suggeree);
+          }
+        }
+        
+        // Mettre à jour le statut
+        const statusIndex = STATUS_STEPS.findIndex(step => step.id === data.statut);
+        setCurrentStep(statusIndex >= 0 ? statusIndex : 0);
+        setCurrentPriority(data.priorite || 'MOYEN');
+        setCurrentStatus(data.statut || 'RECU');
+      } else {
+        console.error('Erreur lors du chargement de la plainte:', response.message);
+        showNotification('Erreur lors du chargement de la plainte');
+      }
     } catch (error) {
       console.error('Erreur lors du chargement de la plainte:', error);
+      showNotification('Erreur lors du chargement de la plainte');
     } finally {
       setLoading(false);
     }
   };
 
   const loadDocuments = async () => {
+    if (!id) return;
+    
     try {
       setLoadingDocuments(true);
-      setDocuments([
-        { id: 1, name: 'plainte_originale.pdf', type: 'pdf', size: '2.3 MB', date: '2024-01-15' },
-        { id: 2, name: 'analyse_ia.json', type: 'json', size: '15 KB', date: '2024-01-15' }
-      ]);
+      const plainteId = parseInt(id);
+      
+      const response = await apiService.getPlainteDocuments(plainteId);
+      
+      if (response.success && response.data) {
+        setDocuments(response.data.documents || []);
+        if (response.data.pdf_rapport) {
+          setPdfRapport(response.data.pdf_rapport);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des documents:', error);
     } finally {
@@ -145,12 +246,42 @@ const PlaintesDetail: React.FC = () => {
     }
   };
 
+  // Fonction pour télécharger un document
+  const downloadDocument = (doc: PlainteDocument) => {
+    if (!id) return;
+    const url = apiService.getDocumentDownloadUrl(parseInt(id), doc.id);
+    window.open(url, '_blank');
+  };
+
+  // Fonction pour télécharger le PDF rapport
+  const downloadPdfRapport = () => {
+    if (!id) return;
+    const url = apiService.getPdfRapportDownloadUrl(parseInt(id));
+    window.open(url, '_blank');
+  };
+
+  // Fonction pour formater la taille du fichier
+  const formatFileSize = (bytes: number): string => {
+    if (!bytes) return 'N/A';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   const generateAIResponse = async () => {
     if (!plainte) return;
     
     try {
       setGeneratingResponse(true);
-      // Simulation d'une réponse IA
+      // Utiliser la réponse suggérée de l'analyse IA si disponible
+      if (analyseIA?.reponse_suggeree) {
+        setAiResponse(analyseIA.reponse_suggeree);
+        setGeneratingResponse(false);
+        showNotification('Réponse IA récupérée avec succès ✅');
+        return;
+      }
+      
+      // Sinon, simulation d'une réponse IA
       setTimeout(() => {
         setAiResponse('Cher(e) ' + plainte.nom_plaignant + ',\n\nNous vous remercions de nous avoir fait part de votre préoccupation concernant le temps d\'attente aux urgences. Nous comprenons votre frustration et nous nous excusons pour ce désagrément.\n\nNous avons transmis votre plainte à l\'équipe de direction des urgences qui va examiner les circonstances de votre visite et prendre les mesures nécessaires pour améliorer nos délais de prise en charge.\n\nUn responsable vous contactera dans les 48 heures pour un suivi personnalisé.\n\nCordialement,\nService Qualité');
         setGeneratingResponse(false);
@@ -162,16 +293,35 @@ const PlaintesDetail: React.FC = () => {
     }
   };
 
-  const handleStatusChange = (direction: 'next' | 'prev') => {
-    if (!plainte) return;
+  const handleStatusChange = async (direction: 'next' | 'prev') => {
+    if (!plainte || !id) return;
     
     const newStep = direction === 'next' 
       ? Math.min(currentStep + 1, STATUS_STEPS.length - 1)
       : Math.max(currentStep - 1, 0);
     
-    setCurrentStep(newStep);
     const newStatus = STATUS_STEPS[newStep].id;
-    console.log(`Mise à jour du statut vers: ${newStatus}`);
+    
+    try {
+      setSaving(true);
+      const response = await apiService.updatePlainte(parseInt(id), {
+        statut: newStatus as any
+      });
+      
+      if (response.success) {
+        setCurrentStep(newStep);
+        setCurrentStatus(newStatus);
+        setPlainte(prev => prev ? { ...prev, statut: newStatus } : null);
+        showNotification(`Statut mis à jour vers "${STATUS_STEPS[newStep].label}" ✅`);
+      } else {
+        showNotification('Erreur lors de la mise à jour du statut ❌');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      showNotification('Erreur lors de la mise à jour du statut ❌');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleEdit = (section: string) => {
@@ -182,26 +332,102 @@ const PlaintesDetail: React.FC = () => {
     setEditingSection(null);
   };
 
-  const savePatientInfo = () => {
-    setEditingSection(null);
-    showNotification('Informations du patient mises à jour ✅');
+  const savePatientInfo = async () => {
+    if (!plainte || !id) return;
+    
+    // Récupérer les valeurs des inputs
+    const nomInput = document.querySelector('input[placeholder="Nom"]') as HTMLInputElement;
+    const prenomInput = document.querySelector('input[placeholder="Prénom"]') as HTMLInputElement;
+    const telephoneInput = document.querySelector('input[placeholder="Téléphone"]') as HTMLInputElement;
+    
+    const updatedData: any = {};
+    
+    if (nomInput?.value) updatedData.nom_plaignant = nomInput.value;
+    if (prenomInput?.value) updatedData.prenom_plaignant = prenomInput.value;
+    if (telephoneInput?.value) updatedData.telephone_plaignant = telephoneInput.value;
+    
+    if (Object.keys(updatedData).length === 0) {
+      setEditingSection(null);
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      const response = await apiService.updatePlainte(parseInt(id), updatedData);
+      
+      if (response.success) {
+        setPlainte(prev => prev ? { 
+          ...prev, 
+          nom_plaignant: updatedData.nom_plaignant || prev.nom_plaignant,
+          prenom_plaignant: updatedData.prenom_plaignant || prev.prenom_plaignant,
+          telephone_plaignant: updatedData.telephone_plaignant || prev.telephone_plaignant
+        } : null);
+        setEditingSection(null);
+        showNotification('Informations du patient mises à jour ✅');
+      } else {
+        showNotification('Erreur lors de la mise à jour ❌');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des infos patient:', error);
+      showNotification('Erreur lors de la mise à jour ❌');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const saveProgress = () => {
-    setEditingSection(null);
-    showNotification('Statut de progression mis à jour ✅');
+  const saveProgress = async () => {
+    if (!plainte || !id) return;
+    
+    const newStatus = STATUS_STEPS[currentStep].id;
+    
+    try {
+      setSaving(true);
+      const response = await apiService.updatePlainte(parseInt(id), {
+        statut: newStatus as any
+      });
+      
+      if (response.success) {
+        setPlainte(prev => prev ? { ...prev, statut: newStatus } : null);
+        setCurrentStatus(newStatus);
+        setEditingSection(null);
+        showNotification('Statut de progression mis à jour ✅');
+      } else {
+        showNotification('Erreur lors de la mise à jour ❌');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      showNotification('Erreur lors de la mise à jour ❌');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const selectPriority = (priority: string) => {
     setCurrentPriority(priority);
   };
 
-  const saveStatus = () => {
-    if (!plainte) return;
+  const saveStatus = async () => {
+    if (!plainte || !id) return;
     
-    setPlainte(prev => prev ? { ...prev, priorite: currentPriority } : null);
-    setShowStatusModal(false);
-    showNotification('Priorité mise à jour ✅');
+    try {
+      setSaving(true);
+      const response = await apiService.updatePlainte(parseInt(id), {
+        priorite: currentPriority
+      });
+      
+      if (response.success) {
+        setPlainte(prev => prev ? { ...prev, priorite: currentPriority } : null);
+        setShowStatusModal(false);
+        showNotification('Priorité mise à jour ✅');
+      } else {
+        showNotification('Erreur lors de la mise à jour de la priorité ❌');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la priorité:', error);
+      showNotification('Erreur lors de la mise à jour de la priorité ❌');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveManualResponse = () => {
@@ -210,8 +436,9 @@ const PlaintesDetail: React.FC = () => {
       return;
     }
     
+    // Sauvegarde locale uniquement (la colonne reponse_manuelle n'existe pas en BDD)
     setShowResponseEditor(false);
-    showNotification('Réponse manuelle sauvegardée ✅');
+    showNotification('Réponse sauvegardée localement ✅');
   };
 
   const generateAIResponseAndFill = async () => {
@@ -276,12 +503,17 @@ const PlaintesDetail: React.FC = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority?.toLowerCase()) {
-      case 'haute':
+    const p = priority?.toUpperCase();
+    switch (p) {
+      case 'URGENT':
+      case 'ELEVE':
+      case 'HAUTE':
         return 'linear-gradient(135deg, #ef4444, #dc2626)';
-      case 'moyenne':
+      case 'MOYEN':
+      case 'MOYENNE':
         return 'linear-gradient(135deg, #f59e0b, #d97706)';
-      case 'basse':
+      case 'BAS':
+      case 'BASSE':
         return 'linear-gradient(135deg, #10b981, #059669)';
       default:
         return 'linear-gradient(135deg, #64748b, #475569)';
@@ -289,13 +521,16 @@ const PlaintesDetail: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'traite':
+    const s = status?.toUpperCase();
+    switch (s) {
+      case 'TRAITE':
         return 'linear-gradient(135deg, #10b981, #059669)';
-      case 'en_cours':
+      case 'EN_COURS':
         return 'linear-gradient(135deg, #3b82f6, #2563eb)';
-      case 'cloture':
+      case 'CLOTURE':
         return 'linear-gradient(135deg, #64748b, #475569)';
+      case 'RECU':
+        return 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
       default:
         return 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
     }
@@ -560,7 +795,9 @@ const PlaintesDetail: React.FC = () => {
                     Service
                   </label>
                   <p style={{ fontSize: '18px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
-                    {plainte.service}
+                    {typeof plainte.service === 'object' && plainte.service !== null 
+                      ? plainte.service.nom 
+                      : plainte.service || 'Non défini'}
                   </p>
                 </div>
               </div>
@@ -1277,12 +1514,260 @@ const PlaintesDetail: React.FC = () => {
                 gap: '12px'
               }}>
                 <DocumentIcon style={{ fontSize: '24px', color: '#3b82f6' }} />
-                Documents liés
+                Documents liés ({documents.length + (pdfRapport ? 1 : 0)})
               </h2>
               
-              <div style={{ textAlign: 'center', color: '#6b7280', padding: '32px 0' }}>
-                <p style={{ margin: 0 }}>Aucun document lié pour le moment.</p>
-              </div>
+              {/* PDF Rapport généré */}
+              {pdfRapport && (
+                <div style={{ marginBottom: '16px' }}>
+                  <h3 style={{ 
+                    fontSize: '14px', 
+                    fontWeight: 600, 
+                    color: '#059669', 
+                    marginBottom: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    📄 Rapport PDF généré
+                  </h3>
+                  <div 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      padding: '16px',
+                      background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)',
+                      borderRadius: '12px',
+                      border: '1px solid #a7f3d0',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      flexWrap: 'wrap'
+                    }}
+                    onClick={downloadPdfRapport}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(5, 150, 105, 0.2)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1', minWidth: '200px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        minWidth: '40px',
+                        background: '#059669',
+                        borderRadius: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '18px'
+                      }}>
+                        📊
+                      </div>
+                      <div style={{ overflow: 'hidden', flex: 1 }}>
+                        <p style={{ 
+                          margin: 0, 
+                          fontWeight: 600, 
+                          color: '#065f46',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {pdfRapport.nom_fichier}
+                        </p>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#047857' }}>
+                          Créé le {new Date(pdfRapport.date_creation).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 16px',
+                        background: '#059669',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        flexShrink: 0,
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#047857'}
+                      onMouseOut={(e) => e.currentTarget.style.background = '#059669'}
+                    >
+                      <ArrowDownTrayIcon style={{ fontSize: '16px' }} />
+                      Télécharger
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Documents pièces jointes */}
+              {documents.length > 0 ? (
+                <div>
+                  <h3 style={{ 
+                    fontSize: '14px', 
+                    fontWeight: 600, 
+                    color: '#3b82f6', 
+                    marginBottom: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    📎 Pièces jointes ({documents.length})
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {documents.map((doc) => (
+                      <div 
+                        key={doc.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '16px',
+                          padding: '16px',
+                          background: '#f8fafc',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          flexWrap: 'wrap',
+                          overflow: 'hidden'
+                        }}
+                        onClick={() => downloadDocument(doc)}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                          e.currentTarget.style.background = '#f1f5f9';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                          e.currentTarget.style.background = '#f8fafc';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1', minWidth: '200px', overflow: 'hidden' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            minWidth: '40px',
+                            background: doc.type_fichier === 'PDF' ? '#ef4444' : 
+                                        doc.type_fichier === 'IMAGE' ? '#8b5cf6' : 
+                                        doc.type_fichier === 'DOC' || doc.type_fichier === 'DOCX' ? '#3b82f6' : '#6b7280',
+                            borderRadius: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontSize: '14px',
+                            fontWeight: 700
+                          }}>
+                            {doc.type_fichier === 'PDF' ? 'PDF' : 
+                             doc.type_fichier === 'IMAGE' ? '🖼️' : 
+                             doc.type_fichier === 'DOC' || doc.type_fichier === 'DOCX' ? 'DOC' : 
+                             doc.type_fichier === 'TXT' ? 'TXT' : '📄'}
+                          </div>
+                          <div style={{ overflow: 'hidden', flex: 1 }}>
+                            <p style={{ 
+                              margin: 0, 
+                              fontWeight: 600, 
+                              color: '#1f2937',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {doc.nom_fichier}
+                            </p>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                              <span>{formatFileSize(doc.taille_fichier)} • {doc.date_upload ? new Date(doc.date_upload).toLocaleDateString('fr-FR') : 'N/A'}</span>
+                              {doc.est_piece_jointe_originale && (
+                                <span style={{ 
+                                  padding: '2px 6px', 
+                                  background: '#dbeafe', 
+                                  color: '#1d4ed8', 
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: 600
+                                }}>
+                                  Original
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                          <button
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '8px 12px',
+                              background: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadDocument(doc);
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
+                            onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                          >
+                            <ArrowDownTrayIcon style={{ fontSize: '16px' }} />
+                          </button>
+                          <button
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '8px 12px',
+                              background: '#f1f5f9',
+                              color: '#475569',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadDocument(doc);
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.background = '#e2e8f0'}
+                            onMouseOut={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                          >
+                            <EyeIcon style={{ fontSize: '16px' }} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : !pdfRapport ? (
+                <div style={{ textAlign: 'center', color: '#6b7280', padding: '32px 0' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '12px' }}>📂</div>
+                  <p style={{ margin: 0 }}>Aucun document lié pour le moment.</p>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>
+                    Les documents seront affichés ici une fois ajoutés à la plainte.
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -1355,7 +1840,7 @@ const PlaintesDetail: React.FC = () => {
                   </label>
                   <div style={{ display: 'flex', gap: '12px' }}>
                     <button
-                      onClick={() => selectPriority('HAUTE')}
+                      onClick={() => selectPriority('URGENT')}
                       style={{
                         padding: '8px 16px',
                         borderRadius: '24px',
@@ -1364,24 +1849,24 @@ const PlaintesDetail: React.FC = () => {
                         border: 'none',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        background: currentPriority === 'HAUTE' 
+                        background: currentPriority === 'URGENT' 
                           ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
                           : '#f1f5f9',
-                        color: currentPriority === 'HAUTE' ? 'white' : '#6b7280',
-                        transform: currentPriority === 'HAUTE' ? 'scale(1.05)' : 'scale(1)',
-                        boxShadow: currentPriority === 'HAUTE' ? '0 4px 12px rgba(239, 68, 68, 0.3)' : 'none'
+                        color: currentPriority === 'URGENT' ? 'white' : '#6b7280',
+                        transform: currentPriority === 'URGENT' ? 'scale(1.05)' : 'scale(1)',
+                        boxShadow: currentPriority === 'URGENT' ? '0 4px 12px rgba(239, 68, 68, 0.3)' : 'none'
                       }}
                       onMouseOver={(e) => {
-                        if (currentPriority !== 'HAUTE') e.currentTarget.style.background = '#e2e8f0';
+                        if (currentPriority !== 'URGENT') e.currentTarget.style.background = '#e2e8f0';
                       }}
                       onMouseOut={(e) => {
-                        if (currentPriority !== 'HAUTE') e.currentTarget.style.background = '#f1f5f9';
+                        if (currentPriority !== 'URGENT') e.currentTarget.style.background = '#f1f5f9';
                       }}
                     >
-                      Haute
+                      Urgent
                     </button>
                     <button
-                      onClick={() => selectPriority('MOYENNE')}
+                      onClick={() => selectPriority('MOYEN')}
                       style={{
                         padding: '8px 16px',
                         borderRadius: '24px',
@@ -1390,24 +1875,24 @@ const PlaintesDetail: React.FC = () => {
                         border: 'none',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        background: currentPriority === 'MOYENNE' 
+                        background: currentPriority === 'MOYEN' 
                           ? 'linear-gradient(135deg, #f59e0b, #d97706)' 
                           : '#f1f5f9',
-                        color: currentPriority === 'MOYENNE' ? 'white' : '#6b7280',
-                        transform: currentPriority === 'MOYENNE' ? 'scale(1.05)' : 'scale(1)',
-                        boxShadow: currentPriority === 'MOYENNE' ? '0 4px 12px rgba(245, 158, 11, 0.3)' : 'none'
+                        color: currentPriority === 'MOYEN' ? 'white' : '#6b7280',
+                        transform: currentPriority === 'MOYEN' ? 'scale(1.05)' : 'scale(1)',
+                        boxShadow: currentPriority === 'MOYEN' ? '0 4px 12px rgba(245, 158, 11, 0.3)' : 'none'
                       }}
                       onMouseOver={(e) => {
-                        if (currentPriority !== 'MOYENNE') e.currentTarget.style.background = '#e2e8f0';
+                        if (currentPriority !== 'MOYEN') e.currentTarget.style.background = '#e2e8f0';
                       }}
                       onMouseOut={(e) => {
-                        if (currentPriority !== 'MOYENNE') e.currentTarget.style.background = '#f1f5f9';
+                        if (currentPriority !== 'MOYEN') e.currentTarget.style.background = '#f1f5f9';
                       }}
                     >
-                      Moyenne
+                      Moyen
                     </button>
                     <button
-                      onClick={() => selectPriority('BASSE')}
+                      onClick={() => selectPriority('BAS')}
                       style={{
                         padding: '8px 16px',
                         borderRadius: '24px',
@@ -1416,21 +1901,21 @@ const PlaintesDetail: React.FC = () => {
                         border: 'none',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        background: currentPriority === 'BASSE' 
+                        background: currentPriority === 'BAS' 
                           ? 'linear-gradient(135deg, #10b981, #059669)' 
                           : '#f1f5f9',
-                        color: currentPriority === 'BASSE' ? 'white' : '#6b7280',
-                        transform: currentPriority === 'BASSE' ? 'scale(1.05)' : 'scale(1)',
-                        boxShadow: currentPriority === 'BASSE' ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none'
+                        color: currentPriority === 'BAS' ? 'white' : '#6b7280',
+                        transform: currentPriority === 'BAS' ? 'scale(1.05)' : 'scale(1)',
+                        boxShadow: currentPriority === 'BAS' ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none'
                       }}
                       onMouseOver={(e) => {
-                        if (currentPriority !== 'BASSE') e.currentTarget.style.background = '#e2e8f0';
+                        if (currentPriority !== 'BAS') e.currentTarget.style.background = '#e2e8f0';
                       }}
                       onMouseOut={(e) => {
-                        if (currentPriority !== 'BASSE') e.currentTarget.style.background = '#f1f5f9';
+                        if (currentPriority !== 'BAS') e.currentTarget.style.background = '#f1f5f9';
                       }}
                     >
-                      Faible
+                      Bas
                     </button>
                   </div>
                 </div>

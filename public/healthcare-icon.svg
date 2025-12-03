@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <!-- Cercle de fond -->
+  <circle cx="50" cy="50" r="48" fill="url(#gradient)"/>
+  <!-- Icône bouclier/sécurité -->
+  <path d="M50 18 L75 28 L75 48 C75 62 65 74 50 82 C35 74 25 62 25 48 L25 28 Z" 
+        fill="none" 
+        stroke="white" 
+        stroke-width="4" 
+        stroke-linejoin="round"/>
+  <!-- Checkmark dans le bouclier -->
+  <path d="M38 50 L46 58 L62 42" 
+        fill="none" 
+        stroke="white" 
+        stroke-width="4" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+</svg>

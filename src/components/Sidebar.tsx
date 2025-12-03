@@ -105,35 +105,38 @@ export default function Sidebar() {
         p: 3
       }}
     >
-      {/* Logo */}
+      {/* Logo - Style Login */}
       <Box
         onClick={() => navigate('/healthcare-ai')}
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 2,
+          gap: 3,
           mb: 4,
           cursor: 'pointer',
           transition: 'all 0.3s',
-          '&:hover': { transform: 'scale(1.05)' }
+          '&:hover': { transform: 'scale(1.02)' }
         }}
       >
         <Avatar
           sx={{
-            width: 48,
-            height: 48,
+            width: 64,
+            height: 64,
             background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
-            boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)',
+            boxShadow: '0 25px 50px -12px rgba(59, 130, 246, 0.4)',
           }}
         >
-          <SecurityIcon sx={{ fontSize: 24, color: 'white' }} />
+          <SecurityIcon sx={{ fontSize: 32, color: 'white' }} />
         </Avatar>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography
             variant="h6"
             sx={{
               fontWeight: 'bold',
-              color: '#1e293b',
+              background: 'linear-gradient(135deg, #1e293b, #1d4ed8, #0d9488)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
               fontSize: { xs: '1rem', lg: '1.25rem' },
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -146,6 +149,7 @@ export default function Sidebar() {
             variant="body2"
             sx={{
               color: '#64748b',
+              fontWeight: 500,
               fontSize: { xs: '0.875rem', lg: '1rem' },
               overflow: 'hidden',
               textOverflow: 'ellipsis',

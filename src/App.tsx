@@ -124,6 +124,7 @@ const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
   const [initialized, setInitialized] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     console.log('🚀 AuthInitializer - Démarrage');
@@ -157,17 +158,18 @@ const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) 
       }
       
       setInitialized(true);
+      setIsInitializing(false);
       console.log('✅ Initialisation terminée');
     };
 
     initializeAuthState();
   }, [dispatch, initialized]);
 
-  console.log('🔄 AuthInitializer - Render:', { isAuthenticated, loading, initialized });
+  console.log('🔄 AuthInitializer - Render:', { isAuthenticated, loading, initialized, isInitializing });
 
-  // Afficher le loading seulement si on a un token et qu'on est en train de vérifier
+  // Afficher le loading si on a un token ET qu'on n'a pas encore terminé l'initialisation
   const storedToken = localStorage.getItem('token');
-  const shouldShowLoading = loading && storedToken && !initialized;
+  const shouldShowLoading = storedToken && isInitializing;
 
   if (shouldShowLoading) {
     console.log('⏳ Chargement de l\'authentification...');
@@ -213,6 +215,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   console.log('🛡️ ProtectedRoute - État:', { isAuthenticated, loading });
 
   // Si on est en train de charger ET qu'on a un token, afficher le loading
+  // Note: Le loading devrait déjà être géré par AuthInitializer, mais on garde cette protection
   const storedToken = localStorage.getItem('token');
   if (loading && storedToken) {
     console.log('⏳ ProtectedRoute - Chargement avec token...');

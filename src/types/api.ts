@@ -57,7 +57,6 @@ export interface HealthcareAiSummary {
     from_date?: string;
     to_date?: string;
     status?: string;
-    organisation_id?: number;
   };
   timestamp: string;
 }
@@ -76,9 +75,6 @@ export interface HealthcareAiTrends {
     traite: number;
     cloture: number;
   }>;
-  filters_applied?: {
-    organisation_id?: number;
-  };
   timestamp: string;
 }
 
@@ -105,7 +101,6 @@ export interface Plainte {
   description: string;
   statut: StatutPlainte;
   priorite: PrioritePlainte;
-  organisation_id: number;
   service_id?: number;
   cree_par_id: number;
   
@@ -125,7 +120,6 @@ export interface Plainte {
   updated?: string;
   
   // Relations optionnelles
-  organisation?: Organisation;
   service?: Service;
   createur?: User;
   analyses?: Analyse[];
@@ -150,8 +144,14 @@ export interface PlainteUpdate {
   titre?: string;
   description?: string;
   statut?: StatutPlainte;
+  priorite?: string;
   service_id?: number;
   date_incident?: string;
+  // Informations du plaignant
+  nom_plaignant?: string;
+  prenom_plaignant?: string;
+  email_plaignant?: string;
+  telephone_plaignant?: string;
 }
 
 // ==================== TYPES UTILISATEUR ====================
@@ -280,7 +280,6 @@ export interface PlainteFilters {
   limit?: number;
   statut?: StatutPlainte;
   priorite?: PrioritePlainte;
-  organisation_id?: number;
   service_id?: number;
   search?: string;
   from_date?: string;
@@ -291,7 +290,6 @@ export interface HealthcareAiFilters {
   from_date?: string;
   to_date?: string;
   status?: string;
-  organisation_id?: number;
 }
 
 // ==================== TYPES TÂCHES ====================

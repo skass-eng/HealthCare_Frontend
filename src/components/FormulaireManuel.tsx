@@ -28,23 +28,10 @@ interface FormulaireManuelProps {
 export default function FormulaireManuel({ formData, errors, handleChange, handleFileChange }: FormulaireManuelProps) {
   const dispatch = useDispatch<any>();
   const users = useSelector((state: any) => state.user.users);
-  const [totalComplaints, setTotalComplaints] = useState<number>(0);
   const [services, setServices] = useState<any[]>([]);
 
   useEffect(() => {
     dispatch(fetchUsers());
-
-    const fetchTotalComplaints = async () => {
-      try {
-        const response = await apiService.getTotalPlaintesAnnuelles();
-        if (response.success && response.data !== undefined) {
-          setTotalComplaints(response.data);
-        }
-      } catch (error) {
-        console.error('Erreur lors de la récupération du nombre de plaintes:', error);
-        setTotalComplaints(0); // Valeur par défaut en cas d'erreur
-      }
-    };
 
     const fetchServices = async () => {
       try {
@@ -65,11 +52,8 @@ export default function FormulaireManuel({ formData, errors, handleChange, handl
       }
     };
 
-    fetchTotalComplaints();
     fetchServices();
   }, [dispatch]);
-
-  const defaultTitle = `PL_${new Date().toISOString().split('T')[0]}_${totalComplaints + 1}`;
 
   return (
     <>
@@ -91,14 +75,14 @@ export default function FormulaireManuel({ formData, errors, handleChange, handl
             <input
               type="text"
               required
-              value={formData.titre || defaultTitle}
+              value={formData.titre}
               onChange={(e) => handleChange('titre', e.target.value)}
               className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all bg-white ${
                 errors.titre 
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
                   : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'
               }`}
-              placeholder="Résumé court de la plainte"
+              placeholder="Ex: Problème d'accueil aux urgences, Retard de prise en charge..."
             />
             {errors.titre && (
               <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
