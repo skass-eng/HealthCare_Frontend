@@ -32,6 +32,7 @@ class AppClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      timeout: 30000, // 30 secondes par défaut
     });
   }
 
@@ -397,6 +398,575 @@ class ApiService {
       data: response.data,
       message: 'Service par défaut récupéré avec succès'
     } as ApiResponse<Service>;
+  }
+
+  // ==================== CRÉATION DEPUIS PDF ====================
+
+  // Prévisualiser l'extraction d'un PDF (sans créer la plainte)
+  async previewPdfExtraction(pdfFile: File): Promise<ApiResponse<{
+    success: boolean;
+    filename: string;
+    file_size: number;
+    extraction: {
+      texte_brut: string;
+      texte_longueur: number;
+      donnees_structurees: {
+        plaignant: {
+          nom: string | null;
+          prenom: string | null;
+          email: string | null;
+          telephone: string | null;
+        };
+        plainte: {
+          titre: string | null;
+          description: string | null;
+          date_incident: string | null;
+          service_concerne: string | null;
+          mode_reception: string;
+        };
+        analyse: {
+          priorite_suggeree: string;
+          mots_cles: string[];
+          gravite_estimee: string;
+          resume_court: string;
+        };
+        confiance_extraction: {
+          score_global: number;
+          champs_incertains: string[];
+        };
+      } | null;
+    };
+    services_disponibles: Array<{ id: number; nom: string; code: string }>;
+    message: string;
+  }>> {
+    try {
+      const formData = new FormData();
+      formData.append('pdf_file', pdfFile);
+
+      console.log('📤 Envoi du fichier PDF:', pdfFile.name, pdfFile.size, pdfFile.type);
+
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-pdf/preview', formData, {
+        headers: {
+          'Content-Type': undefined, // Laisser axios définir le multipart/form-data avec boundary
+        } as any,
+        timeout: 180000, // 3 minutes pour l'analyse IA avec Ollama
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Prévisualisation réussie'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('Erreur lors de la prévisualisation PDF:', error);
+      
+      // Extraire le message d'erreur correctement
+      let errorMessage = 'Erreur lors de la prévisualisation';
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (Array.isArray(detail)) {
+          // FastAPI validation errors sont un tableau d'objets
+          errorMessage = detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
+        } else if (typeof detail === 'object') {
+          errorMessage = detail.msg || JSON.stringify(detail);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        data: null as any,
+        message: errorMessage
+      } as ApiResponse<any>;
+    }
+  }
+
+  // Prévisualiser l'extraction PDF de manière ASYNCHRONE (recommandé)
+  async previewPdfExtractionAsync(pdfFile: File): Promise<ApiResponse<{
+    success: boolean;
+    async: boolean;
+    task_id: string;
+    celery_task_id?: string;
+    filename: string;
+    file_size?: number;
+    text_length?: number;
+    services_disponibles: Array<{ id: number; nom: string; code: string }>;
+    message: string;
+    websocket_events?: {
+      started: string;
+      complete: string;
+      failed: string;
+    };
+    // Si async=false (fallback synchrone), les données sont directement disponibles
+    extraction?: {
+      texte_brut: string;
+      texte_longueur: number;
+      donnees_structurees: any;
+    };
+  }>> {
+    try {
+      const formData = new FormData();
+      formData.append('pdf_file', pdfFile);
+
+      console.log('📤 [Async] Envoi du fichier PDF:', pdfFile.name);
+
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-pdf/preview-async', formData, {
+        headers: {
+          'Content-Type': undefined,
+        } as any,
+        timeout: 30000, // 30s suffit car c'est asynchrone
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.data.message || 'Analyse lancée'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('Erreur lors du lancement de l\'extraction PDF async:', error);
+      
+      let errorMessage = 'Erreur lors du lancement de l\'extraction';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        data: null as any,
+        message: errorMessage
+      } as ApiResponse<any>;
+    }
+  }
+
+  // Créer une plainte depuis un PDF avec les données VALIDÉES par l'utilisateur
+  // Utilise le nouvel endpoint optimisé qui ne refait pas l'analyse IA
+  async createPlainteFromPdf(
+    pdfFile: File, 
+    serviceId?: number,
+    userData?: {
+      titre?: string;
+      description?: string;
+      nom?: string;
+      prenom?: string;
+      email?: string;
+      telephone?: string;
+      mode_reception?: string;
+      date_incident?: string;
+      priorite?: string;
+      assigned_user_id?: number;
+    }
+  ): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    plainte: {
+      id: number;
+      numero_plainte: string;
+      titre: string;
+      description: string;
+      statut: string;
+      priorite: string;
+      service_id: number;
+      service_nom: string;
+      date_creation: string;
+    };
+    plaignant: {
+      nom: string | null;
+      prenom: string | null;
+      email: string | null;
+      telephone: string | null;
+    };
+    document: {
+      nom_fichier: string;
+      taille: number;
+      chemin_stockage: string;
+    };
+    analyse_ia: {
+      statut: string;
+      message: string;
+    };
+  }>> {
+    try {
+      const formData = new FormData();
+      formData.append('pdf_file', pdfFile);
+      
+      // Service ID est obligatoire pour le nouvel endpoint
+      if (serviceId) {
+        formData.append('service_id', serviceId.toString());
+      }
+      
+      // Ajouter les données validées par l'utilisateur
+      if (userData) {
+        if (userData.titre) formData.append('titre', userData.titre);
+        if (userData.description) formData.append('description', userData.description);
+        if (userData.nom) formData.append('nom_plaignant', userData.nom);
+        if (userData.prenom) formData.append('prenom_plaignant', userData.prenom);
+        if (userData.email) formData.append('email_plaignant', userData.email);
+        if (userData.telephone) formData.append('telephone_plaignant', userData.telephone);
+        if (userData.mode_reception) formData.append('mode_reception', userData.mode_reception);
+        if (userData.date_incident) formData.append('date_incident', userData.date_incident);
+        if (userData.priorite) formData.append('priorite', userData.priorite);
+        if (userData.assigned_user_id) formData.append('assigned_user_id', userData.assigned_user_id.toString());
+      }
+
+      console.log('📤 Création plainte depuis données validées - PDF:', pdfFile.name, pdfFile.size);
+      console.log('📤 Données utilisateur:', userData);
+
+      // Utiliser le nouvel endpoint optimisé
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-donnees-validees', formData, {
+        headers: {
+          'Content-Type': undefined, // Laisser axios définir le multipart/form-data avec boundary
+        } as any,
+        timeout: 60000, // 60 secondes de timeout
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Plainte créée avec succès depuis le PDF'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('Erreur lors de la création depuis PDF:', error);
+      
+      // Extraire le message d'erreur correctement
+      let errorMessage = 'Erreur lors de la création depuis le PDF';
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (Array.isArray(detail)) {
+          // FastAPI validation errors sont un tableau d'objets
+          errorMessage = detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
+        } else if (typeof detail === 'object') {
+          errorMessage = detail.msg || JSON.stringify(detail);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        data: null as any,
+        message: errorMessage
+      } as ApiResponse<any>;
+    }
+  }
+
+  // [DÉPRÉCIÉ] Ancien endpoint - conservé pour compatibilité
+  async createPlainteFromPdfLegacy(
+    pdfFile: File, 
+    serviceId?: number,
+    userData?: {
+      titre?: string;
+      description?: string;
+      nom?: string;
+      prenom?: string;
+      email?: string;
+      telephone?: string;
+    }
+  ): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    plainte: {
+      id: number;
+      numero_plainte: string;
+      titre: string;
+      description: string;
+      statut: string;
+      priorite: string;
+      service_id: number;
+      service_nom: string;
+      date_creation: string;
+    };
+    plaignant: {
+      nom: string | null;
+      prenom: string | null;
+      email: string | null;
+      telephone: string | null;
+    };
+    extraction: {
+      texte_extrait_longueur: number;
+      donnees_extraites: boolean;
+      confiance: number | null;
+      champs_incertains: string[];
+    };
+    document: {
+      nom_fichier: string;
+      taille: number;
+      chemin_stockage: string;
+    };
+    analyse_ia: {
+      statut: string;
+      message: string;
+    };
+  }>> {
+    try {
+      const formData = new FormData();
+      formData.append('pdf_file', pdfFile);
+      
+      if (serviceId) {
+        formData.append('service_id', serviceId.toString());
+      }
+      
+      // Ajouter les données modifiées par l'utilisateur si fournies
+      if (userData) {
+        if (userData.titre) formData.append('titre', userData.titre);
+        if (userData.description) formData.append('description', userData.description);
+        if (userData.nom) formData.append('nom_plaignant', userData.nom);
+        if (userData.prenom) formData.append('prenom_plaignant', userData.prenom);
+        if (userData.email) formData.append('email_plaignant', userData.email);
+        if (userData.telephone) formData.append('telephone_plaignant', userData.telephone);
+      }
+
+      console.log('📤 Création plainte depuis PDF:', pdfFile.name, pdfFile.size);
+      console.log('📤 Données utilisateur:', userData);
+
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-pdf', formData, {
+        headers: {
+          'Content-Type': undefined, // Laisser axios définir le multipart/form-data avec boundary
+        } as any,
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Plainte créée avec succès depuis le PDF'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('Erreur lors de la création depuis PDF:', error);
+      
+      // Extraire le message d'erreur correctement
+      let errorMessage = 'Erreur lors de la création depuis le PDF';
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (Array.isArray(detail)) {
+          // FastAPI validation errors sont un tableau d'objets
+          errorMessage = detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
+        } else if (typeof detail === 'object') {
+          errorMessage = detail.msg || JSON.stringify(detail);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        data: null as any,
+        message: errorMessage
+      } as ApiResponse<any>;
+    }
+  }
+
+  // ==================== CRÉATION DEPUIS IMAGE (PHOTO) ====================
+
+  // Prévisualiser l'extraction d'une image via OCR (sans créer la plainte)
+  async previewImageExtraction(imageFile: File): Promise<ApiResponse<{
+    success: boolean;
+    filename: string;
+    file_size: number;
+    extraction: {
+      texte_brut: string;
+      texte_longueur: number;
+      donnees_structurees: {
+        plaignant: {
+          nom: string | null;
+          prenom: string | null;
+          email: string | null;
+          telephone: string | null;
+        };
+        plainte: {
+          titre: string | null;
+          description: string | null;
+          date_incident: string | null;
+          service_concerne: string | null;
+          mode_reception: string;
+        };
+        analyse: {
+          priorite_suggeree: string;
+          mots_cles: string[];
+          gravite_estimee: string;
+          resume_court: string;
+        };
+        confiance_extraction: {
+          score_global: number;
+          score_ocr?: number;
+          qualite_ocr?: string;
+          champs_incertains: string[];
+        };
+      } | null;
+    };
+    ocr_info: {
+      confiance: number;
+      qualite: string;
+      metadata?: Record<string, any>;
+    };
+    services_disponibles: Array<{ id: number; nom: string; code: string }>;
+    message: string;
+  }>> {
+    try {
+      const formData = new FormData();
+      formData.append('image_file', imageFile);
+
+      console.log('📤 Envoi de l\'image pour OCR:', imageFile.name, imageFile.size, imageFile.type);
+
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-image/preview', formData, {
+        headers: {
+          'Content-Type': undefined, // Laisser axios définir le multipart/form-data avec boundary
+        } as any,
+        timeout: 180000, // 3 minutes pour OCR + analyse IA avec Ollama
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Prévisualisation OCR réussie'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('Erreur lors de la prévisualisation image:', error);
+      
+      let errorMessage = 'Erreur lors de la prévisualisation OCR';
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (Array.isArray(detail)) {
+          errorMessage = detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
+        } else if (typeof detail === 'object') {
+          errorMessage = detail.msg || JSON.stringify(detail);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        data: null as any,
+        message: errorMessage
+      } as ApiResponse<any>;
+    }
+  }
+
+  // Créer une plainte depuis une image avec les données modifiées par l'utilisateur
+  async createPlainteFromImage(
+    imageFile: File, 
+    serviceId?: number,
+    userData?: {
+      titre?: string;
+      description?: string;
+      nom?: string;
+      prenom?: string;
+      email?: string;
+      telephone?: string;
+      mode_reception?: string;
+      date_incident?: string;
+      priorite?: string;
+      assigned_user_id?: number;
+    }
+  ): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    plainte: {
+      id: number;
+      numero_plainte: string;
+      titre: string;
+      description: string;
+      statut: string;
+      priorite: string;
+      service_id: number;
+      service_nom: string;
+      date_creation: string;
+    };
+    plaignant: {
+      nom: string | null;
+      prenom: string | null;
+      email: string | null;
+      telephone: string | null;
+    };
+    extraction: {
+      texte_extrait_longueur: number;
+      donnees_extraites: boolean;
+      confiance_ocr: number | null;
+      confiance: number | null;
+      champs_incertains: string[];
+    };
+    document: {
+      nom_fichier: string;
+      taille: number;
+      chemin_stockage: string;
+    };
+    analyse_ia: {
+      statut: string;
+      message: string;
+    };
+  }>> {
+    try {
+      const formData = new FormData();
+      formData.append('image_file', imageFile);
+      
+      if (serviceId) {
+        formData.append('service_id', serviceId.toString());
+      }
+      
+      // Ajouter les données modifiées par l'utilisateur si fournies
+      if (userData) {
+        if (userData.titre) formData.append('titre', userData.titre);
+        if (userData.description) formData.append('description', userData.description);
+        if (userData.nom) formData.append('nom_plaignant', userData.nom);
+        if (userData.prenom) formData.append('prenom_plaignant', userData.prenom);
+        if (userData.email) formData.append('email_plaignant', userData.email);
+        if (userData.telephone) formData.append('telephone_plaignant', userData.telephone);
+        if (userData.mode_reception) formData.append('mode_reception', userData.mode_reception);
+        if (userData.date_incident) formData.append('date_incident', userData.date_incident);
+        if (userData.priorite) formData.append('priorite', userData.priorite);
+        if (userData.assigned_user_id) formData.append('assigned_user_id', userData.assigned_user_id.toString());
+      }
+
+      console.log('📤 Création plainte depuis image:', imageFile.name, imageFile.size);
+      console.log('📤 Données utilisateur:', userData);
+
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-image', formData, {
+        headers: {
+          'Content-Type': undefined, // Laisser axios définir le multipart/form-data avec boundary
+        } as any,
+        timeout: 90000, // 90 secondes pour la création complète
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Plainte créée avec succès depuis l\'image'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('Erreur lors de la création depuis image:', error);
+      
+      let errorMessage = 'Erreur lors de la création depuis l\'image';
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (Array.isArray(detail)) {
+          errorMessage = detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
+        } else if (typeof detail === 'object') {
+          errorMessage = detail.msg || JSON.stringify(detail);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        data: null as any,
+        message: errorMessage
+      } as ApiResponse<any>;
+    }
   }
 
   // Récupérer le prochain numéro de plainte

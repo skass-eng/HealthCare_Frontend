@@ -207,6 +207,108 @@ class WebSocketService {
     this.socket.off('reconnect_error');
     this.socket.off('reconnect_failed');
   }
+
+  // ===== MÉTHODES POUR LES EXTRACTIONS PDF/IMAGE =====
+
+  // Écouter les événements d'extraction PDF
+  onPdfExtractionStarted(callback: (data: { task_id: string; filename: string; status: string; message: string }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('pdf_extraction_started', (data) => {
+      console.log('📄 PDF extraction started:', data);
+      callback(data);
+    });
+  }
+
+  onPdfExtractionComplete(callback: (data: {
+    success: boolean;
+    task_id: string;
+    filename: string;
+    extraction: {
+      donnees_structurees: any;
+      texte_brut: string;
+      texte_longueur: number;
+    };
+    confidence: number;
+    message: string;
+  }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('pdf_extraction_complete', (data) => {
+      console.log('✅ PDF extraction complete:', data);
+      callback(data);
+    });
+  }
+
+  onPdfExtractionFailed(callback: (data: { task_id: string; filename: string; error: string }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('pdf_extraction_failed', (data) => {
+      console.log('❌ PDF extraction failed:', data);
+      callback(data);
+    });
+  }
+
+  // Écouter les événements d'extraction Image
+  onImageExtractionStarted(callback: (data: { task_id: string; filename: string; status: string; message: string }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('image_extraction_started', (data) => {
+      console.log('📷 Image extraction started:', data);
+      callback(data);
+    });
+  }
+
+  onImageExtractionComplete(callback: (data: {
+    success: boolean;
+    task_id: string;
+    filename: string;
+    extraction: {
+      donnees_structurees: any;
+      texte_brut: string;
+      texte_longueur: number;
+    };
+    ocr_info: {
+      confiance: number;
+      qualite: string;
+    };
+    confidence: number;
+    message: string;
+  }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('image_extraction_complete', (data) => {
+      console.log('✅ Image extraction complete:', data);
+      callback(data);
+    });
+  }
+
+  onImageExtractionFailed(callback: (data: { task_id: string; filename: string; error: string }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('image_extraction_failed', (data) => {
+      console.log('❌ Image extraction failed:', data);
+      callback(data);
+    });
+  }
+
+  // S'abonner à une tâche d'extraction spécifique
+  subscribeToExtraction(taskId: string): void {
+    if (!this.socket) return;
+    this.socket.emit('subscribe_extraction', { task_id: taskId });
+    console.log('🔔 Subscribed to extraction task:', taskId);
+  }
+
+  // Se désabonner d'une tâche d'extraction
+  unsubscribeFromExtraction(taskId: string): void {
+    if (!this.socket) return;
+    this.socket.emit('unsubscribe_extraction', { task_id: taskId });
+  }
+
+  // Nettoyer les listeners d'extraction
+  cleanupExtractionListeners(): void {
+    if (!this.socket) return;
+    this.socket.off('pdf_extraction_started');
+    this.socket.off('pdf_extraction_complete');
+    this.socket.off('pdf_extraction_failed');
+    this.socket.off('image_extraction_started');
+    this.socket.off('image_extraction_complete');
+    this.socket.off('image_extraction_failed');
+  }
 }
 
 export const wsService = new WebSocketService();
