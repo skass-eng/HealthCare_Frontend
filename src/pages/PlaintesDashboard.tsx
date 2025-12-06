@@ -4,17 +4,49 @@ import { useNavigate } from 'react-router-dom';
 import { openExportModal } from '@/store/slices/uiSlice';
 import { DashboardUnifiedPlaintes } from '@/components';
 import { Download as DownloadIcon } from '@mui/icons-material';
-import { fetchStatistiquesGlobales } from '@/store/slices/dashboardSlice';
 import { apiService } from '@/lib/api';
 import { Plainte } from '@/types';
+
+interface StatistiquesGlobales {
+  total: number;
+  nouvelles: number;
+  en_cours: number;
+  traitees: number;
+  cloturees: number;
+  mois_courant: number;
+  semaine_courante: number;
+}
+
+// Fonction helper pour formater une date en YYYY-MM-DD
+const formatDateToISO = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Calculer les dates par défaut (J-3 mois à Aujourd'hui)
+const getDefaultDates = () => {
+  const today = new Date();
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  return {
+    dateDebut: formatDateToISO(threeMonthsAgo),
+    dateFin: formatDateToISO(today)
+  };
+};
 
 const PlaintesDashboard: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const defaultDates = getDefaultDates();
   const [plaintes, setPlaintes] = useState<Plainte[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentStatut, setCurrentStatut] = useState<string>('RECU');
+  const [dateDebut, setDateDebut] = useState<string>(defaultDates.dateDebut);
+  const [dateFin, setDateFin] = useState<string>(defaultDates.dateFin);
+  const [statistiquesGlobales, setStatistiquesGlobales] = useState<StatistiquesGlobales | null>(null);
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -22,17 +54,43 @@ const PlaintesDashboard: React.FC = () => {
     itemsPerPage: 20
   });
 
+  // Charger les statistiques globales avec filtres de dates
+  const loadStatistiques = async (dateDebutParam?: string, dateFinParam?: string) => {
+    try {
+      // Ne pas envoyer undefined si c'est une chaîne vide - laisser le backend appliquer le défaut
+      const params: { date_debut?: string; date_fin?: string } = {};
+      if (dateDebutParam && dateDebutParam.trim() !== '') {
+        params.date_debut = dateDebutParam;
+      }
+      if (dateFinParam && dateFinParam.trim() !== '') {
+        params.date_fin = dateFinParam;
+      }
+      
+      console.log('📊 Chargement des statistiques avec params:', params);
+      const response = await apiService.getStatistiquesGlobales(params);
+      
+      if (response.success && response.data) {
+        console.log('✅ Statistiques récupérées et mise à jour du state:', response.data);
+        setStatistiquesGlobales(response.data);
+      }
+    } catch (err) {
+      console.error('❌ Erreur lors du chargement des statistiques:', err);
+    }
+  };
+
   // Charger les vraies données des plaintes
-  const loadPlaintes = async (page: number = 1, statut?: string) => {
+  const loadPlaintes = async (page: number = 1, statut?: string, dateDebutParam?: string, dateFinParam?: string) => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('🔄 Chargement des vraies données des plaintes...', { page, statut });
+      console.log('🔄 Chargement des vraies données des plaintes...', { page, statut, dateDebut: dateDebutParam, dateFin: dateFinParam });
       const response = await apiService.getPlaintes({
         page,
         limit: 20,
         statut: statut || currentStatut, // Utiliser le statut passé ou le statut actuel
+        date_debut: dateDebutParam || dateDebut || undefined,
+        date_fin: dateFinParam || dateFin || undefined,
       });
       
       console.log('✅ Plaintes récupérées:', response);
@@ -53,20 +111,36 @@ const PlaintesDashboard: React.FC = () => {
 
   // Charger les données au montage du composant
   useEffect(() => {
-    dispatch(fetchStatistiquesGlobales());
-    loadPlaintes(1, currentStatut);
-  }, [dispatch]);
+    loadStatistiques(dateDebut, dateFin);
+    loadPlaintes(1, currentStatut, dateDebut, dateFin);
+  }, []);
 
   // Fonction pour gérer le changement de page
   const handlePageChange = (page: number) => {
-    loadPlaintes(page, currentStatut);
+    loadPlaintes(page, currentStatut, dateDebut, dateFin);
   };
 
   // Fonction pour gérer le changement de type de plainte
   const handleTypeChange = (type: string) => {
     console.log('🔄 Changement de type de plainte:', type);
     setCurrentStatut(type);
-    loadPlaintes(1, type);
+    loadPlaintes(1, type, dateDebut, dateFin);
+  };
+
+  // Fonction pour appliquer le filtre de dates
+  const handleDateFilter = () => {
+    console.log('🔄 Application du filtre de dates:', { dateDebut, dateFin });
+    loadStatistiques(dateDebut, dateFin);
+    loadPlaintes(1, currentStatut, dateDebut, dateFin);
+  };
+
+  // Fonction pour réinitialiser les filtres de dates (retour à J-3 mois → Aujourd'hui)
+  const handleResetDateFilter = () => {
+    const resetDates = getDefaultDates();
+    setDateDebut(resetDates.dateDebut);
+    setDateFin(resetDates.dateFin);
+    loadStatistiques(resetDates.dateDebut, resetDates.dateFin);
+    loadPlaintes(1, currentStatut, resetDates.dateDebut, resetDates.dateFin);
   };
 
   // Fonction pour gérer la création d'une nouvelle plainte
@@ -226,6 +300,116 @@ const PlaintesDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Filtre par dates */}
+      <div style={{
+        marginBottom: '24px',
+        background: 'white',
+        borderRadius: '12px',
+        padding: '16px 24px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        border: '1px solid #f1f5f9',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontWeight: 500, color: '#374151', fontSize: '14px' }}>📅 Période :</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label style={{ color: '#64748b', fontSize: '14px' }}>Du</label>
+          <input
+            type="date"
+            value={dateDebut}
+            onChange={(e) => setDateDebut(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid #d1d5db',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'border-color 0.2s ease'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label style={{ color: '#64748b', fontSize: '14px' }}>Au</label>
+          <input
+            type="date"
+            value={dateFin}
+            onChange={(e) => setDateFin(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid #d1d5db',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'border-color 0.2s ease'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+          />
+        </div>
+        <button
+          onClick={handleDateFilter}
+          style={{
+            padding: '8px 16px',
+            background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            fontSize: '14px'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
+          Filtrer
+        </button>
+        <button
+          onClick={handleResetDateFilter}
+          style={{
+            padding: '8px 16px',
+            background: '#f1f5f9',
+            color: '#64748b',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            fontSize: '14px'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#e2e8f0';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#f1f5f9';
+          }}
+        >
+          Réinitialiser
+        </button>
+        {(!dateDebut && !dateFin) && (
+          <span style={{ 
+            color: '#64748b', 
+            fontSize: '13px',
+            fontStyle: 'italic',
+            marginLeft: '8px'
+          }}>
+            Par défaut : 3 derniers mois
+          </span>
+        )}
+      </div>
+
       {/* Composant DashboardUnifiedPlaintes */}
       <DashboardUnifiedPlaintes 
         plaintes={plaintes}
@@ -240,6 +424,7 @@ const PlaintesDashboard: React.FC = () => {
         total={pagination.totalItems}
         currentPage={pagination.currentPage}
         limit={pagination.itemsPerPage}
+        statistiquesGlobales={statistiquesGlobales}
       />
     </div>
   );

@@ -17,6 +17,25 @@ export default function NouvellesPlaintesPage() {
     try {
       setLoading(true);
       
+      // Vérifier si la plainte a déjà été créée (cas du PdfUploadPanel qui crée directement)
+      // Dans ce cas, plainteData contient { success: true, plainte: {...}, ... }
+      if (plainteData.success && plainteData.plainte) {
+        console.log('✅ Plainte déjà créée via PdfUploadPanel:', plainteData.plainte);
+        const plainteId = plainteData.plainte.numero_plainte || plainteData.plainte.id || 'N/A';
+        toast.success(`🎉 Plainte n°${plainteId} créée avec succès ! Les analyses IA sont en cours...`);
+        
+        // Fermer le panel
+        setActivePanel(null);
+        
+        // Afficher des informations sur le processus
+        if (plainteData.analyse_ia?.statut === 'en_cours') {
+          toast.info('🤖 Analyse IA et classification automatique en cours...', { duration: 5000 });
+        }
+        
+        setLoading(false);
+        return;
+      }
+      
       // Préparer les données de la plainte selon le schéma attendu
       const plainteCreateData = {
         titre: plainteData.titre,

@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store';
 import { Assignment as DocumentTextIcon } from '@mui/icons-material';
 
 interface Plainte {
@@ -34,6 +32,16 @@ interface Plainte {
   };
 }
 
+interface StatistiquesGlobales {
+  total: number;
+  nouvelles: number;
+  en_cours: number;
+  traitees: number;
+  cloturees: number;
+  mois_courant: number;
+  semaine_courante: number;
+}
+
 interface DashboardUnifiedPlaintesProps {
   plaintes: Plainte[];
   filters: any;
@@ -47,6 +55,7 @@ interface DashboardUnifiedPlaintesProps {
   total?: number;
   currentPage?: number;
   limit?: number;
+  statistiquesGlobales?: StatistiquesGlobales | null;
 }
 
 const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
@@ -58,10 +67,15 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
   onTypeChange,
   total = 0,
   currentPage: externalCurrentPage = 1,
-  limit = 20
+  limit = 20,
+  statistiquesGlobales
 }) => {
-  // Récupérer les vraies données Redux
-  const { statistiquesGlobales } = useSelector((state: RootState) => state.dashboard);
+  // Log pour débugger les statistiques reçues
+  useEffect(() => {
+    console.log('📊 DashboardUnifiedPlaintes - statistiquesGlobales reçues:', statistiquesGlobales);
+  }, [statistiquesGlobales]);
+  
+  // Les statistiques sont maintenant passées via les props (filtrées par date)
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(externalCurrentPage);
   const [notification, setNotification] = useState<{ show: boolean; message: string }>({
@@ -822,41 +836,54 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
 
         {/* Barre de progression globale */}
         <div>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '12px'
-          }}>
-            <span style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#1e293b'
-            }}>
-              Progression globale
-            </span>
-            <span style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#64748b'
-            }}>
-              29%
-            </span>
-          </div>
-          <div style={{
-            height: '8px',
-            background: '#e2e8f0',
-            borderRadius: '4px',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              height: '100%',
-              width: '29%',
-              background: 'linear-gradient(90deg, #3b82f6, #14b8a6)',
-              borderRadius: '4px',
-              transition: 'width 0.3s ease'
-            }} />
-          </div>
+          {(() => {
+            const total = (statistiquesGlobales?.nouvelles || 0) + 
+                         (statistiquesGlobales?.en_cours || 0) + 
+                         (statistiquesGlobales?.traitees || 0) + 
+                         (statistiquesGlobales?.cloturees || 0);
+            const traitees = (statistiquesGlobales?.traitees || 0) + (statistiquesGlobales?.cloturees || 0);
+            const progression = total > 0 ? Math.round((traitees / total) * 100) : 0;
+            
+            return (
+              <>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '12px'
+                }}>
+                  <span style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#1e293b'
+                  }}>
+                    Progression globale
+                  </span>
+                  <span style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#64748b'
+                  }}>
+                    {progression}%
+                  </span>
+                </div>
+                <div style={{
+                  height: '8px',
+                  background: '#e2e8f0',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${progression}%`,
+                    background: 'linear-gradient(90deg, #3b82f6, #14b8a6)',
+                    borderRadius: '4px',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
 

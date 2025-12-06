@@ -11,6 +11,8 @@ import healthcareAiReducer from './slices/healthcareAiSlice';
 import modalReducer from './slices/modalSlice';
 import userReducer from './slices/userSlice';
 import servicesReducer from './slices/servicesSlice';
+import pdfExtractionReducer from './slices/pdfExtractionSlice';
+import imageExtractionReducer from './slices/imageExtractionSlice';
 
 export const store = configureStore({
   reducer: {
@@ -25,6 +27,8 @@ export const store = configureStore({
     modal: modalReducer,
     user: userReducer,
     services: servicesReducer,
+    pdfExtraction: pdfExtractionReducer,
+    imageExtraction: imageExtractionReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

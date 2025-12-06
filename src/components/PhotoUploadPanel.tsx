@@ -1,245 +1,364 @@
 'use client';
 
 import { CloudArrowUpIcon, DocumentMagnifyingGlassIcon, CheckCircleIcon, ExclamationCircleIcon, DocumentTextIcon, UserIcon, PhotoIcon } from '@heroicons/react/24/outline';
-import { ChangeEvent, useState, useCallback, useEffect } from 'react';
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers } from '../store/slices/userSlice';
+import { 
+  setSelectedFile,
+  setImagePreviewUrl,
+  startExtraction,
+  updateExtractionProgress,
+  extractionComplete,
+  extractionFailed,
+  setServices,
+  updateFormField,
+  setError,
+  setSuccess,
+  resetImageExtraction,
+  selectImageExtraction,
+  selectFormData,
+} from '../store/slices/imageExtractionSlice';
+import type { RootState, AppDispatch } from '../store';
 import apiService from '@/lib/api';
-
-interface ExtractedData {
-  plaignant: {
-    nom: string | null;
-    prenom: string | null;
-    email: string | null;
-    telephone: string | null;
-  };
-  plainte: {
-    titre: string | null;
-    description: string | null;
-    date_incident: string | null;
-    service_concerne: string | null;
-    mode_reception: string;
-  };
-  analyse: {
-    priorite_suggeree: string;
-    mots_cles: string[];
-    gravite_estimee: string;
-    resume_court: string;
-  };
-  confiance_extraction: {
-    score_global: number;
-    score_ocr?: number;
-    qualite_ocr?: string;
-    champs_incertains: string[];
-    scores_par_categorie?: Record<string, number>;
-  };
-}
-
-interface ServiceOption {
-  id: number;
-  nom: string;
-  code: string;
-}
-
-interface OcrInfo {
-  confiance: number;
-  qualite: string;
-  metadata?: Record<string, any>;
-}
+import wsService from '@/lib/websocket';
 
 interface PhotoUploadPanelProps {
   onSubmit: (data: any) => void;
   onClose: () => void;
 }
 
+// Formats d'images acceptés
+const acceptedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/tiff', 'image/bmp', 'image/gif'];
+
 export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanelProps) {
-  const dispatch = useDispatch<any>();
-  const users = useSelector((state: any) => state.user?.users || []);
+  const dispatch = useDispatch<AppDispatch>();
   
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
-  const [extractedText, setExtractedText] = useState<string>('');
-  const [ocrInfo, setOcrInfo] = useState<OcrInfo | null>(null);
-  const [services, setServices] = useState<ServiceOption[]>([]);
-  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  // Sélecteurs Redux
+  const users = useSelector((state: RootState) => state.user?.users || []);
+  const imageState = useSelector(selectImageExtraction);
+  const formData = useSelector(selectFormData);
   
-  // Champs éditables - Plaignant
-  const [editedNom, setEditedNom] = useState('');
-  const [editedPrenom, setEditedPrenom] = useState('');
-  const [editedEmail, setEditedEmail] = useState('');
-  const [editedTelephone, setEditedTelephone] = useState('');
+  // État local pour le bouton de soumission
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Champs éditables - Plainte
-  const [editedTitre, setEditedTitre] = useState('');
-  const [editedDescription, setEditedDescription] = useState('');
-  const [editedModeReception, setEditedModeReception] = useState('photo_import');
-  const [editedDateIncident, setEditedDateIncident] = useState('');
-  const [editedPriorite, setEditedPriorite] = useState('MOYEN');
-  const [editedAssignedUser, setEditedAssignedUser] = useState<number | null>(null);
+  // Destructurer les valeurs du state Redux
+  const {
+    selectedFileName,
+    selectedFileSize,
+    imagePreviewUrl,
+    isExtracting,
+    extractionTaskId,
+    extractionStep,
+    extractionMessage,
+    extractedData,
+    extractedText,
+    ocrInfo,
+    services,
+    error,
+    success,
+  } = imageState;
+  
+  // État local pour le fichier (non sérialisable dans Redux)
+  const selectedFileRef = useRef<File | null>(null);
+  
+  // Ref pour le polling
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Ref pour les services (évite les problèmes de closure dans useEffect)
+  const servicesRef = useRef(services);
+  useEffect(() => {
+    servicesRef.current = services;
+  }, [services]);
 
   // Charger les utilisateurs au montage
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
-  // Formats d'image acceptés
-  const acceptedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/tiff', 'image/bmp', 'image/gif'];
+  // Référence pour le task_id actuel (évite les problèmes de closure)
+  const taskIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    taskIdRef.current = extractionTaskId;
+    console.log('📌 [PhotoUploadPanel] Task ID mis à jour:', extractionTaskId);
+  }, [extractionTaskId]);
 
-  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && acceptedFormats.includes(file.type)) {
-      setSelectedFile(file);
-      setImagePreview(URL.createObjectURL(file));
-      setError(null);
-      setSuccess(null);
-      setExtractedData(null);
-      setOcrInfo(null);
-      
-      // Lancer automatiquement la prévisualisation
-      await handlePreview(file);
-    } else if (file) {
-      setError('Format d\'image non supporté. Formats acceptés: JPG, PNG, WEBP, TIFF, BMP, GIF');
+  // Setup WebSocket listeners pour les extractions d'images
+  useEffect(() => {
+    // Connecter au WebSocket si pas déjà fait
+    if (!wsService.isConnected()) {
+      wsService.connect().catch(() => {
+        console.warn('⚠️ WebSocket non disponible, mode polling activé');
+      });
     }
-  };
 
-  const handlePreview = async (file: File) => {
-    setIsPreviewLoading(true);
-    setError(null);
+    // Écouter les événements de démarrage d'extraction image
+    wsService.onImageExtractionStarted((data) => {
+      console.log('🚀 [WS] Événement image_extraction_started reçu:', data);
+      if (taskIdRef.current && data.task_id === taskIdRef.current) {
+        console.log('✅ [WS] Task ID correspond, mise à jour étape');
+        dispatch(updateExtractionProgress({ 
+          step: 2, 
+          message: data.message || 'OCR en cours...' 
+        }));
+      }
+    });
+
+    // Écouter les événements de complétion
+    wsService.onImageExtractionComplete((data) => {
+      console.log('✅ [WS] Événement image_extraction_complete reçu:', data);
+      console.log('📌 [WS] taskIdRef.current =', taskIdRef.current, '| data.task_id =', data.task_id);
+      
+      // Accepter si le task_id correspond OU si on est en cours d'extraction (fallback)
+      const shouldProcess = (taskIdRef.current && data.task_id === taskIdRef.current) || 
+                           (taskIdRef.current && !data.task_id);
+      
+      if (shouldProcess || taskIdRef.current) {
+        console.log('✅ [WS] Traitement des données d\'extraction image');
+        
+        if (data.extraction?.donnees_structurees) {
+          const extracted = data.extraction.donnees_structurees;
+          console.log('📋 [WS] Données structurées reçues:', extracted);
+          
+          dispatch(extractionComplete({
+            extractedData: extracted,
+            extractedText: data.extraction.texte_brut || '',
+            ocrInfo: data.ocr_info || null,
+            services: servicesRef.current,
+          }));
+        } else {
+          console.warn('⚠️ [WS] Pas de donnees_structurees dans data.extraction');
+        }
+        
+        // Annuler le polling si actif
+        if (pollingRef.current) {
+          clearTimeout(pollingRef.current);
+          pollingRef.current = null;
+        }
+      }
+    });
+
+    // Écouter les erreurs
+    wsService.onImageExtractionFailed((data) => {
+      console.log('❌ [WS] Événement image_extraction_failed reçu:', data);
+      if (taskIdRef.current && data.task_id === taskIdRef.current) {
+        dispatch(extractionFailed(data.error || 'Erreur lors de l\'analyse OCR'));
+        
+        if (pollingRef.current) {
+          clearTimeout(pollingRef.current);
+          pollingRef.current = null;
+        }
+      }
+    });
+
+    return () => {
+      wsService.cleanupExtractionListeners();
+      if (pollingRef.current) {
+        clearTimeout(pollingRef.current);
+      }
+    };
+  }, [dispatch]);
+
+  // Fonction pour traiter les résultats d'extraction (mode synchrone/fallback)
+  const handleExtractionComplete = useCallback((data: any) => {
+    if (data.extraction?.donnees_structurees) {
+      const extracted = data.extraction.donnees_structurees;
+      
+      dispatch(extractionComplete({
+        extractedData: extracted,
+        extractedText: data.extraction.texte_brut || '',
+        ocrInfo: data.ocr_info || null,
+        services: servicesRef.current,
+      }));
+    }
+  }, [dispatch]);
+
+  // Méthode de prévisualisation asynchrone (OCR + IA)
+  const handlePreviewAsync = async (file: File) => {
+    dispatch(setError(null));
+    dispatch(setSuccess(null));
     
     try {
-      console.log('📤 [PhotoUploadPanel] Envoi de l\'image pour OCR:', file.name, file.size);
-      const response = await apiService.previewImageExtraction(file);
+      console.log('📤 [PhotoUploadPanel] Lancement extraction async:', file.name);
+      const response = await apiService.previewImageExtractionAsync(file);
       
-      console.log('📥 [PhotoUploadPanel] Réponse reçue:', response);
+      console.log('📥 [PhotoUploadPanel] Réponse async:', response);
       
       if (response.success && response.data) {
         const data = response.data;
         
-        // Stocker les informations OCR
-        if (data.ocr_info) {
-          setOcrInfo(data.ocr_info);
-        }
-        
-        // Stocker les services disponibles
+        // Stocker les services disponibles dans le store
         if (data.services_disponibles) {
-          setServices(data.services_disponibles);
+          dispatch(setServices(data.services_disponibles));
+          servicesRef.current = data.services_disponibles;
         }
         
-        // Stocker le texte extrait
-        if (data.extraction?.texte_brut) {
-          setExtractedText(data.extraction.texte_brut);
+        // Si c'est une réponse synchrone (fallback), traiter directement
+        if (data.async === false && data.extraction) {
+          console.log('⚡ [PhotoUploadPanel] Mode synchrone (fallback)');
+          handleExtractionComplete({ extraction: data.extraction, ocr_info: data.ocr_info });
+          return;
         }
         
-        // Stocker les données structurées
-        if (data.extraction?.donnees_structurees) {
-          const extracted = data.extraction.donnees_structurees;
-          setExtractedData(extracted);
+        // Mode asynchrone - attendre la notification WebSocket
+        if (data.async === true && data.task_id) {
+          console.log('🔄 [PhotoUploadPanel] Mode asynchrone, task_id:', data.task_id);
+          dispatch(startExtraction({ taskId: data.task_id }));
           
-          // Pré-remplir les champs éditables - Plaignant
-          setEditedNom(extracted.plaignant?.nom || '');
-          setEditedPrenom(extracted.plaignant?.prenom || '');
-          setEditedEmail(extracted.plaignant?.email || '');
-          setEditedTelephone(extracted.plaignant?.telephone || '');
-          
-          // Pré-remplir les champs éditables - Plainte
-          setEditedTitre(extracted.plainte?.titre || '');
-          setEditedDescription(extracted.plainte?.description || '');
-          setEditedDateIncident(extracted.plainte?.date_incident || '');
-          setEditedModeReception(extracted.plainte?.mode_reception || 'photo_import');
-          
-          // Pré-remplir la priorité depuis l'analyse IA
-          if (extracted.analyse?.priorite_suggeree) {
-            setEditedPriorite(extracted.analyse.priorite_suggeree);
+          // S'abonner aux notifications pour cette tâche
+          if (wsService.isConnected()) {
+            wsService.subscribeToExtraction(data.task_id);
           }
           
-          // Sélectionner le service détecté si possible
-          if (extracted.plainte?.service_concerne && data.services_disponibles) {
-            const matchingService = data.services_disponibles.find(
-              (s: ServiceOption) => s.nom.toLowerCase().includes(extracted.plainte?.service_concerne?.toLowerCase() || '')
-            );
-            if (matchingService) {
-              setSelectedServiceId(matchingService.id);
-            }
-          }
+          // Fallback: polling si WebSocket ne répond pas dans 5 minutes
+          pollingRef.current = setTimeout(() => {
+            console.log('⏱️ [PhotoUploadPanel] Timeout WebSocket (5 min), fallback sur appel synchrone');
+            handlePreviewSync(file);
+          }, 300000); // 5 minutes
         }
       } else {
-        setError(response.message || 'Erreur lors de la prévisualisation');
+        dispatch(setError(response.message || 'Erreur lors du lancement de l\'analyse OCR'));
       }
     } catch (err: any) {
       console.error('❌ [PhotoUploadPanel] Exception:', err);
-      setError(err.message || 'Erreur lors de l\'extraction OCR de l\'image');
-    } finally {
-      setIsPreviewLoading(false);
+      dispatch(setError(err.message || 'Erreur lors de la prévisualisation'));
+    }
+  };
+
+  // Méthode de prévisualisation synchrone (fallback)
+  const handlePreviewSync = async (file: File) => {
+    dispatch(updateExtractionProgress({ step: 2, message: '🔄 Analyse OCR synchrone en cours...' }));
+    
+    try {
+      const response = await apiService.previewImageExtraction(file);
+      
+      console.log('📥 [PhotoUploadPanel] Réponse sync reçue:', response);
+      
+      if (response.success && response.data) {
+        const data = response.data;
+        
+        // Stocker les services disponibles
+        if (data.services_disponibles) {
+          dispatch(setServices(data.services_disponibles));
+          servicesRef.current = data.services_disponibles;
+        }
+        
+        // Stocker les données extraites
+        if (data.extraction?.donnees_structurees) {
+          dispatch(extractionComplete({
+            extractedData: data.extraction.donnees_structurees,
+            extractedText: data.extraction.texte_brut || '',
+            ocrInfo: data.ocr_info || null,
+            services: data.services_disponibles || [],
+          }));
+        } else {
+          console.warn('⚠️ [PhotoUploadPanel] Aucune donnée structurée trouvée');
+        }
+      } else {
+        dispatch(setError(response.message || 'Erreur lors de la prévisualisation OCR'));
+      }
+    } catch (err: any) {
+      console.error('❌ [PhotoUploadPanel] Exception:', err);
+      dispatch(extractionFailed(err.message || 'Erreur lors de la prévisualisation de l\'image'));
+    }
+  };
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && acceptedFormats.includes(file.type)) {
+      selectedFileRef.current = file;
+      
+      // Créer l'URL de prévisualisation
+      const previewUrl = URL.createObjectURL(file);
+      
+      dispatch(setSelectedFile({ name: file.name, size: file.size, previewUrl }));
+      
+      // Lancer la prévisualisation asynchrone
+      await handlePreviewAsync(file);
+    } else if (file) {
+      dispatch(setError('Format d\'image non supporté. Formats acceptés: JPG, PNG, WEBP, TIFF, BMP, GIF'));
     }
   };
 
   const handleSubmit = async () => {
-    if (!selectedFile) {
-      setError('Veuillez sélectionner une image');
+    console.log('🔍 [handleSubmit] === DÉBUT SOUMISSION ===');
+    console.log('🔍 [handleSubmit] formData depuis le store Redux:', formData);
+    
+    if (!selectedFileRef.current) {
+      dispatch(setError('Veuillez sélectionner une image'));
       return;
     }
 
-    // Validation des champs obligatoires
-    if (!editedTitre.trim()) {
-      setError('Le titre de la plainte est obligatoire');
+    // Validation des champs obligatoires depuis le store
+    if (!formData.titre.trim()) {
+      dispatch(setError('Le titre de la plainte est obligatoire'));
       return;
     }
-    if (!editedDescription.trim()) {
-      setError('La description est obligatoire');
+    if (!formData.description.trim()) {
+      dispatch(setError('La description est obligatoire'));
       return;
     }
-    if (!editedNom.trim()) {
-      setError('Le nom du plaignant est obligatoire');
+    if (!formData.nom.trim()) {
+      dispatch(setError('Le nom du plaignant est obligatoire'));
       return;
     }
-    if (!editedPrenom.trim()) {
-      setError('Le prénom du plaignant est obligatoire');
+    if (!formData.prenom.trim()) {
+      dispatch(setError('Le prénom du plaignant est obligatoire'));
       return;
     }
-    if (!selectedServiceId) {
-      setError('Veuillez sélectionner un service');
+    if (!formData.service_id) {
+      dispatch(setError('Veuillez sélectionner un service'));
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    dispatch(setError(null));
     
     try {
+      // Préparer les données depuis le store Redux - CLÉS EXACTES attendues par le backend
       const userData = {
-        nom: editedNom || undefined,
-        prenom: editedPrenom || undefined,
-        email: editedEmail || undefined,
-        telephone: editedTelephone || undefined,
-        titre: editedTitre || undefined,
-        description: editedDescription || undefined,
-        mode_reception: editedModeReception || 'photo_import',
-        date_incident: editedDateIncident || undefined,
-        priorite: editedPriorite || 'MOYEN',
-        assigned_user_id: editedAssignedUser || undefined,
+        nom: formData.nom.trim() || 'Non renseigné',
+        prenom: formData.prenom.trim() || 'Non renseigné',
+        email: formData.email.trim() || null,
+        telephone: formData.telephone.trim() || null,
+        titre: formData.titre.trim() || `Plainte du ${new Date().toLocaleDateString('fr-FR')}`,
+        description: formData.description.trim() || 'Description à compléter',
+        mode_reception: formData.mode_reception || 'photo_import',
+        date_incident: formData.date_incident || null,
+        priorite: formData.priorite || 'MOYEN',
+        assigned_user_id: formData.assigned_user_id || null,
       };
       
-      const response = await apiService.createPlainteFromImage(
-        selectedFile,
-        selectedServiceId || undefined,
+      console.log('📤 [PhotoUploadPanel] Données userData depuis store Redux:', JSON.stringify(userData, null, 2));
+      console.log('📤 [PhotoUploadPanel] Service ID:', formData.service_id);
+      console.log('📤 [PhotoUploadPanel] Fichier Image:', selectedFileRef.current.name);
+      
+      // Utiliser le nouvel endpoint optimisé qui ne refait pas l'OCR
+      const response = await apiService.createPlainteFromImageValidated(
+        selectedFileRef.current,
+        formData.service_id || 1,
         userData
       );
       
       if (response.success && response.data) {
-        setSuccess(`Plainte ${response.data.plainte?.numero_plainte} créée avec succès !`);
+        dispatch(setSuccess(`Plainte ${response.data.plainte?.numero_plainte} créée avec succès !`));
+        
+        // Appeler le callback avec les données
         onSubmit(response.data);
-        setTimeout(() => { onClose(); }, 2000);
+        
+        // Reset et fermer après un délai
+        setTimeout(() => {
+          dispatch(resetImageExtraction());
+          onClose();
+        }, 2000);
       } else {
-        setError(response.message || 'Erreur lors de la création de la plainte');
+        dispatch(setError(response.message || 'Erreur lors de la création de la plainte'));
       }
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de la création de la plainte depuis l\'image');
+      dispatch(setError(err.message || 'Erreur lors de la création de la plainte depuis l\'image'));
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -260,15 +379,15 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
     if (files.length > 0) {
       const file = files[0];
       if (acceptedFormats.includes(file.type)) {
-        setSelectedFile(file);
-        setImagePreview(URL.createObjectURL(file));
-        setError(null);
-        await handlePreview(file);
+        selectedFileRef.current = file;
+        const previewUrl = URL.createObjectURL(file);
+        dispatch(setSelectedFile({ name: file.name, size: file.size, previewUrl }));
+        await handlePreviewAsync(file);
       } else {
-        setError('Format d\'image non supporté. Formats acceptés: JPG, PNG, WEBP, TIFF, BMP, GIF');
+        dispatch(setError('Format d\'image non supporté. Formats acceptés: JPG, PNG, WEBP, TIFF, BMP, GIF'));
       }
     }
-  }, []);
+  }, [dispatch]);
 
   const getConfidenceColor = (score: number) => {
     if (score >= 0.8) return 'text-green-600 bg-green-100';
@@ -285,6 +404,11 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
       'faible': { color: 'bg-red-100 text-red-700', label: '✗ Faible' }
     };
     return badges[qualite] || badges['moyen'];
+  };
+
+  // Helper pour mettre à jour un champ du formulaire
+  const updateField = (field: keyof typeof formData, value: any) => {
+    dispatch(updateFormField({ field, value }));
   };
 
   return (
@@ -313,11 +437,20 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
           onClick={handleButtonClick}
         >
           <div className="text-center">
-            {isPreviewLoading ? (
+            {isExtracting ? (
               <>
                 <DocumentMagnifyingGlassIcon className="w-12 h-12 text-emerald-500 mx-auto mb-4 animate-pulse" />
-                <h3 className="text-lg font-semibold text-emerald-700 mb-2">Analyse OCR en cours...</h3>
-                <p className="text-emerald-600 mb-4">Extraction du texte et analyse IA</p>
+                <h3 className="text-lg font-semibold text-emerald-700 mb-2">
+                  {extractionMessage || 'Analyse OCR en cours...'}
+                </h3>
+                <p className="text-emerald-600 mb-4">Étape {extractionStep}/4 - Extraction du texte et analyse IA</p>
+                {/* Barre de progression */}
+                <div className="w-full max-w-md mx-auto bg-emerald-200 rounded-full h-2.5 mb-4">
+                  <div 
+                    className="bg-emerald-600 h-2.5 rounded-full transition-all duration-500" 
+                    style={{ width: `${(extractionStep / 4) * 100}%` }}
+                  />
+                </div>
               </>
             ) : (
               <>
@@ -334,7 +467,7 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
               className="hidden"
               id="photo-file-input"
             />
-            {!isPreviewLoading && (
+            {!isExtracting && (
               <button 
                 onClick={(e) => { e.stopPropagation(); handleButtonClick(); }}
                 className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
@@ -344,14 +477,14 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
             )}
             
             {/* Prévisualisation de l'image */}
-            {imagePreview && (
+            {imagePreviewUrl && (
               <div className="mt-4 p-3 bg-emerald-100 rounded-lg">
                 <p className="text-emerald-700 text-sm font-medium mb-2">
-                  Image sélectionnée : {selectedFile?.name} ({selectedFile && (selectedFile.size / 1024).toFixed(1)} Ko)
+                  Image sélectionnée : {selectedFileName} ({selectedFileSize && (selectedFileSize / 1024).toFixed(1)} Ko)
                 </p>
                 <div className="flex justify-center">
                   <img 
-                    src={imagePreview} 
+                    src={imagePreviewUrl} 
                     alt="Aperçu" 
                     className="max-w-full max-h-48 object-contain rounded-lg border-2 border-emerald-300 shadow-md"
                   />
@@ -425,8 +558,8 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                   <label className="block text-sm font-medium text-slate-700 mb-2">Nom *</label>
                   <input 
                     type="text" 
-                    value={editedNom}
-                    onChange={(e) => setEditedNom(e.target.value)}
+                    value={formData.nom}
+                    onChange={(e) => updateField('nom', e.target.value)}
                     placeholder="Nom du plaignant" 
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
@@ -435,8 +568,8 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                   <label className="block text-sm font-medium text-slate-700 mb-2">Prénom *</label>
                   <input 
                     type="text" 
-                    value={editedPrenom}
-                    onChange={(e) => setEditedPrenom(e.target.value)}
+                    value={formData.prenom}
+                    onChange={(e) => updateField('prenom', e.target.value)}
                     placeholder="Prénom du plaignant" 
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
@@ -445,8 +578,8 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                   <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
                   <input 
                     type="email" 
-                    value={editedEmail}
-                    onChange={(e) => setEditedEmail(e.target.value)}
+                    value={formData.email}
+                    onChange={(e) => updateField('email', e.target.value)}
                     placeholder="email@exemple.com" 
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
@@ -455,8 +588,8 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                   <label className="block text-sm font-medium text-slate-700 mb-2">Téléphone</label>
                   <input 
                     type="tel" 
-                    value={editedTelephone}
-                    onChange={(e) => setEditedTelephone(e.target.value)}
+                    value={formData.telephone}
+                    onChange={(e) => updateField('telephone', e.target.value)}
                     placeholder="01 23 45 67 89" 
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
@@ -477,8 +610,8 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                 <label className="block text-sm font-medium text-slate-700 mb-2">Titre de la plainte *</label>
                 <input 
                   type="text" 
-                  value={editedTitre}
-                  onChange={(e) => setEditedTitre(e.target.value)}
+                  value={formData.titre}
+                  onChange={(e) => updateField('titre', e.target.value)}
                   placeholder="Ex: Problème d'accueil aux urgences..." 
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
@@ -488,8 +621,8 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                 <label className="block text-sm font-medium text-slate-700 mb-2">Description détaillée *</label>
                 <textarea 
                   rows={4}
-                  value={editedDescription}
-                  onChange={(e) => setEditedDescription(e.target.value)}
+                  value={formData.description}
+                  onChange={(e) => updateField('description', e.target.value)}
                   placeholder="Décrivez en détail la plainte..." 
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
@@ -499,8 +632,8 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                 <div className="bg-white rounded-lg p-4 border border-slate-200">
                   <label className="block text-sm font-medium text-slate-700 mb-2">Mode de réception *</label>
                   <select 
-                    value={editedModeReception}
-                    onChange={(e) => setEditedModeReception(e.target.value)}
+                    value={formData.mode_reception}
+                    onChange={(e) => updateField('mode_reception', e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   >
                     <option value="photo_import">Import Photo/Image</option>
@@ -514,8 +647,8 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                   <label className="block text-sm font-medium text-slate-700 mb-2">Date de l'incident</label>
                   <input 
                     type="date" 
-                    value={editedDateIncident}
-                    onChange={(e) => setEditedDateIncident(e.target.value)}
+                    value={formData.date_incident}
+                    onChange={(e) => updateField('date_incident', e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
                 </div>
@@ -525,8 +658,8 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                 <div className="bg-white rounded-lg p-4 border border-slate-200">
                   <label className="block text-sm font-medium text-slate-700 mb-2">Service concerné *</label>
                   <select 
-                    value={selectedServiceId || ''}
-                    onChange={(e) => setSelectedServiceId(e.target.value ? parseInt(e.target.value) : null)}
+                    value={formData.service_id || ''}
+                    onChange={(e) => updateField('service_id', e.target.value ? parseInt(e.target.value) : null)}
                     className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
                     <option value="">Sélectionner un service...</option>
@@ -538,12 +671,12 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                 <div className="bg-white rounded-lg p-4 border border-slate-200">
                   <label className="block text-sm font-medium text-slate-700 mb-2">Priorité *</label>
                   <select 
-                    value={editedPriorite}
-                    onChange={(e) => setEditedPriorite(e.target.value)}
+                    value={formData.priorite}
+                    onChange={(e) => updateField('priorite', e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
-                      editedPriorite === 'URGENT' ? 'border-red-300 focus:ring-red-500 text-red-700 font-semibold' :
-                      editedPriorite === 'ELEVE' ? 'border-orange-300 focus:ring-orange-500 text-orange-700 font-semibold' :
-                      editedPriorite === 'MOYEN' ? 'border-yellow-300 focus:ring-yellow-500 text-yellow-700 font-semibold' :
+                      formData.priorite === 'URGENT' ? 'border-red-300 focus:ring-red-500 text-red-700 font-semibold' :
+                      formData.priorite === 'ELEVE' ? 'border-orange-300 focus:ring-orange-500 text-orange-700 font-semibold' :
+                      formData.priorite === 'MOYEN' ? 'border-yellow-300 focus:ring-yellow-500 text-yellow-700 font-semibold' :
                       'border-green-300 focus:ring-green-500 text-green-700 font-semibold'
                     }`}
                   >
@@ -556,8 +689,8 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
                 <div className="bg-white rounded-lg p-4 border border-slate-200">
                   <label className="block text-sm font-medium text-slate-700 mb-2">Assigné à</label>
                   <select 
-                    value={editedAssignedUser || ''}
-                    onChange={(e) => setEditedAssignedUser(e.target.value ? parseInt(e.target.value) : null)}
+                    value={formData.assigned_user_id || ''}
+                    onChange={(e) => updateField('assigned_user_id', e.target.value ? parseInt(e.target.value) : null)}
                     className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Sélectionner...</option>
@@ -626,21 +759,21 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
         <div className="flex justify-end gap-4">
           <button 
             onClick={onClose}
-            disabled={isLoading}
+            disabled={isSubmitting}
             className="px-6 py-3 border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50"
           >
             Annuler
           </button>
           <button 
             onClick={handleSubmit}
-            disabled={!selectedFile || isLoading || !extractedData}
+            disabled={!selectedFileName || isExtracting || isSubmitting || !extractedData}
             className={`px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 flex items-center gap-2 ${
-              selectedFile && !isLoading && extractedData
+              selectedFileName && !isExtracting && !isSubmitting && extractedData
                 ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:shadow-xl transform hover:-translate-y-1' 
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <>
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>

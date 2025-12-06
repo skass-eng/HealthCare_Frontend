@@ -213,6 +213,8 @@ class ApiService {
     organisation_id?: number;
     service_id?: number;
     search?: string;
+    date_debut?: string;
+    date_fin?: string;
   }): Promise<PaginatedResponse<Plainte>> {
     const queryParams = new URLSearchParams();
     if (params) {
@@ -338,9 +340,20 @@ class ApiService {
       formData.append('description', plainteData.description);
       formData.append('date_incident', plainteData.date_incident || new Date().toISOString().split('T')[0]);
       
-      formData.append('service_concerne_id', plainteData.service_id?.toString() || '');
-      formData.append('utilisateur_assigne_id', plainteData.assigned_user_id?.toString() || '');
-      formData.append('priorite', 'MOYEN');
+      // Ne pas envoyer de chaîne vide pour les IDs - le backend attend des entiers valides
+      if (plainteData.service_id) {
+        formData.append('service_concerne_id', plainteData.service_id.toString());
+      } else {
+        // Service par défaut si non spécifié
+        formData.append('service_concerne_id', '1');
+      }
+      
+      if (plainteData.assigned_user_id) {
+        formData.append('utilisateur_assigne_id', plainteData.assigned_user_id.toString());
+      }
+      // Si pas d'utilisateur assigné, ne pas envoyer le champ (le backend accepte None)
+      
+      formData.append('priorite', plainteData.priorite || 'MOYEN');
       
       // Ajouter les documents s'il y en a
       if (documents && documents.length > 0) {
@@ -549,18 +562,18 @@ class ApiService {
   // Utilise le nouvel endpoint optimisé qui ne refait pas l'analyse IA
   async createPlainteFromPdf(
     pdfFile: File, 
-    serviceId?: number,
-    userData?: {
-      titre?: string;
-      description?: string;
-      nom?: string;
-      prenom?: string;
-      email?: string;
-      telephone?: string;
-      mode_reception?: string;
-      date_incident?: string;
-      priorite?: string;
-      assigned_user_id?: number;
+    serviceId: number,
+    userData: {
+      titre: string;
+      description: string;
+      nom: string;
+      prenom: string;
+      email?: string | null;
+      telephone?: string | null;
+      mode_reception?: string | null;
+      date_incident?: string | null;
+      priorite?: string | null;
+      assigned_user_id?: number | null;
     }
   ): Promise<ApiResponse<{
     success: boolean;
@@ -593,67 +606,112 @@ class ApiService {
     };
   }>> {
     try {
+      // Créer un FormData propre
       const formData = new FormData();
-      formData.append('pdf_file', pdfFile);
       
-      // Service ID est obligatoire pour le nouvel endpoint
-      if (serviceId) {
-        formData.append('service_id', serviceId.toString());
+      // 1. Fichier PDF (obligatoire)
+      formData.append('pdf_file', pdfFile, pdfFile.name);
+      
+      // 2. Service ID (obligatoire)
+      formData.append('service_id', serviceId.toString());
+      
+      // 3. Champs obligatoires depuis le store Redux
+      formData.append('titre', userData.titre);
+      formData.append('description', userData.description);
+      formData.append('nom_plaignant', userData.nom);
+      formData.append('prenom_plaignant', userData.prenom);
+      
+      // 4. Champs optionnels - seulement s'ils ont une valeur
+      if (userData.email) {
+        formData.append('email_plaignant', userData.email);
       }
-      
-      // Ajouter les données validées par l'utilisateur
-      if (userData) {
-        if (userData.titre) formData.append('titre', userData.titre);
-        if (userData.description) formData.append('description', userData.description);
-        if (userData.nom) formData.append('nom_plaignant', userData.nom);
-        if (userData.prenom) formData.append('prenom_plaignant', userData.prenom);
-        if (userData.email) formData.append('email_plaignant', userData.email);
-        if (userData.telephone) formData.append('telephone_plaignant', userData.telephone);
-        if (userData.mode_reception) formData.append('mode_reception', userData.mode_reception);
-        if (userData.date_incident) formData.append('date_incident', userData.date_incident);
-        if (userData.priorite) formData.append('priorite', userData.priorite);
-        if (userData.assigned_user_id) formData.append('assigned_user_id', userData.assigned_user_id.toString());
+      if (userData.telephone) {
+        formData.append('telephone_plaignant', userData.telephone);
+      }
+      if (userData.mode_reception) {
+        formData.append('mode_reception', userData.mode_reception);
+      }
+      if (userData.date_incident) {
+        formData.append('date_incident', userData.date_incident);
+      }
+      if (userData.priorite) {
+        formData.append('priorite', userData.priorite);
+      }
+      if (userData.assigned_user_id) {
+        formData.append('assigned_user_id', userData.assigned_user_id.toString());
       }
 
-      console.log('📤 Création plainte depuis données validées - PDF:', pdfFile.name, pdfFile.size);
-      console.log('📤 Données utilisateur:', userData);
+      console.log('📤 [API] Création plainte depuis données validées');
+      console.log('📤 [API] PDF:', pdfFile.name, '|', pdfFile.size, 'bytes');
+      console.log('📤 [API] Service ID:', serviceId);
+      console.log('📤 [API] Données depuis store Redux:', JSON.stringify(userData, null, 2));
+      
+      // Debug: Afficher tout le contenu du FormData
+      console.log('📦 [API] Contenu FormData envoyé:');
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`  - ${key}: [File] ${value.name} (${value.size} bytes, ${value.type})`);
+        } else {
+          console.log(`  - ${key}: "${value}"`);
+        }
+      }
 
-      // Utiliser le nouvel endpoint optimisé
-      const response = await this.api.post('/api/v1/plaintes/creation/depuis-donnees-validees', formData, {
-        headers: {
-          'Content-Type': undefined, // Laisser axios définir le multipart/form-data avec boundary
-        } as any,
-        timeout: 60000, // 60 secondes de timeout
-      });
+      // Utiliser fetch API directement pour un contrôle total sur les headers
+      // Cela évite tout problème d'interférence avec les intercepteurs Axios
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${this.baseURL}/api/v1/plaintes/creation/depuis-donnees-validees`,
+        {
+          method: 'POST',
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            // NE PAS définir Content-Type - le navigateur le fera automatiquement avec le boundary
+          },
+          body: formData,
+        }
+      );
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ [API] Erreur HTTP:', response.status, response.statusText);
+        console.error('❌ [API] Détails:', JSON.stringify(responseData, null, 2));
+        
+        let errorMessage = 'Erreur lors de la création depuis le PDF';
+        if (responseData.detail) {
+          const detail = responseData.detail;
+          if (typeof detail === 'string') {
+            errorMessage = detail;
+          } else if (Array.isArray(detail)) {
+            console.error('❌ [API] Erreurs de validation FastAPI:');
+            detail.forEach((d: any, i: number) => {
+              console.error(`  ${i + 1}. Champ: ${d.loc?.join('.')} | Type: ${d.type} | Message: ${d.msg}`);
+            });
+            errorMessage = detail.map((d: any) => `${d.loc?.join('.')}: ${d.msg}`).join(', ');
+          }
+        }
+        
+        return {
+          success: false,
+          data: null as any,
+          message: errorMessage
+        } as ApiResponse<any>;
+      }
+      
+      console.log('✅ [API] Plainte créée avec succès:', responseData);
 
       return {
         success: true,
-        data: response.data,
+        data: responseData,
         message: 'Plainte créée avec succès depuis le PDF'
       } as ApiResponse<any>;
     } catch (error: any) {
-      console.error('Erreur lors de la création depuis PDF:', error);
-      
-      // Extraire le message d'erreur correctement
-      let errorMessage = 'Erreur lors de la création depuis le PDF';
-      if (error.response?.data?.detail) {
-        const detail = error.response.data.detail;
-        if (typeof detail === 'string') {
-          errorMessage = detail;
-        } else if (Array.isArray(detail)) {
-          // FastAPI validation errors sont un tableau d'objets
-          errorMessage = detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
-        } else if (typeof detail === 'object') {
-          errorMessage = detail.msg || JSON.stringify(detail);
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
+      console.error('❌ [API] Exception lors de la création depuis PDF:', error);
       
       return {
         success: false,
         data: null as any,
-        message: errorMessage
+        message: error.message || 'Erreur lors de la création depuis le PDF'
       } as ApiResponse<any>;
     }
   }
@@ -854,6 +912,65 @@ class ApiService {
     }
   }
 
+  // Prévisualiser l'extraction Image de manière ASYNCHRONE (recommandé pour OCR + IA)
+  async previewImageExtractionAsync(imageFile: File): Promise<ApiResponse<{
+    success: boolean;
+    async: boolean;
+    task_id: string;
+    celery_task_id?: string;
+    filename: string;
+    file_size?: number;
+    services_disponibles: Array<{ id: number; nom: string; code: string }>;
+    message: string;
+    // Si async=false (fallback synchrone), les données sont directement disponibles
+    extraction?: {
+      texte_brut: string;
+      texte_longueur: number;
+      donnees_structurees: any;
+    };
+    ocr_info?: {
+      confiance: number;
+      qualite: string;
+    };
+  }>> {
+    try {
+      const formData = new FormData();
+      formData.append('image_file', imageFile);
+
+      console.log('📤 [Async] Envoi de l\'image pour OCR:', imageFile.name);
+
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-image/preview-async', formData, {
+        headers: {
+          'Content-Type': undefined,
+        } as any,
+        timeout: 30000, // 30s suffit car c'est asynchrone
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.data.message || 'Analyse OCR lancée'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('Erreur lors du lancement de l\'extraction image async:', error);
+      
+      let errorMessage = 'Erreur lors du lancement de l\'extraction OCR';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        data: null as any,
+        message: errorMessage
+      } as ApiResponse<any>;
+    }
+  }
+
   // Créer une plainte depuis une image avec les données modifiées par l'utilisateur
   async createPlainteFromImage(
     imageFile: File, 
@@ -969,6 +1086,164 @@ class ApiService {
     }
   }
 
+  // Créer une plainte depuis une image avec les données VALIDÉES par l'utilisateur
+  // Utilise le nouvel endpoint optimisé qui ne refait pas l'OCR/analyse IA
+  async createPlainteFromImageValidated(
+    imageFile: File, 
+    serviceId: number,
+    userData: {
+      titre: string;
+      description: string;
+      nom: string;
+      prenom: string;
+      email?: string | null;
+      telephone?: string | null;
+      mode_reception?: string | null;
+      date_incident?: string | null;
+      priorite?: string | null;
+      assigned_user_id?: number | null;
+    }
+  ): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    plainte: {
+      id: number;
+      numero_plainte: string;
+      titre: string;
+      description: string;
+      statut: string;
+      priorite: string;
+      service_id: number;
+      service_nom: string;
+      date_creation: string;
+    };
+    plaignant: {
+      nom: string | null;
+      prenom: string | null;
+      email: string | null;
+      telephone: string | null;
+    };
+    document: {
+      nom_fichier: string;
+      taille: number;
+      chemin_stockage: string;
+      type: string;
+    };
+    analyse_ia: {
+      statut: string;
+      message: string;
+    };
+  }>> {
+    try {
+      // Créer un FormData propre
+      const formData = new FormData();
+      
+      // 1. Fichier Image (obligatoire)
+      formData.append('image_file', imageFile, imageFile.name);
+      
+      // 2. Service ID (obligatoire)
+      formData.append('service_id', serviceId.toString());
+      
+      // 3. Champs obligatoires depuis le store Redux
+      formData.append('titre', userData.titre);
+      formData.append('description', userData.description);
+      formData.append('nom_plaignant', userData.nom);
+      formData.append('prenom_plaignant', userData.prenom);
+      
+      // 4. Champs optionnels - seulement s'ils ont une valeur
+      if (userData.email) {
+        formData.append('email_plaignant', userData.email);
+      }
+      if (userData.telephone) {
+        formData.append('telephone_plaignant', userData.telephone);
+      }
+      if (userData.mode_reception) {
+        formData.append('mode_reception', userData.mode_reception);
+      }
+      if (userData.date_incident) {
+        formData.append('date_incident', userData.date_incident);
+      }
+      if (userData.priorite) {
+        formData.append('priorite', userData.priorite);
+      }
+      if (userData.assigned_user_id) {
+        formData.append('assigned_user_id', userData.assigned_user_id.toString());
+      }
+
+      console.log('📤 [API] Création plainte depuis image validées');
+      console.log('📤 [API] Image:', imageFile.name, '|', imageFile.size, 'bytes');
+      console.log('📤 [API] Service ID:', serviceId);
+      console.log('📤 [API] Données depuis store Redux:', JSON.stringify(userData, null, 2));
+      
+      // Debug: Afficher tout le contenu du FormData
+      console.log('📦 [API] Contenu FormData envoyé:');
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`  - ${key}: [File] ${value.name} (${value.size} bytes, ${value.type})`);
+        } else {
+          console.log(`  - ${key}: "${value}"`);
+        }
+      }
+
+      // Utiliser fetch API directement pour un contrôle total sur les headers
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${this.baseURL}/api/v1/plaintes/creation/depuis-image/donnees-validees`,
+        {
+          method: 'POST',
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            // NE PAS définir Content-Type - le navigateur le fera automatiquement avec le boundary
+          },
+          body: formData,
+        }
+      );
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ [API] Erreur HTTP:', response.status, response.statusText);
+        console.error('❌ [API] Détails:', JSON.stringify(responseData, null, 2));
+        
+        let errorMessage = 'Erreur lors de la création depuis l\'image';
+        if (responseData.detail) {
+          const detail = responseData.detail;
+          if (typeof detail === 'string') {
+            errorMessage = detail;
+          } else if (Array.isArray(detail)) {
+            console.error('❌ [API] Erreurs de validation FastAPI:');
+            detail.forEach((d: any, i: number) => {
+              console.error(`  ${i + 1}. Champ: ${d.loc?.join('.')} | Type: ${d.type} | Message: ${d.msg}`);
+            });
+            errorMessage = detail.map((d: any) => `${d.loc?.join('.')}: ${d.msg}`).join(', ');
+          }
+        }
+        
+        return {
+          success: false,
+          data: null as any,
+          message: errorMessage
+        } as ApiResponse<any>;
+      }
+      
+      console.log('✅ [API] Plainte créée avec succès depuis image:', responseData);
+
+      return {
+        success: true,
+        data: responseData,
+        message: 'Plainte créée avec succès depuis l\'image'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('❌ [API] Exception lors de la création depuis image:', error);
+      
+      return {
+        success: false,
+        data: null as any,
+        message: error.message || 'Erreur lors de la création depuis l\'image'
+      } as ApiResponse<any>;
+    }
+  }
+
   // Récupérer le prochain numéro de plainte
   async getNextComplaintNumber(): Promise<ApiResponse<{next_number: number, suggested_title: string}>> {
     const response = await this.api.get('/api/v1/plaintes/creation/next-number');
@@ -980,7 +1255,10 @@ class ApiService {
   }
 
   // Statistiques globales
-  async getStatistiquesGlobales(): Promise<ApiResponse<{
+  async getStatistiquesGlobales(params?: {
+    date_debut?: string;
+    date_fin?: string;
+  }): Promise<ApiResponse<{
     total: number;
     nouvelles: number;
     en_cours: number;
@@ -989,7 +1267,13 @@ class ApiService {
     mois_courant: number;
     semaine_courante: number;
   }>> {
-    const response = await this.api.get('/api/v1/plaintes/statistiques/global');
+    const queryParams = new URLSearchParams();
+    if (params) {
+      if (params.date_debut) queryParams.append('date_debut', params.date_debut);
+      if (params.date_fin) queryParams.append('date_fin', params.date_fin);
+    }
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    const response = await this.api.get(`/api/v1/plaintes/statistiques/global${queryString}`);
     return {
       success: true,
       data: response.data,

@@ -17,37 +17,76 @@ class WebSocketService {
   connect(token?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        // Si déjà connecté, résoudre immédiatement
+        if (this.socket?.connected) {
+          console.log('✅ WebSocket déjà connecté');
+          resolve();
+          return;
+        }
+
+        // Déconnecter l'ancien socket s'il existe
+        if (this.socket) {
+          this.socket.disconnect();
+          this.socket = null;
+        }
+
         this.socket = io(this.baseURL, {
           auth: {
             token: token || localStorage.getItem('token'),
           },
-          transports: ['websocket', 'polling'],
-          timeout: 20000,
+          transports: ['polling', 'websocket'],  // Polling d'abord (plus fiable), puis upgrade vers WebSocket
+          timeout: 30000,  // 30 secondes timeout
+          reconnection: true,
+          reconnectionAttempts: this.maxReconnectAttempts,
+          reconnectionDelay: this.reconnectDelay,
+          reconnectionDelayMax: 5000,
+          forceNew: true,  // Forcer une nouvelle connexion
+          upgrade: true,   // Permettre l'upgrade vers WebSocket après connexion polling
         });
 
+        // Timeout manuel pour la connexion initiale
+        const connectionTimeout = setTimeout(() => {
+          if (!this.socket?.connected) {
+            console.warn('⚠️ Timeout de connexion WebSocket (30s), fonctionnement en mode dégradé');
+            // Ne pas rejeter - le mode polling peut fonctionner
+            resolve();
+          }
+        }, 30000);
+
         this.socket.on('connect', () => {
+          clearTimeout(connectionTimeout);
           console.log('✅ WebSocket connecté avec succès');
           console.log('🆔 Socket ID:', this.socket?.id);
           this.reconnectAttempts = 0;
           resolve();
         });
 
+        this.socket.on('connected', (data) => {
+          console.log('📡 Confirmation serveur:', data);
+        });
+
         this.socket.on('disconnect', (reason) => {
-          console.log('WebSocket disconnected:', reason);
+          console.log('📡 WebSocket déconnecté:', reason);
           if (reason === 'io server disconnect') {
-            // Le serveur a déconnecté, on ne reconnecte pas automatiquement
+            // Le serveur a déconnecté, on reconnecte
             this.socket?.connect();
           }
         });
 
         this.socket.on('connect_error', (error) => {
-          console.error('❌ Erreur de connexion WebSocket:', error);
+          clearTimeout(connectionTimeout);
+          console.error('❌ Erreur de connexion WebSocket:', error.message);
           console.error('🔍 Détails:', {
             message: error.message,
-            description: error.description,
-            context: error.context
+            description: (error as any).description,
+            context: (error as any).context
           });
-          reject(error);
+          // Ne pas rejeter immédiatement - socket.io va réessayer automatiquement
+          // On résout quand même pour permettre au reste de l'app de fonctionner
+          if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.warn('⚠️ Max tentatives atteintes, fonctionnement en mode dégradé (sans temps réel)');
+            resolve();
+          }
         });
 
         this.socket.on('reconnect', (attemptNumber) => {
@@ -211,10 +250,19 @@ class WebSocketService {
   // ===== MÉTHODES POUR LES EXTRACTIONS PDF/IMAGE =====
 
   // Écouter les événements d'extraction PDF
-  onPdfExtractionStarted(callback: (data: { task_id: string; filename: string; status: string; message: string }) => void): void {
+  onPdfExtractionStarted(callback: (data: { task_id: string; filename: string; status: string; message: string; step?: number }) => void): void {
     if (!this.socket) return;
     this.socket.on('pdf_extraction_started', (data) => {
       console.log('📄 PDF extraction started:', data);
+      callback(data);
+    });
+  }
+
+  // Écouter les événements de progression d'extraction PDF
+  onPdfExtractionProgress(callback: (data: { task_id: string; step: number; message: string }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('pdf_extraction_progress', (data) => {
+      console.log('🔄 PDF extraction progress:', data);
       callback(data);
     });
   }
@@ -303,6 +351,7 @@ class WebSocketService {
   cleanupExtractionListeners(): void {
     if (!this.socket) return;
     this.socket.off('pdf_extraction_started');
+    this.socket.off('pdf_extraction_progress');
     this.socket.off('pdf_extraction_complete');
     this.socket.off('pdf_extraction_failed');
     this.socket.off('image_extraction_started');
