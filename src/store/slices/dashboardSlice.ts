@@ -54,16 +54,16 @@ export const updateWidgetLayout = createAsyncThunk(
 // Nouvelles actions pour la page Vue d'ensemble
 export const fetchStatistiquesGlobales = createAsyncThunk(
   'dashboard/fetchStatistiquesGlobales',
-  async () => {
-    const response = await apiService.getStatistiquesGlobales();
+  async (params?: { date_debut?: string; date_fin?: string }) => {
+    const response = await apiService.getStatistiquesGlobales(params || {});
     return response.data;
   }
 );
 
 export const fetchStatistiquesDepartements = createAsyncThunk(
   'dashboard/fetchStatistiquesDepartements',
-  async () => {
-    const response = await apiService.getStatistiquesDepartements();
+  async (params?: { date_debut?: string; date_fin?: string }) => {
+    const response = await apiService.getStatistiquesDepartements(params || {});
     return response.data;
   }
 );

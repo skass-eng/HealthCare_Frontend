@@ -649,14 +649,29 @@ const HealthcareAI: React.FC = () => {
           <Box
             sx={{
               position: 'absolute',
-              top: '50%',
+              top: 'calc(16px + 50px)',
               left: 0,
               right: 0,
               height: 4,
               background: 'linear-gradient(135deg, #3b82f6, #14b8a6, #10b981)',
               borderRadius: 2,
-              transform: 'translateY(-50%)',
-              display: { xs: 'none', md: 'block' }
+              display: { xs: 'none', md: 'block' },
+              zIndex: 0
+            }}
+          />
+          {/* Arrow at the end */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 'calc(16px + 50px - 6px)',
+              right: -4,
+              width: 0,
+              height: 0,
+              borderTop: '8px solid transparent',
+              borderBottom: '8px solid transparent',
+              borderLeft: '12px solid #10b981',
+              display: { xs: 'none', md: 'block' },
+              zIndex: 1
             }}
           />
 

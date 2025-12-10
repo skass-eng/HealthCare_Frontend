@@ -20,9 +20,37 @@ import {
 } from '@/store/slices/dashboardSlice';
 import AnalyticsContent from '@/components/AnalyticsContent';
 
+// Fonction helper pour formater une date en YYYY-MM-DD
+const formatDateToISO = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Calculer les dates par défaut (J-3 mois à Aujourd'hui)
+const getDefaultDates = () => {
+  const today = new Date();
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  return {
+    dateDebut: formatDateToISO(threeMonthsAgo),
+    dateFin: formatDateToISO(today)
+  };
+};
+
 const DashboardUnified: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const defaultDates = getDefaultDates();
+  const [dateDebut, setDateDebut] = useState<string>(defaultDates.dateDebut);
+  const [dateFin, setDateFin] = useState<string>(defaultDates.dateFin);
+  const [notification, setNotification] = useState<{ show: boolean; message: string; type: 'success' | 'info' }>({
+    show: false,
+    message: '',
+    type: 'success'
+  });
+  
   const { 
     statistiquesGlobales, 
     statistiquesDepartements, 
@@ -31,24 +59,33 @@ const DashboardUnified: React.FC = () => {
     errorStatistiques 
   } = useSelector((state: RootState) => state.dashboard);
 
-  // Charger les statistiques au montage du composant
-  useEffect(() => {
-    const loadStatistiques = async () => {
-      try {
-        console.log('🔄 Chargement des statistiques...');
-        await Promise.all([
-          dispatch(fetchStatistiquesGlobales()),
-          dispatch(fetchStatistiquesDepartements()),
-          dispatch(fetchStatistiquesPriorites()),
-          dispatch(fetchEvolutionPlaintes('30j'))
-        ]);
-        console.log('✅ Statistiques chargées avec succès');
-      } catch (error) {
-        console.error('❌ Erreur lors du chargement des statistiques:', error);
+  // Fonction pour charger les statistiques avec les filtres de dates
+  const loadStatistiquesWithDates = async (dateDebutParam?: string, dateFinParam?: string) => {
+    try {
+      console.log('🔄 Chargement des statistiques avec dates:', { dateDebutParam, dateFinParam });
+      const params: { date_debut?: string; date_fin?: string } = {};
+      if (dateDebutParam && dateDebutParam.trim() !== '') {
+        params.date_debut = dateDebutParam;
       }
-    };
+      if (dateFinParam && dateFinParam.trim() !== '') {
+        params.date_fin = dateFinParam;
+      }
+      
+      await Promise.all([
+        dispatch(fetchStatistiquesGlobales(params)),
+        dispatch(fetchStatistiquesDepartements(params)),
+        dispatch(fetchStatistiquesPriorites()),
+        dispatch(fetchEvolutionPlaintes('30j'))
+      ]);
+      console.log('✅ Statistiques chargées avec succès');
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des statistiques:', error);
+    }
+  };
 
-    loadStatistiques();
+  // Charger les statistiques au montage du composant avec les dates par défaut
+  useEffect(() => {
+    loadStatistiquesWithDates(dateDebut, dateFin);
   }, [dispatch]);
 
   // Debug: Afficher les données Redux
@@ -68,6 +105,31 @@ const DashboardUnified: React.FC = () => {
 
   const handleNewComplaint = () => {
     navigate('/plaintes/nouvelles');
+  };
+
+  // Fonction pour afficher une notification
+  const showNotification = (message: string, type: 'success' | 'info' = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: 'success' });
+    }, 3000);
+  };
+
+  // Gestionnaire pour appliquer le filtre de dates
+  const handleDateFilter = async () => {
+    await loadStatistiquesWithDates(dateDebut, dateFin);
+    const dateDebutFormatted = new Date(dateDebut).toLocaleDateString('fr-FR');
+    const dateFinFormatted = new Date(dateFin).toLocaleDateString('fr-FR');
+    showNotification(`✅ Filtre appliqué : du ${dateDebutFormatted} au ${dateFinFormatted}`, 'success');
+  };
+
+  // Gestionnaire pour réinitialiser les filtres de dates
+  const handleResetDateFilter = async () => {
+    const resetDates = getDefaultDates();
+    setDateDebut(resetDates.dateDebut);
+    setDateFin(resetDates.dateFin);
+    await loadStatistiquesWithDates(resetDates.dateDebut, resetDates.dateFin);
+    showNotification('🔄 Filtre réinitialisé aux 3 derniers mois', 'info');
   };
 
   // Fonction pour obtenir l'icône et la couleur selon le type de service
@@ -114,6 +176,45 @@ const DashboardUnified: React.FC = () => {
       minHeight: '100vh',
       padding: '24px'
     }}>
+      {/* Notification */}
+      {notification.show && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: notification.type === 'success' 
+            ? 'linear-gradient(135deg, #10b981, #059669)' 
+            : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+          color: 'white',
+          padding: '14px 24px',
+          borderRadius: '12px',
+          boxShadow: '0 8px 25px rgba(0,0,0,0.2)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontWeight: 500,
+          fontSize: '14px',
+          animation: 'slideInRight 0.4s ease-out'
+        }}>
+          <span>{notification.message}</span>
+        </div>
+      )}
+
+      {/* Animation CSS pour la notification */}
+      <style>{`
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
+
       {/* Header - Style Healthcare */}
       <div style={{ marginBottom: '32px', position: 'relative' }}>
         {/* Effet de fond avec gradient */}
@@ -277,6 +378,106 @@ const DashboardUnified: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Filtre par dates */}
+      <div style={{
+        marginBottom: '24px',
+        background: 'white',
+        borderRadius: '12px',
+        padding: '16px 24px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        border: '1px solid #f1f5f9',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontWeight: 500, color: '#374151', fontSize: '14px' }}>📅 Période :</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label style={{ color: '#64748b', fontSize: '14px' }}>Du</label>
+          <input
+            type="date"
+            value={dateDebut}
+            onChange={(e) => setDateDebut(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid #d1d5db',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'border-color 0.2s ease'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label style={{ color: '#64748b', fontSize: '14px' }}>Au</label>
+          <input
+            type="date"
+            value={dateFin}
+            onChange={(e) => setDateFin(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid #d1d5db',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'border-color 0.2s ease'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+          />
+        </div>
+        <button
+          onClick={handleDateFilter}
+          style={{
+            padding: '8px 16px',
+            background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            fontSize: '14px'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
+          Filtrer
+        </button>
+        <button
+          onClick={handleResetDateFilter}
+          style={{
+            padding: '8px 16px',
+            background: '#f1f5f9',
+            color: '#64748b',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            fontSize: '14px'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#e2e8f0';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#f1f5f9';
+          }}
+        >
+          Réinitialiser
+        </button>
       </div>
 
       {/* Section Résumé global - Données réelles */}

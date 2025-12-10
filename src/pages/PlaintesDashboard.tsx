@@ -47,6 +47,11 @@ const PlaintesDashboard: React.FC = () => {
   const [dateDebut, setDateDebut] = useState<string>(defaultDates.dateDebut);
   const [dateFin, setDateFin] = useState<string>(defaultDates.dateFin);
   const [statistiquesGlobales, setStatistiquesGlobales] = useState<StatistiquesGlobales | null>(null);
+  const [notification, setNotification] = useState<{ show: boolean; message: string; type: 'success' | 'info' }>({
+    show: false,
+    message: '',
+    type: 'success'
+  });
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -127,11 +132,26 @@ const PlaintesDashboard: React.FC = () => {
     loadPlaintes(1, type, dateDebut, dateFin);
   };
 
+  // Fonction pour afficher une notification
+  const showNotification = (message: string, type: 'success' | 'info' = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, show: false }));
+    }, 3000);
+  };
+
+  // Fonction pour formater une date en format lisible DD/MM/YYYY
+  const formatDateDisplay = (dateStr: string): string => {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
   // Fonction pour appliquer le filtre de dates
   const handleDateFilter = () => {
     console.log('🔄 Application du filtre de dates:', { dateDebut, dateFin });
     loadStatistiques(dateDebut, dateFin);
     loadPlaintes(1, currentStatut, dateDebut, dateFin);
+    showNotification(`✅ Filtre appliqué : du ${formatDateDisplay(dateDebut)} au ${formatDateDisplay(dateFin)}`, 'success');
   };
 
   // Fonction pour réinitialiser les filtres de dates (retour à J-3 mois → Aujourd'hui)
@@ -141,6 +161,7 @@ const PlaintesDashboard: React.FC = () => {
     setDateFin(resetDates.dateFin);
     loadStatistiques(resetDates.dateDebut, resetDates.dateFin);
     loadPlaintes(1, currentStatut, resetDates.dateDebut, resetDates.dateFin);
+    showNotification('🔄 Filtre réinitialisé aux 3 derniers mois', 'info');
   };
 
   // Fonction pour gérer la création d'une nouvelle plainte
@@ -150,6 +171,44 @@ const PlaintesDashboard: React.FC = () => {
 
   return (
     <div style={{ padding: '24px', minHeight: '100vh' }}>
+      {/* Notification */}
+      {notification.show && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '24px',
+            right: '24px',
+            zIndex: 1000,
+            padding: '16px 24px',
+            borderRadius: '12px',
+            background: notification.type === 'success' 
+              ? 'linear-gradient(135deg, #10b981, #059669)' 
+              : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+            color: 'white',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            animation: 'slideInRight 0.3s ease-out',
+            fontWeight: 500
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>{notification.message}</span>
+        </div>
+      )}
+      <style>{`
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(100px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
+
       {/* Header - Style Healthcare */}
       <div style={{ marginBottom: '32px', position: 'relative' }}>
         <div style={{

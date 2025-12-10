@@ -1290,7 +1290,7 @@ class ApiService {
   }
 
   // Statistiques par département
-  async getStatistiquesDepartements(): Promise<ApiResponse<Array<{
+  async getStatistiquesDepartements(params?: { date_debut?: string; date_fin?: string }): Promise<ApiResponse<Array<{
     id: number;
     nom: string;
     type_service: string;
@@ -1301,7 +1301,12 @@ class ApiService {
     cloturees: number;
     satisfaction_moyenne: number;
   }>>> {
-    const response = await this.api.get('/api/v1/plaintes/statistiques/departements');
+    const queryParams = new URLSearchParams();
+    if (params?.date_debut) queryParams.append('date_debut', params.date_debut);
+    if (params?.date_fin) queryParams.append('date_fin', params.date_fin);
+    const queryString = queryParams.toString();
+    const url = `/api/v1/plaintes/statistiques/departements${queryString ? `?${queryString}` : ''}`;
+    const response = await this.api.get(url);
     return {
       success: true,
       data: response.data,
