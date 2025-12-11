@@ -271,6 +271,7 @@ class WebSocketService {
     success: boolean;
     task_id: string;
     filename: string;
+    temp_file_path?: string;
     extraction: {
       donnees_structurees: any;
       texte_brut: string;
@@ -307,6 +308,7 @@ class WebSocketService {
     success: boolean;
     task_id: string;
     filename: string;
+    temp_file_path?: string;
     extraction: {
       donnees_structurees: any;
       texte_brut: string;
@@ -357,6 +359,89 @@ class WebSocketService {
     this.socket.off('image_extraction_started');
     this.socket.off('image_extraction_complete');
     this.socket.off('image_extraction_failed');
+  }
+
+  // ===== MÉTHODES POUR L'ANALYSE IA =====
+
+  // Écouter les événements de démarrage d'analyse IA
+  onAIAnalysisStarted(callback: (data: { 
+    task_id: string; 
+    status: string; 
+    message: string;
+    total_plaintes: number;
+    total_services: number;
+  }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('ai_analysis_started', (data) => {
+      console.log('🧠 AI analysis started:', data);
+      callback(data);
+    });
+  }
+
+  // Écouter les événements de progression d'analyse IA
+  onAIAnalysisProgress(callback: (data: { 
+    task_id: string; 
+    progress: number;
+    current_step: string;
+    services_analyzed: number;
+    total_services: number;
+    total_plaintes: number;
+    estimated_remaining_seconds: number;
+  }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('ai_analysis_progress', (data) => {
+      console.log('🔄 AI analysis progress:', data);
+      callback(data);
+    });
+  }
+
+  // Écouter la complétion d'analyse IA
+  onAIAnalysisComplete(callback: (data: {
+    task_id: string;
+    status: string;
+    message: string;
+    result?: any;
+  }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('ai_analysis_complete', (data) => {
+      console.log('✅ AI analysis complete:', data);
+      callback(data);
+    });
+  }
+
+  // Écouter les erreurs d'analyse IA
+  onAIAnalysisFailed(callback: (data: { 
+    task_id: string; 
+    error: string;
+    message: string;
+  }) => void): void {
+    if (!this.socket) return;
+    this.socket.on('ai_analysis_failed', (data) => {
+      console.log('❌ AI analysis failed:', data);
+      callback(data);
+    });
+  }
+
+  // S'abonner à une tâche d'analyse IA
+  subscribeToAIAnalysis(taskId: string): void {
+    if (!this.socket) return;
+    this.socket.emit('subscribe_ai_analysis', { task_id: taskId });
+    console.log('🔔 Subscribed to AI analysis task:', taskId);
+  }
+
+  // Se désabonner d'une tâche d'analyse IA
+  unsubscribeFromAIAnalysis(taskId: string): void {
+    if (!this.socket) return;
+    this.socket.emit('unsubscribe_ai_analysis', { task_id: taskId });
+  }
+
+  // Nettoyer les listeners d'analyse IA
+  cleanupAIAnalysisListeners(): void {
+    if (!this.socket) return;
+    this.socket.off('ai_analysis_started');
+    this.socket.off('ai_analysis_progress');
+    this.socket.off('ai_analysis_complete');
+    this.socket.off('ai_analysis_failed');
   }
 }
 

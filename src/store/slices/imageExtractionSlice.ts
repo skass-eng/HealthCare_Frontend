@@ -77,6 +77,9 @@ interface ImageExtractionState {
   selectedFileSize: number | null;
   imagePreviewUrl: string | null;
   
+  // Chemin du fichier temporaire sur le serveur (pour création après navigation)
+  tempFilePath: string | null;
+  
   // État de l'extraction
   isExtracting: boolean;
   extractionTaskId: string | null;
@@ -119,6 +122,7 @@ const initialState: ImageExtractionState = {
   selectedFileName: null,
   selectedFileSize: null,
   imagePreviewUrl: null,
+  tempFilePath: null,
   isExtracting: false,
   extractionTaskId: null,
   extractionStep: 0,
@@ -175,6 +179,7 @@ const imageExtractionSlice = createSlice({
       extractedText?: string;
       ocrInfo?: OcrInfo;
       services?: ServiceOption[];
+      tempFilePath?: string;
     }>) => {
       state.isExtracting = false;
       state.extractionStep = 4;
@@ -191,6 +196,11 @@ const imageExtractionSlice = createSlice({
       
       if (action.payload.services) {
         state.services = action.payload.services;
+      }
+      
+      // Stocker le chemin du fichier temporaire pour la création après navigation
+      if (action.payload.tempFilePath) {
+        state.tempFilePath = action.payload.tempFilePath;
       }
       
       // Pré-remplir les champs du formulaire avec les données extraites
@@ -242,6 +252,11 @@ const imageExtractionSlice = createSlice({
       state.services = action.payload;
     },
     
+    // Mise à jour du chemin du fichier temporaire
+    setTempFilePath: (state, action: PayloadAction<string | null>) => {
+      state.tempFilePath = action.payload;
+    },
+    
     // Mise à jour d'un champ du formulaire
     updateFormField: (state, action: PayloadAction<{ field: keyof EditableFormData; value: any }>) => {
       (state.formData as any)[action.payload.field] = action.payload.value;
@@ -269,6 +284,7 @@ const imageExtractionSlice = createSlice({
       state.selectedFileName = null;
       state.selectedFileSize = null;
       state.imagePreviewUrl = null;
+      state.tempFilePath = null;
       state.extractedData = null;
       state.extractedText = '';
       state.ocrInfo = null;
@@ -291,6 +307,7 @@ export const {
   extractionComplete,
   extractionFailed,
   setServices,
+  setTempFilePath,
   updateFormField,
   updateFormFields,
   setError,
@@ -308,3 +325,4 @@ export const selectExtractedData = (state: { imageExtraction: ImageExtractionSta
 export const selectIsExtracting = (state: { imageExtraction: ImageExtractionState }) => state.imageExtraction.isExtracting;
 export const selectServices = (state: { imageExtraction: ImageExtractionState }) => state.imageExtraction.services;
 export const selectOcrInfo = (state: { imageExtraction: ImageExtractionState }) => state.imageExtraction.ocrInfo;
+export const selectTempFilePath = (state: { imageExtraction: ImageExtractionState }) => state.imageExtraction.tempFilePath;

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useSelector, useDispatch } from 'react-redux'
 import {
   Box,
   Typography,
@@ -24,6 +25,8 @@ import {
   Security as SecurityIcon
 } from '@mui/icons-material'
 import { useAuth } from '../lib/AppClientContext'
+import { RootState } from '@/store'
+import { markAllNotificationsAsRead } from '@/store/slices/plaintesNotificationSlice'
 
 const navigationItems = [
   {
@@ -61,31 +64,31 @@ const navigationItems = [
 export default function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const dispatch = useDispatch()
   const { logout } = useAuth()
-  const [nouvellesPlaintesCount, setNouvellesPlaintesCount] = useState<string | number | null>(null)
-  const [loading, setLoading] = useState(true)
+  
+  // Récupérer le compteur de notifications depuis le store Redux
+  const { unreadCount, pendingTasks } = useSelector(
+    (state: RootState) => state.plaintesNotification
+  )
+  
+  // Compteur total = notifications non lues + tâches en cours
+  const totalBadgeCount = unreadCount + pendingTasks.length
 
   const handleLogout = () => {
     logout()
   }
   
+  // Marquer les notifications comme lues quand on visite la page Création & Saisie
   useEffect(() => {
-    const fetchNouvellesPlaintes = async () => {
-      try {
-        setLoading(true)
-        // Simulation de l'API call - vous pouvez adapter ceci pour votre API
-        // const data = await apiUnified.getPlaintesList({ statut: 'RECU', page: 1, limit: 1 })
-        // console.log(data)
-        // setNouvellesPlaintesCount(data.total || (data.plaintes ? data.plaintes.length : 0))
-        setNouvellesPlaintesCount(12) // Valeur par défaut pour l'instant
-      } catch (err) {
-        setNouvellesPlaintesCount(null)
-      } finally {
-        setLoading(false)
-      }
+    if (location.pathname === '/plaintes/nouvelles' && unreadCount > 0) {
+      // Optionnel: marquer toutes les notifications comme lues après un délai
+      const timer = setTimeout(() => {
+        dispatch(markAllNotificationsAsRead())
+      }, 2000) // 2 secondes pour que l'utilisateur voie le badge
+      return () => clearTimeout(timer)
     }
-    fetchNouvellesPlaintes()
-  }, [])
+  }, [location.pathname, unreadCount, dispatch])
 
   return (
     <Box
@@ -166,9 +169,14 @@ export default function Sidebar() {
         {navigationItems.map((item) => {
           const isActive = location.pathname === item.href
           const Icon = item.icon
+          
+          // Badge dynamique pour "Création & Saisie"
           let badge: string | number | null = item.badge
+          let isNotificationBadge = false
+          
           if (item.name === 'Création & Saisie') {
-            badge = loading ? '...' : (nouvellesPlaintesCount !== null ? nouvellesPlaintesCount : 12)
+            badge = totalBadgeCount > 0 ? totalBadgeCount : null
+            isNotificationBadge = totalBadgeCount > 0
           }
           
           return (
@@ -216,16 +224,45 @@ export default function Sidebar() {
                   }}
                 />
                 {badge && (
-                  <Chip
-                    label={badge}
-                    size="small"
-                    sx={{
-                      backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      fontSize: '0.75rem'
-                    }}
-                  />
+                  isNotificationBadge ? (
+                    // Badge style Instagram pour les notifications de plaintes
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '24px',
+                        height: '24px',
+                        borderRadius: '12px',
+                        backgroundColor: '#ef4444', // Rouge vif Instagram
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '0.75rem',
+                        padding: '0 6px',
+                        boxShadow: '0 2px 8px rgba(239, 68, 68, 0.5)',
+                        animation: pendingTasks.length > 0 ? 'pulse 2s infinite' : 'none',
+                        '@keyframes pulse': {
+                          '0%': { transform: 'scale(1)', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.5)' },
+                          '50%': { transform: 'scale(1.1)', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.7)' },
+                          '100%': { transform: 'scale(1)', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.5)' },
+                        },
+                      }}
+                    >
+                      {badge}
+                    </Box>
+                  ) : (
+                    // Badge standard pour les autres éléments de navigation
+                    <Chip
+                      label={badge}
+                      size="small"
+                      sx={{
+                        backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : '#3b82f6',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '0.75rem'
+                      }}
+                    />
+                  )
                 )}
               </ListItemButton>
             </ListItem>

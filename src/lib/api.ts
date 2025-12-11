@@ -1244,6 +1244,91 @@ class ApiService {
     }
   }
 
+  // Créer une plainte depuis un fichier temporaire (après navigation)
+  async createPlainteFromTempFile(
+    tempFilePath: string,
+    fileType: 'pdf' | 'image',
+    serviceId: number,
+    userData: {
+      titre: string;
+      description: string;
+      nom: string;
+      prenom: string;
+      email?: string | null;
+      telephone?: string | null;
+      mode_reception?: string | null;
+      date_incident?: string | null;
+      priorite?: string | null;
+      assigned_user_id?: number | null;
+    }
+  ): Promise<ApiResponse<any>> {
+    try {
+      const formData = new FormData();
+      
+      // Chemin du fichier temp et type
+      formData.append('temp_file_path', tempFilePath);
+      formData.append('file_type', fileType);
+      formData.append('service_id', serviceId.toString());
+      
+      // Champs obligatoires
+      formData.append('titre', userData.titre);
+      formData.append('description', userData.description);
+      formData.append('nom_plaignant', userData.nom);
+      formData.append('prenom_plaignant', userData.prenom);
+      
+      // Champs optionnels
+      if (userData.email) {
+        formData.append('email_plaignant', userData.email);
+      }
+      if (userData.telephone) {
+        formData.append('telephone_plaignant', userData.telephone);
+      }
+      if (userData.mode_reception) {
+        formData.append('mode_reception', userData.mode_reception);
+      }
+      if (userData.date_incident) {
+        formData.append('date_incident', userData.date_incident);
+      }
+      if (userData.priorite) {
+        formData.append('priorite', userData.priorite);
+      }
+      if (userData.assigned_user_id) {
+        formData.append('assigned_user_id', userData.assigned_user_id.toString());
+      }
+
+      console.log('📤 [API] Création plainte depuis fichier temp:', tempFilePath);
+      console.log('📤 [API] Type:', fileType, '| Service:', serviceId);
+      console.log('📤 [API] userData:', JSON.stringify(userData, null, 2));
+
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-temp', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('✅ [API] Plainte créée depuis fichier temp:', response.data);
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Plainte créée avec succès'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('❌ [API] Exception création depuis fichier temp:', error);
+      
+      let errorMessage = 'Erreur lors de la création de la plainte';
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      return {
+        success: false,
+        data: null as any,
+        message: errorMessage
+      } as ApiResponse<any>;
+    }
+  }
+
   // Récupérer le prochain numéro de plainte
   async getNextComplaintNumber(): Promise<ApiResponse<{next_number: number, suggested_title: string}>> {
     const response = await this.api.get('/api/v1/plaintes/creation/next-number');
@@ -1462,6 +1547,426 @@ class ApiService {
 
   async deleteWidget(dashboardId: string, widgetId: string): Promise<ApiResponse<void>> {
     throw new Error('Widget delete endpoint not available in current backend');
+  }
+
+  // ==================== HEALTHCARE AI & ANALYTICS ====================
+
+  // Récupérer le résumé des plaintes (statistiques globales)
+  async getComplaintsSummary(fromDate?: string, toDate?: string, status?: string): Promise<ApiResponse<{
+    total: number;
+    in_progress: number;
+    resolved: number;
+    avg_resolution_time_seconds: number;
+    nouvelles: number;
+    filters_applied: {
+      from_date: string | null;
+      to_date: string | null;
+      status: string | null;
+    };
+    timestamp: string;
+  }>> {
+    try {
+      const params = new URLSearchParams();
+      if (fromDate) params.append('from_date', fromDate);
+      if (toDate) params.append('to_date', toDate);
+      if (status) params.append('status', status);
+
+      const queryString = params.toString();
+      const url = `/api/v1/healthcare-ai/complaints/summary${queryString ? `?${queryString}` : ''}`;
+
+      const response = await this.api.get(url);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Erreur lors de la récupération du résumé:', error);
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || 'Erreur lors de la récupération du résumé'
+      };
+    }
+  }
+
+  // Récupérer les tendances des plaintes
+  async getComplaintsTrends(days: number = 30): Promise<ApiResponse<{
+    period: {
+      start_date: string;
+      end_date: string;
+      days: number;
+    };
+    trends: Array<{
+      date: string;
+      total: number;
+      recu: number;
+      en_cours: number;
+      traite: number;
+      cloture: number;
+    }>;
+    timestamp: string;
+  }>> {
+    try {
+      const response = await this.api.get(`/api/v1/healthcare-ai/complaints/trends?days=${days}`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Erreur lors de la récupération des tendances:', error);
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || 'Erreur lors de la récupération des tendances'
+      };
+    }
+  }
+
+  // Récupérer les services avec leurs KPIs
+  async getServicesWithKPIs(activeOnly: boolean = true): Promise<ApiResponse<Array<{
+    id: number;
+    nom: string;
+    code_service: string;
+    description?: string;
+    est_actif: boolean;
+    nombre_plaintes_total: number;
+    nombre_plaintes_resolues: number;
+    temps_moyen_resolution: number;
+    taux_satisfaction: number;
+  }>>> {
+    try {
+      const params = new URLSearchParams();
+      if (activeOnly) params.append('actif_seulement', 'true');
+
+      const queryString = params.toString();
+      const url = `/api/v1/services${queryString ? `?${queryString}` : ''}`;
+
+      const response = await this.api.get(url);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Services avec KPIs récupérés avec succès'
+      };
+    } catch (error: any) {
+      console.error('Erreur lors de la récupération des services KPIs:', error);
+      return {
+        success: false,
+        data: [],
+        message: error.response?.data?.detail || 'Erreur lors de la récupération des services'
+      };
+    }
+  }
+
+  // Recalculer tous les KPIs des services
+  async recalculateAllKPIs(): Promise<ApiResponse<{
+    message: string;
+    services_updated: number;
+  }>> {
+    try {
+      const response = await this.api.post('/api/v1/services/recalculate-all-kpis');
+      return {
+        success: true,
+        data: response.data,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Erreur lors du recalcul des KPIs:', error);
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || 'Erreur lors du recalcul des KPIs'
+      };
+    }
+  }
+
+  // Récupérer les KPIs d'un service spécifique
+  async getServiceKPIs(serviceId: number, recalculate: boolean = false): Promise<ApiResponse<{
+    nombre_plaintes_total: number;
+    nombre_plaintes_resolues: number;
+    temps_moyen_resolution: number;
+    taux_satisfaction: number;
+  }>> {
+    try {
+      const params = recalculate ? '?recalculer=true' : '';
+      const response = await this.api.get(`/api/v1/services/${serviceId}/kpis${params}`);
+      return {
+        success: true,
+        data: response.data,
+        message: 'KPIs du service récupérés avec succès'
+      };
+    } catch (error: any) {
+      console.error('Erreur lors de la récupération des KPIs du service:', error);
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || 'Erreur lors de la récupération des KPIs'
+      };
+    }
+  }
+
+  // ==================== ANALYSE IA AVANCÉE ====================
+
+  // Type pour le résultat d'analyse IA
+  private AIAnalysisResultType = null; // Type défini ci-dessous
+
+  // Démarrer une analyse IA asynchrone
+  async startAIAnalysis(): Promise<ApiResponse<{
+    task_id: string | null;
+    message: string;
+    estimated_time_seconds?: number;
+    total_plaintes?: number;
+    total_services?: number;
+    data?: any; // Si aucune plainte, retourne directement les données
+  }>> {
+    try {
+      const response = await this.api.post('/api/v1/healthcare-ai/analyze/start');
+      return {
+        success: response.data.success,
+        data: {
+          task_id: response.data.task_id,
+          message: response.data.message,
+          estimated_time_seconds: response.data.estimated_time_seconds,
+          total_plaintes: response.data.total_plaintes || response.data.data?.total_plaintes_analysees || 0,
+          total_services: response.data.total_services || response.data.data?.nombre_services || 0,
+          data: response.data.data
+        },
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Erreur démarrage analyse IA:', error);
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || 'Erreur lors du démarrage de l\'analyse'
+      };
+    }
+  }
+
+  // Vérifier le statut d'une analyse en cours
+  async getAIAnalysisStatus(taskId: string): Promise<ApiResponse<{
+    task_id: string;
+    status: 'pending' | 'running' | 'completed' | 'error';
+    progress: number;
+    current_step: string;
+    total_plaintes: number;
+    total_services: number;
+    services_analysed: number;
+    started_at: string;
+    has_result: boolean;
+    error: string | null;
+  }>> {
+    try {
+      const response = await this.api.get(`/api/v1/healthcare-ai/analyze/status/${taskId}`);
+      return {
+        success: response.data.success,
+        data: response.data,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Erreur statut analyse IA:', error);
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || 'Erreur lors de la récupération du statut'
+      };
+    }
+  }
+
+  // Récupérer le résultat d'une analyse terminée
+  async getAIAnalysisResult(taskId: string): Promise<ApiResponse<{
+    total_plaintes_analysees: number;
+    nombre_services: number;
+    analyses_par_service: Array<{
+      service: string;
+      nombre_plaintes: number;
+      causes_identifiees: Array<{
+        cause: string;
+        frequence: number | string;
+        gravite: string;
+        exemples: string[];
+      }>;
+      problemes_recurrents: string[];
+      sentiment_general: string;
+      recommandations: string[];
+    }>;
+    causes_globales: Array<{
+      service: string;
+      cause: string;
+      gravite: string;
+      frequence: number | string;
+    }>;
+    services_critiques: string[];
+    timestamp: string;
+    model_used: string;
+  }>> {
+    try {
+      const response = await this.api.get(`/api/v1/healthcare-ai/analyze/result/${taskId}`);
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Erreur résultat analyse IA:', error);
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || 'Erreur lors de la récupération du résultat'
+      };
+    }
+  }
+
+  // Récupérer la dernière analyse IA sauvegardée
+  async getLatestAIAnalysis(): Promise<ApiResponse<{
+    total_plaintes_analysees: number;
+    nombre_services: number;
+    analyses_par_service: Array<{
+      service: string;
+      nombre_plaintes: number;
+      causes_identifiees: Array<{
+        cause: string;
+        frequence: number | string;
+        gravite: string;
+        exemples: string[];
+      }>;
+      problemes_recurrents: string[];
+      sentiment_general: string;
+      recommandations: string[];
+    }>;
+    causes_globales: Array<{
+      service: string;
+      cause: string;
+      gravite: string;
+      frequence: number | string;
+    }>;
+    services_critiques: string[];
+    timestamp: string;
+    model_used: string;
+    duree_secondes?: number;
+    task_id?: string;
+  } | null>> {
+    try {
+      const response = await this.api.get('/api/v1/healthcare-ai/analyze/latest');
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Erreur récupération dernière analyse IA:', error);
+      return {
+        success: false,
+        data: null,
+        message: error.response?.data?.detail || 'Erreur lors de la récupération de la dernière analyse'
+      };
+    }
+  }
+
+  // Récupérer l'historique des analyses IA
+  async getAIAnalysisHistory(limit: number = 10): Promise<ApiResponse<Array<{
+    task_id: string;
+    total_plaintes_analysees: number;
+    nombre_services: number;
+    services_critiques_count: number;
+    model_used: string;
+    duree_secondes: number;
+    completed_at: string;
+  }>>> {
+    try {
+      const response = await this.api.get(`/api/v1/healthcare-ai/analyze/history?limit=${limit}`);
+      return {
+        success: response.data.success,
+        data: response.data.data || [],
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Erreur historique analyses IA:', error);
+      return {
+        success: false,
+        data: [],
+        message: error.response?.data?.detail || 'Erreur lors de la récupération de l\'historique'
+      };
+    }
+  }
+
+  // [LEGACY] Lancer une analyse IA synchrone (utilise maintenant startAIAnalysis)
+  async runAIAnalysis(): Promise<ApiResponse<{
+    task_id?: string;
+    total_plaintes_analysees: number;
+    nombre_services: number;
+    analyses_par_service: Array<{
+      service: string;
+      nombre_plaintes: number;
+      causes_identifiees: Array<{
+        cause: string;
+        frequence: number | string;
+        gravite: string;
+        exemples: string[];
+      }>;
+      problemes_recurrents: string[];
+      sentiment_general: string;
+      recommandations: string[];
+    }>;
+    causes_globales: Array<{
+      service: string;
+      cause: string;
+      gravite: string;
+      frequence: number | string;
+    }>;
+    services_critiques: string[];
+    timestamp: string;
+    model_used: string;
+  }>> {
+    try {
+      const response = await this.api.post('/api/v1/healthcare-ai/analyze', {}, {
+        timeout: 300000 // 5 minutes max
+      });
+      return {
+        success: response.data.success,
+        data: response.data.data || response.data,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Erreur lors de l\'analyse IA:', error);
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || 'Erreur lors de l\'analyse IA'
+      };
+    }
+  }
+
+  // Vérifier le statut d'Ollama
+  async checkAIStatus(): Promise<ApiResponse<{
+    ollama_available: boolean;
+    models_available: string[];
+    recommended_model: string;
+    model_ready: boolean;
+    error?: string;
+  }>> {
+    try {
+      const response = await this.api.get('/api/v1/healthcare-ai/analyze/status');
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Erreur vérification statut IA:', error);
+      return {
+        success: false,
+        data: {
+          ollama_available: false,
+          models_available: [],
+          recommended_model: 'llama3.2',
+          model_ready: false,
+          error: error.message
+        },
+        message: 'Impossible de vérifier le statut de l\'IA'
+      };
+    }
   }
 
   // Utilitaires

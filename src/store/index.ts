@@ -13,6 +13,7 @@ import userReducer from './slices/userSlice';
 import servicesReducer from './slices/servicesSlice';
 import pdfExtractionReducer from './slices/pdfExtractionSlice';
 import imageExtractionReducer from './slices/imageExtractionSlice';
+import plaintesNotificationReducer from './slices/plaintesNotificationSlice';
 
 export const store = configureStore({
   reducer: {
@@ -29,6 +30,7 @@ export const store = configureStore({
     services: servicesReducer,
     pdfExtraction: pdfExtractionReducer,
     imageExtraction: imageExtractionReducer,
+    plaintesNotification: plaintesNotificationReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

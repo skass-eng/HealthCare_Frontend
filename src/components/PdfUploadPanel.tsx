@@ -18,6 +18,7 @@ import {
   selectPdfExtraction,
   selectFormData,
 } from '../store/slices/pdfExtractionSlice';
+import { addPendingTask } from '../store/slices/plaintesNotificationSlice';
 import type { RootState, AppDispatch } from '../store';
 import apiService from '@/lib/api';
 import wsService from '@/lib/websocket';
@@ -42,6 +43,7 @@ export default function PdfUploadPanel({ onSubmit, onClose }: PdfUploadPanelProp
   const {
     selectedFileName,
     selectedFileSize,
+    tempFilePath,
     isExtracting,
     extractionTaskId,
     extractionStep,
@@ -159,7 +161,8 @@ export default function PdfUploadPanel({ onSubmit, onClose }: PdfUploadPanelProp
     });
 
     return () => {
-      wsService.cleanupExtractionListeners();
+      // NE PAS nettoyer les listeners ici - ils sont gérés globalement par PlainteNotificationHandler
+      // wsService.cleanupExtractionListeners();
       if (pollingRef.current) {
         clearTimeout(pollingRef.current);
       }
@@ -210,6 +213,16 @@ export default function PdfUploadPanel({ onSubmit, onClose }: PdfUploadPanelProp
         if (data.async === true && data.task_id) {
           console.log('🔄 [PdfUploadPanel] Mode asynchrone, task_id:', data.task_id);
           dispatch(startExtraction({ taskId: data.task_id }));
+          
+          // Ajouter la tâche au store de notifications pour l'indicateur global
+          dispatch(addPendingTask({
+            task_id: data.task_id,
+            type: 'pdf_extraction',
+            filename: file.name,
+            started_at: new Date().toISOString(),
+            progress: 0,
+            step: 'Envoi du fichier...',
+          }));
           
           // S'abonner aux notifications pour cette tâche
           if (wsService.isConnected()) {
@@ -284,8 +297,19 @@ export default function PdfUploadPanel({ onSubmit, onClose }: PdfUploadPanelProp
   const handleSubmit = async () => {
     console.log('🔍 [handleSubmit] === DÉBUT SOUMISSION ===');
     console.log('🔍 [handleSubmit] formData depuis le store Redux:', formData);
+    console.log('🔍 [handleSubmit] selectedFileRef.current:', selectedFileRef.current);
+    console.log('🔍 [handleSubmit] selectedFileName depuis Redux:', selectedFileName);
+    console.log('🔍 [handleSubmit] tempFilePath depuis Redux:', tempFilePath);
     
-    if (!selectedFileRef.current) {
+    // Vérifier si on a les données extraites (cas où l'utilisateur a navigué et est revenu)
+    const hasExtractedData = extractedData !== null;
+    const hasFile = selectedFileRef.current !== null;
+    const hasTempFile = tempFilePath !== null && tempFilePath !== undefined;
+    
+    console.log('🔍 [handleSubmit] hasExtractedData:', hasExtractedData, '| hasFile:', hasFile, '| hasTempFile:', hasTempFile);
+
+    // Si pas de fichier ET pas de fichier temp ET pas de données extraites, erreur
+    if (!hasFile && !hasTempFile && !hasExtractedData) {
       dispatch(setError('Veuillez sélectionner un fichier PDF'));
       return;
     }
@@ -317,7 +341,9 @@ export default function PdfUploadPanel({ onSubmit, onClose }: PdfUploadPanelProp
     dispatch(setError(null));
     
     try {
-      // Préparer les données depuis le store Redux - CLÉS EXACTES attendues par le backend
+      let response;
+      
+      // Données communes
       const userData = {
         nom: formData.nom.trim() || 'Non renseigné',
         prenom: formData.prenom.trim() || 'Non renseigné',
@@ -331,18 +357,54 @@ export default function PdfUploadPanel({ onSubmit, onClose }: PdfUploadPanelProp
         assigned_user_id: formData.assigned_user_id || null,
       };
       
-      console.log('📤 [PdfUploadPanel] Données userData depuis store Redux:', JSON.stringify(userData, null, 2));
-      console.log('📤 [PdfUploadPanel] Service ID:', formData.service_id);
-      console.log('📤 [PdfUploadPanel] Fichier PDF:', selectedFileRef.current.name);
+      if (hasFile) {
+        // CAS 1: On a le fichier local → utiliser l'endpoint avec PDF
+        console.log('📤 [handleSubmit] CAS 1: Fichier local disponible, utilisation createPlainteFromPdf');
+        console.log('📤 [handleSubmit] userData:', JSON.stringify(userData, null, 2));
+        
+        response = await apiService.createPlainteFromPdf(
+          selectedFileRef.current,
+          formData.service_id || 1,
+          userData
+        );
+      } else if (hasTempFile) {
+        // CAS 2: Fichier temp sur le serveur → utiliser le nouvel endpoint depuis-temp
+        console.log('📤 [handleSubmit] CAS 2: Fichier temp disponible, utilisation createPlainteFromTempFile');
+        console.log('📤 [handleSubmit] tempFilePath:', tempFilePath);
+        console.log('📤 [handleSubmit] userData:', JSON.stringify(userData, null, 2));
+        
+        response = await apiService.createPlainteFromTempFile(
+          tempFilePath,
+          'pdf',
+          formData.service_id || 1,
+          userData
+        );
+      } else {
+        // CAS 3: Fallback - créer la plainte sans document (cas rare)
+        console.log('📤 [handleSubmit] CAS 3: Pas de fichier, création plainte sans document');
+        
+        const plainteData = {
+          nom_plaignant: userData.nom,
+          prenom_plaignant: userData.prenom,
+          email_plaignant: userData.email,
+          telephone_plaignant: userData.telephone,
+          titre: userData.titre,
+          description: userData.description,
+          mode_reception: userData.mode_reception,
+          date_incident: userData.date_incident,
+          priorite: userData.priorite,
+          assigned_user_id: userData.assigned_user_id,
+          service_id: formData.service_id || 1,
+        };
+        
+        response = await apiService.createPlainte(plainteData);
+      }
       
-      const response = await apiService.createPlainteFromPdf(
-        selectedFileRef.current,
-        formData.service_id || 1,
-        userData
-      );
+      console.log('📥 [handleSubmit] Réponse API:', response);
       
       if (response.success && response.data) {
-        dispatch(setSuccess(`Plainte ${response.data.plainte?.numero_plainte} créée avec succès !`));
+        const numeroPlaynte = response.data.plainte?.numero_plainte || response.data.numero_plainte || 'N/A';
+        dispatch(setSuccess(`Plainte ${numeroPlaynte} créée avec succès !`));
         
         // Appeler le callback avec les données
         onSubmit(response.data);
@@ -356,6 +418,7 @@ export default function PdfUploadPanel({ onSubmit, onClose }: PdfUploadPanelProp
         dispatch(setError(response.message || 'Erreur lors de la création de la plainte'));
       }
     } catch (err: any) {
+      console.error('❌ [handleSubmit] Exception:', err);
       dispatch(setError(err.message || 'Erreur lors de la création de la plainte depuis le PDF'));
     } finally {
       setIsSubmitting(false);

@@ -68,6 +68,9 @@ interface PdfExtractionState {
   selectedFileName: string | null;
   selectedFileSize: number | null;
   
+  // Chemin du fichier temporaire sur le serveur (pour création après navigation)
+  tempFilePath: string | null;
+  
   // État de l'extraction
   isExtracting: boolean;
   extractionTaskId: string | null;
@@ -106,6 +109,7 @@ const initialFormData: EditableFormData = {
 const initialState: PdfExtractionState = {
   selectedFileName: null,
   selectedFileSize: null,
+  tempFilePath: null,
   isExtracting: false,
   extractionTaskId: null,
   extractionStep: 0,
@@ -153,6 +157,7 @@ const pdfExtractionSlice = createSlice({
       extractedData: ExtractedData;
       extractedText?: string;
       services?: ServiceOption[];
+      tempFilePath?: string;
     }>) => {
       state.isExtracting = false;
       state.extractionStep = 4;
@@ -165,6 +170,11 @@ const pdfExtractionSlice = createSlice({
       
       if (action.payload.services) {
         state.services = action.payload.services;
+      }
+      
+      // Stocker le chemin du fichier temporaire pour la création après navigation
+      if (action.payload.tempFilePath) {
+        state.tempFilePath = action.payload.tempFilePath;
       }
       
       // Pré-remplir les champs du formulaire avec les données extraites
@@ -216,6 +226,11 @@ const pdfExtractionSlice = createSlice({
       state.services = action.payload;
     },
     
+    // Mise à jour du chemin du fichier temporaire
+    setTempFilePath: (state, action: PayloadAction<string | null>) => {
+      state.tempFilePath = action.payload;
+    },
+    
     // Mise à jour d'un champ du formulaire
     updateFormField: (state, action: PayloadAction<{ field: keyof EditableFormData; value: any }>) => {
       (state.formData as any)[action.payload.field] = action.payload.value;
@@ -242,6 +257,7 @@ const pdfExtractionSlice = createSlice({
     resetForm: (state) => {
       state.selectedFileName = null;
       state.selectedFileSize = null;
+      state.tempFilePath = null;
       state.extractedData = null;
       state.extractedText = '';
       state.formData = { ...initialFormData };
@@ -262,6 +278,7 @@ export const {
   extractionComplete,
   extractionFailed,
   setServices,
+  setTempFilePath,
   updateFormField,
   updateFormFields,
   setError,
@@ -278,3 +295,4 @@ export const selectFormData = (state: { pdfExtraction: PdfExtractionState }) => 
 export const selectExtractedData = (state: { pdfExtraction: PdfExtractionState }) => state.pdfExtraction.extractedData;
 export const selectIsExtracting = (state: { pdfExtraction: PdfExtractionState }) => state.pdfExtraction.isExtracting;
 export const selectServices = (state: { pdfExtraction: PdfExtractionState }) => state.pdfExtraction.services;
+export const selectTempFilePath = (state: { pdfExtraction: PdfExtractionState }) => state.pdfExtraction.tempFilePath;
