@@ -1,5 +1,58 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+// Clé pour le localStorage
+const STORAGE_KEY = 'pdfExtraction_state';
+
+// Fonction pour charger l'état depuis localStorage
+const loadFromStorage = (): Partial<PdfExtractionState> | null => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      console.log('📂 [PdfExtraction] État restauré depuis localStorage');
+      return parsed;
+    }
+  } catch (error) {
+    console.warn('⚠️ [PdfExtraction] Erreur lors du chargement depuis localStorage:', error);
+  }
+  return null;
+};
+
+// Fonction pour sauvegarder l'état dans localStorage
+const saveToStorage = (state: PdfExtractionState) => {
+  try {
+    // Sauvegarder si on a des données extraites OU un fichier temp (pour reprise après refresh)
+    if (!state.extractedData && !state.formData.titre && !state.tempFilePath) {
+      return;
+    }
+    const toSave = {
+      selectedFileName: state.selectedFileName,
+      selectedFileSize: state.selectedFileSize,
+      tempFilePath: state.tempFilePath,
+      extractedData: state.extractedData,
+      extractedText: state.extractedText,
+      services: state.services,
+      formData: state.formData,
+      extractionStep: state.extractionStep,
+      extractionTaskId: state.extractionTaskId,  // Sauvegarder aussi le task_id
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    console.log('💾 [PdfExtraction] État sauvegardé dans localStorage');
+  } catch (error) {
+    console.warn('⚠️ [PdfExtraction] Erreur lors de la sauvegarde dans localStorage:', error);
+  }
+};
+
+// Fonction pour effacer le localStorage
+export const clearPdfExtractionStorage = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    console.log('🗑️ [PdfExtraction] LocalStorage effacé');
+  } catch (error) {
+    console.warn('⚠️ [PdfExtraction] Erreur lors de l\'effacement du localStorage:', error);
+  }
+};
+
 // Types pour les données extraites du PDF
 export interface ExtractedPlaignant {
   nom: string | null;
@@ -106,7 +159,7 @@ const initialFormData: EditableFormData = {
   service_id: null,
 };
 
-const initialState: PdfExtractionState = {
+const baseInitialState: PdfExtractionState = {
   selectedFileName: null,
   selectedFileSize: null,
   tempFilePath: null,
@@ -121,6 +174,26 @@ const initialState: PdfExtractionState = {
   error: null,
   success: null,
 };
+
+// Charger l'état initial depuis localStorage si disponible
+const getInitialState = (): PdfExtractionState => {
+  const stored = loadFromStorage();
+  if (stored) {
+    return {
+      ...baseInitialState,
+      ...stored,
+      // Ne pas restaurer les états transitoires
+      isExtracting: false,
+      extractionTaskId: null,
+      extractionMessage: stored.extractionStep === 4 ? 'Données restaurées' : '',
+      error: null,
+      success: stored.extractedData ? '✅ Données précédemment extraites restaurées' : null,
+    };
+  }
+  return baseInitialState;
+};
+
+const initialState: PdfExtractionState = getInitialState();
 
 const pdfExtractionSlice = createSlice({
   name: 'pdfExtraction',
@@ -211,6 +284,9 @@ const pdfExtractionSlice = createSlice({
       }
       
       state.success = '✅ Analyse IA terminée ! Vérifiez et modifiez les informations si nécessaire.';
+      
+      // Sauvegarder dans localStorage
+      saveToStorage(state);
     },
     
     // Extraction échouée
@@ -224,21 +300,38 @@ const pdfExtractionSlice = createSlice({
     // Mise à jour des services disponibles
     setServices: (state, action: PayloadAction<ServiceOption[]>) => {
       state.services = action.payload;
+      // Sauvegarder si on a des données extraites
+      if (state.extractedData) {
+        saveToStorage(state);
+      }
     },
     
     // Mise à jour du chemin du fichier temporaire
     setTempFilePath: (state, action: PayloadAction<string | null>) => {
       state.tempFilePath = action.payload;
+      // IMPORTANT: Sauvegarder immédiatement le tempFilePath pour permettre
+      // la reprise après refresh même si l'extraction n'est pas terminée
+      if (action.payload) {
+        saveToStorage(state);
+      }
     },
     
     // Mise à jour d'un champ du formulaire
     updateFormField: (state, action: PayloadAction<{ field: keyof EditableFormData; value: any }>) => {
       (state.formData as any)[action.payload.field] = action.payload.value;
+      // Sauvegarder les modifications du formulaire
+      if (state.extractedData) {
+        saveToStorage(state);
+      }
     },
     
     // Mise à jour de plusieurs champs du formulaire
     updateFormFields: (state, action: PayloadAction<Partial<EditableFormData>>) => {
       state.formData = { ...state.formData, ...action.payload };
+      // Sauvegarder les modifications du formulaire
+      if (state.extractedData) {
+        saveToStorage(state);
+      }
     },
     
     // Messages
@@ -250,11 +343,15 @@ const pdfExtractionSlice = createSlice({
       state.success = action.payload;
     },
     
-    // Reset complet
-    resetPdfExtraction: () => initialState,
+    // Reset complet (après création de plainte réussie)
+    resetPdfExtraction: () => {
+      clearPdfExtractionStorage();
+      return baseInitialState;
+    },
     
     // Reset partiel (garder les services)
     resetForm: (state) => {
+      clearPdfExtractionStorage();
       state.selectedFileName = null;
       state.selectedFileSize = null;
       state.tempFilePath = null;

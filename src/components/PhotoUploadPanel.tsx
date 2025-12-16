@@ -12,6 +12,7 @@ import {
   extractionComplete,
   extractionFailed,
   setServices,
+  setTempFilePath,
   updateFormField,
   setError,
   setSuccess,
@@ -206,6 +207,14 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
         // Mode asynchrone - attendre la notification WebSocket
         if (data.async === true && data.task_id) {
           console.log('🔄 [PhotoUploadPanel] Mode asynchrone, task_id:', data.task_id);
+          
+          // IMPORTANT: Sauvegarder le temp_file_path immédiatement pour permettre
+          // la création de plainte même après un refresh de la page
+          if (data.temp_file_path) {
+            console.log('📁 [PhotoUploadPanel] Sauvegarde temp_file_path:', data.temp_file_path);
+            dispatch(setTempFilePath(data.temp_file_path));
+          }
+          
           dispatch(startExtraction({ taskId: data.task_id }));
           
           // S'abonner aux notifications pour cette tâche

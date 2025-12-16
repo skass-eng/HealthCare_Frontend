@@ -11,6 +11,7 @@ import {
   extractionComplete,
   extractionFailed,
   setServices,
+  setTempFilePath,
   updateFormField,
   setError,
   setSuccess,
@@ -212,6 +213,14 @@ export default function PdfUploadPanel({ onSubmit, onClose }: PdfUploadPanelProp
         // Mode asynchrone - attendre la notification WebSocket
         if (data.async === true && data.task_id) {
           console.log('🔄 [PdfUploadPanel] Mode asynchrone, task_id:', data.task_id);
+          
+          // IMPORTANT: Sauvegarder le temp_file_path immédiatement pour permettre
+          // la création de plainte même après un refresh de la page
+          if (data.temp_file_path) {
+            console.log('📁 [PdfUploadPanel] Sauvegarde temp_file_path:', data.temp_file_path);
+            dispatch(setTempFilePath(data.temp_file_path));
+          }
+          
           dispatch(startExtraction({ taskId: data.task_id }));
           
           // Ajouter la tâche au store de notifications pour l'indicateur global

@@ -1,5 +1,60 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+// Clé pour le localStorage
+const STORAGE_KEY = 'imageExtraction_state';
+
+// Fonction pour charger l'état depuis localStorage
+const loadFromStorage = (): Partial<ImageExtractionState> | null => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      console.log('📂 [ImageExtraction] État restauré depuis localStorage');
+      return parsed;
+    }
+  } catch (error) {
+    console.warn('⚠️ [ImageExtraction] Erreur lors du chargement depuis localStorage:', error);
+  }
+  return null;
+};
+
+// Fonction pour sauvegarder l'état dans localStorage
+const saveToStorage = (state: ImageExtractionState) => {
+  try {
+    // Sauvegarder si on a des données extraites OU un fichier temp (pour reprise après refresh)
+    if (!state.extractedData && !state.formData.titre && !state.tempFilePath) {
+      return;
+    }
+    const toSave = {
+      selectedFileName: state.selectedFileName,
+      selectedFileSize: state.selectedFileSize,
+      imagePreviewUrl: state.imagePreviewUrl,
+      tempFilePath: state.tempFilePath,
+      extractedData: state.extractedData,
+      extractedText: state.extractedText,
+      ocrInfo: state.ocrInfo,
+      services: state.services,
+      formData: state.formData,
+      extractionStep: state.extractionStep,
+      extractionTaskId: state.extractionTaskId,  // Sauvegarder aussi le task_id
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    console.log('💾 [ImageExtraction] État sauvegardé dans localStorage');
+  } catch (error) {
+    console.warn('⚠️ [ImageExtraction] Erreur lors de la sauvegarde dans localStorage:', error);
+  }
+};
+
+// Fonction pour effacer le localStorage
+export const clearImageExtractionStorage = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    console.log('🗑️ [ImageExtraction] LocalStorage effacé');
+  } catch (error) {
+    console.warn('⚠️ [ImageExtraction] Erreur lors de l\'effacement du localStorage:', error);
+  }
+};
+
 // Types pour les données extraites de l'image
 export interface ExtractedPlaignant {
   nom: string | null;
@@ -118,7 +173,7 @@ const initialFormData: EditableFormData = {
   service_id: null,
 };
 
-const initialState: ImageExtractionState = {
+const baseInitialState: ImageExtractionState = {
   selectedFileName: null,
   selectedFileSize: null,
   imagePreviewUrl: null,
@@ -135,6 +190,26 @@ const initialState: ImageExtractionState = {
   error: null,
   success: null,
 };
+
+// Charger l'état initial depuis localStorage si disponible
+const getInitialState = (): ImageExtractionState => {
+  const stored = loadFromStorage();
+  if (stored) {
+    return {
+      ...baseInitialState,
+      ...stored,
+      // Ne pas restaurer les états transitoires
+      isExtracting: false,
+      extractionTaskId: null,
+      extractionMessage: stored.extractionStep === 4 ? 'Données restaurées' : '',
+      error: null,
+      success: stored.extractedData ? '✅ Données précédemment extraites restaurées' : null,
+    };
+  }
+  return baseInitialState;
+};
+
+const initialState: ImageExtractionState = getInitialState();
 
 const imageExtractionSlice = createSlice({
   name: 'imageExtraction',
@@ -237,6 +312,9 @@ const imageExtractionSlice = createSlice({
       }
       
       state.success = '✅ Analyse OCR et IA terminée ! Vérifiez et modifiez les informations si nécessaire.';
+      
+      // Sauvegarder dans localStorage
+      saveToStorage(state);
     },
     
     // Extraction échouée
@@ -250,21 +328,38 @@ const imageExtractionSlice = createSlice({
     // Mise à jour des services disponibles
     setServices: (state, action: PayloadAction<ServiceOption[]>) => {
       state.services = action.payload;
+      // Sauvegarder si on a des données extraites
+      if (state.extractedData) {
+        saveToStorage(state);
+      }
     },
     
     // Mise à jour du chemin du fichier temporaire
     setTempFilePath: (state, action: PayloadAction<string | null>) => {
       state.tempFilePath = action.payload;
+      // IMPORTANT: Sauvegarder immédiatement le tempFilePath pour permettre
+      // la reprise après refresh même si l'extraction n'est pas terminée
+      if (action.payload) {
+        saveToStorage(state);
+      }
     },
     
     // Mise à jour d'un champ du formulaire
     updateFormField: (state, action: PayloadAction<{ field: keyof EditableFormData; value: any }>) => {
       (state.formData as any)[action.payload.field] = action.payload.value;
+      // Sauvegarder les modifications du formulaire
+      if (state.extractedData) {
+        saveToStorage(state);
+      }
     },
     
     // Mise à jour de plusieurs champs du formulaire
     updateFormFields: (state, action: PayloadAction<Partial<EditableFormData>>) => {
       state.formData = { ...state.formData, ...action.payload };
+      // Sauvegarder les modifications du formulaire
+      if (state.extractedData) {
+        saveToStorage(state);
+      }
     },
     
     // Messages
@@ -276,11 +371,15 @@ const imageExtractionSlice = createSlice({
       state.success = action.payload;
     },
     
-    // Reset complet
-    resetImageExtraction: () => initialState,
+    // Reset complet (après création de plainte réussie)
+    resetImageExtraction: () => {
+      clearImageExtractionStorage();
+      return baseInitialState;
+    },
     
     // Reset partiel (garder les services)
     resetForm: (state) => {
+      clearImageExtractionStorage();
       state.selectedFileName = null;
       state.selectedFileSize = null;
       state.imagePreviewUrl = null;

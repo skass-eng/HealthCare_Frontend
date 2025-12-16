@@ -34,7 +34,6 @@ import GlobalModals from '@/components/GlobalModals';
 import NotificationContainer from '@/components/NotificationToast';
 import PlainteNotificationHandler from '@/components/PlainteNotificationHandler';
 import PendingTasksIndicator from '@/components/PendingTasksIndicator';
-import DevNotificationTester from '@/components/DevNotificationTester';
 import { AppClientProvider } from '@/lib/AppClientContext';
 
 // Thème personnalisé inspiré de HealthCare
@@ -369,7 +368,6 @@ const AppLayout: React.FC = () => {
         <GlobalModals />
         <NotificationContainer />
         <PendingTasksIndicator />
-        <DevNotificationTester />
       </Box>
   );
 };
