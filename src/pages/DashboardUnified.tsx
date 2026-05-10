@@ -1,24 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   Download as DownloadIcon,
   Add as AddIcon,
-  Security as ShieldCheckIcon,
-  Assignment as AssignmentIcon,
-  BarChart as BarChartIcon,
-  Favorite as HeartIcon,
-  LocalHospital as EmergencyIcon
+  Security as ShieldCheckIcon
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store';
 import { openExportModal } from '@/store/slices/uiSlice';
-import { 
-  fetchStatistiquesGlobales, 
-  fetchStatistiquesDepartements, 
+import {
+  fetchStatistiquesGlobales,
+  fetchStatistiquesDepartements,
   fetchStatistiquesPriorites,
-  fetchEvolutionPlaintes 
+  fetchEvolutionPlaintes
 } from '@/store/slices/dashboardSlice';
+import {
+  setDateDebut as setFilterDateDebut,
+  setDateFin as setFilterDateFin,
+  resetDateFilters,
+  selectFilters
+} from '@/store/slices/filtersSlice';
 import AnalyticsContent from '@/components/AnalyticsContent';
+import PlotlyChart from '@/components/PlotlyChart';
 
 // Fonction helper pour formater une date en YYYY-MM-DD
 const formatDateToISO = (date: Date): string => {
@@ -42,9 +45,10 @@ const getDefaultDates = () => {
 const DashboardUnified: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const defaultDates = getDefaultDates();
-  const [dateDebut, setDateDebut] = useState<string>(defaultDates.dateDebut);
-  const [dateFin, setDateFin] = useState<string>(defaultDates.dateFin);
+  
+  // Récupérer les filtres depuis Redux (partagés avec PlaintesDashboard)
+  const { dateDebut, dateFin } = useSelector((state: RootState) => selectFilters(state));
+  
   const [notification, setNotification] = useState<{ show: boolean; message: string; type: 'success' | 'info' }>({
     show: false,
     message: '',
@@ -83,9 +87,21 @@ const DashboardUnified: React.FC = () => {
     }
   };
 
-  // Charger les statistiques au montage du composant avec les dates par défaut
+  // Au mount : si les dates persistées sont stales (>30 jours dans le passé),
+  // on les réinitialise sur la fenêtre par défaut (3 derniers mois) avant de charger.
   useEffect(() => {
-    loadStatistiquesWithDates(dateDebut, dateFin);
+    const today = new Date();
+    const persistedFin = dateFin ? new Date(dateFin) : null;
+    const isStale = !persistedFin || (today.getTime() - persistedFin.getTime()) > 30 * 24 * 3600 * 1000;
+
+    if (isStale) {
+      const defaults = getDefaultDates();
+      dispatch(setFilterDateDebut(defaults.dateDebut));
+      dispatch(setFilterDateFin(defaults.dateFin));
+      loadStatistiquesWithDates(defaults.dateDebut, defaults.dateFin);
+    } else {
+      loadStatistiquesWithDates(dateDebut, dateFin);
+    }
   }, [dispatch]);
 
   // Debug: Afficher les données Redux
@@ -125,33 +141,36 @@ const DashboardUnified: React.FC = () => {
 
   // Gestionnaire pour réinitialiser les filtres de dates
   const handleResetDateFilter = async () => {
-    const resetDates = getDefaultDates();
-    setDateDebut(resetDates.dateDebut);
-    setDateFin(resetDates.dateFin);
-    await loadStatistiquesWithDates(resetDates.dateDebut, resetDates.dateFin);
+    dispatch(resetDateFilters());
+    // Utiliser les valeurs par défaut pour le rechargement
+    const today = new Date();
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const formatDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const resetDateDebut = formatDate(threeMonthsAgo);
+    const resetDateFin = formatDate(today);
+    await loadStatistiquesWithDates(resetDateDebut, resetDateFin);
     showNotification('🔄 Filtre réinitialisé aux 3 derniers mois', 'info');
   };
 
-  // Fonction pour obtenir l'icône et la couleur selon le type de service
-  const getServiceIcon = (typeService: string) => {
-    switch (typeService?.toLowerCase()) {
-      case 'cardiologie':
-        return { icon: HeartIcon, color: '#dc2626', bgColor: '#fef2f2', borderColor: '#fecaca' };
-      case 'urgences':
-        return { icon: EmergencyIcon, color: '#ea580c', bgColor: '#fff7ed', borderColor: '#fed7aa' };
-      default:
-        return { icon: AssignmentIcon, color: '#3b82f6', bgColor: '#eff6ff', borderColor: '#bfdbfe' };
-    }
+  // Handlers pour les inputs de date (mise à jour du store Redux partagé)
+  const handleDateDebutChange = (value: string) => {
+    dispatch(setFilterDateDebut(value));
   };
+
+  const handleDateFinChange = (value: string) => {
+    dispatch(setFilterDateFin(value));
+  };
+
 
   if (loadingStatistiques && !statistiquesGlobales) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        background: '#f5f5f7'
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
@@ -215,484 +234,494 @@ const DashboardUnified: React.FC = () => {
         }
       `}</style>
 
-      {/* Header - Style Healthcare */}
-      <div style={{ marginBottom: '32px', position: 'relative' }}>
-        {/* Effet de fond avec gradient */}
+      {/* Header - Executive style */}
+      <div style={{ marginBottom: '24px' }}>
         <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(20, 184, 166, 0.1), rgba(16, 185, 129, 0.1))',
-          borderRadius: '16px',
-          filter: 'blur(20px)',
-          zIndex: 0
-        }} />
-        
-        {/* Contenu du titre */}
-        <div style={{
-          position: 'relative',
-          background: 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-          zIndex: 1,
-          border: '1px solid rgba(255,255,255,0.3)'
+          background: '#ffffff',
+          borderRadius: '12px',
+          padding: '20px 24px',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04)',
+          border: '1px solid #ebebef'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              {/* Icône avec effet */}
-              <div style={{ position: 'relative' }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 8px 25px rgba(59, 130, 246, 0.3)'
-                }}>
-                  <ShieldCheckIcon style={{ fontSize: '24px', color: 'white' }} />
-                </div>
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'linear-gradient(135deg, #60a5fa, #2dd4bf)',
-                  borderRadius: '12px',
-                  opacity: 0.2,
-                  animation: 'pulse 2s infinite'
-                }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                background: '#ffffff',
+                border: '1px solid #ebebef',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)'
+              }}>
+                <ShieldCheckIcon style={{ fontSize: '20px', color: '#0d9488' }} />
               </div>
-              
-              {/* Texte du titre */}
+
               <div>
-                <h1 style={{ 
-                  fontSize: '2rem',
-                  fontWeight: 700,
-                  background: 'linear-gradient(135deg, #1e293b, #3b82f6, #14b8a6)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  lineHeight: 1.2,
-                  margin: 0
-                }}>
-                  Vue d'Ensemble
-                </h1>
-                <p style={{ 
-                  marginTop: '8px', 
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h1 style={{
+                    fontSize: '1.5rem',
+                    fontWeight: 700,
+                    color: '#1d1d1f',
+                    lineHeight: 1.2,
+                    margin: 0,
+                    letterSpacing: '-0.02em'
+                  }}>
+                    Pulse 360 · Vue Exécutive
+                  </h1>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#ecfdf5',
+                    color: '#047857',
+                    padding: '3px 10px',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    border: '1px solid #a7f3d0'
+                  }}>
+                    <div style={{
+                      width: '6px',
+                      height: '6px',
+                      backgroundColor: '#10b981',
+                      borderRadius: '50%',
+                      animation: 'pulse 2s infinite'
+                    }} />
+                    <span>Live</span>
+                  </div>
+                </div>
+                <p style={{
+                  marginTop: '4px',
                   color: '#64748b',
                   fontWeight: 500,
-                  margin: '8px 0 0 0'
+                  fontSize: '13px',
+                  margin: '4px 0 0 0'
                 }}>
-                  Interface Agent - Suivi et Validation des Réclamations
+                  Pilotage qualité &amp; expérience patient · Plateforme IA d'analyse des plaintes
                 </p>
-                {/* Badge de statut */}
-                <div style={{ 
-                  marginTop: '16px', 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '8px',
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                  color: 'white',
-                  padding: '4px 16px',
-                  borderRadius: '16px',
-                  boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)',
-                  fontSize: '12px',
-                  fontWeight: 600
-                }}>
-                  <div style={{ 
-                    width: '6px', 
-                    height: '6px', 
-                    backgroundColor: 'white', 
-                    borderRadius: '50%',
-                    animation: 'pulse 2s infinite'
-                  }} />
-                  <span>Système Actif</span>
-                </div>
               </div>
             </div>
             
             {/* Boutons d'action */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
                 onClick={handleExport}
                 style={{
-                  background: 'linear-gradient(135deg, #64748b, #475569)',
-                  color: 'white',
+                  background: '#ffffff',
+                  color: '#334155',
                   fontWeight: 600,
-                  boxShadow: '0 8px 25px rgba(100, 116, 139, 0.3)',
-                  border: 'none',
+                  border: '1px solid #ebebef',
                   borderRadius: '8px',
-                  padding: '12px 24px',
+                  padding: '9px 16px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  transition: 'all 0.3s ease'
+                  gap: '6px',
+                  fontSize: '13px',
+                  transition: 'all 0.15s ease'
                 }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #475569, #334155)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 12px 35px rgba(100, 116, 139, 0.4)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #64748b, #475569)';
-                  e.currentTarget.style.transform = 'translateY(0px)';
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(100, 116, 139, 0.3)';
-                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
               >
-                <DownloadIcon style={{ fontSize: '20px' }} />
+                <DownloadIcon style={{ fontSize: '17px' }} />
                 Exporter
               </button>
-              
+
               <button
                 onClick={handleNewComplaint}
                 style={{
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  background: '#0f172a',
                   color: 'white',
                   fontWeight: 600,
-                  boxShadow: '0 8px 25px rgba(16, 185, 129, 0.3)',
-                  border: 'none',
+                  border: '1px solid #0f172a',
                   borderRadius: '8px',
-                  padding: '12px 24px',
+                  padding: '9px 16px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  transition: 'all 0.3s ease'
+                  gap: '6px',
+                  fontSize: '13px',
+                  transition: 'all 0.15s ease'
                 }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #059669, #047857)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 12px 35px rgba(16, 185, 129, 0.4)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-                  e.currentTarget.style.transform = 'translateY(0px)';
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.3)';
-                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = '#1e293b'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = '#0f172a'; }}
               >
-                <AddIcon style={{ fontSize: '20px' }} />
-                Créer une plainte
+                <AddIcon style={{ fontSize: '17px' }} />
+                Nouvelle plainte
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Filtre par dates */}
-      <div style={{
-        marginBottom: '24px',
-        background: 'white',
-        borderRadius: '12px',
-        padding: '16px 24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        border: '1px solid #f1f5f9',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        flexWrap: 'wrap'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontWeight: 500, color: '#374151', fontSize: '14px' }}>📅 Période :</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <label style={{ color: '#64748b', fontSize: '14px' }}>Du</label>
-          <input
-            type="date"
-            value={dateDebut}
-            onChange={(e) => setDateDebut(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #d1d5db',
-              fontSize: '14px',
-              outline: 'none',
-              transition: 'border-color 0.2s ease'
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <label style={{ color: '#64748b', fontSize: '14px' }}>Au</label>
-          <input
-            type="date"
-            value={dateFin}
-            onChange={(e) => setDateFin(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #d1d5db',
-              fontSize: '14px',
-              outline: 'none',
-              transition: 'border-color 0.2s ease'
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-          />
-        </div>
-        <button
-          onClick={handleDateFilter}
-          style={{
-            padding: '8px 16px',
-            background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            fontSize: '14px'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          Filtrer
-        </button>
-        <button
-          onClick={handleResetDateFilter}
-          style={{
-            padding: '8px 16px',
-            background: '#f1f5f9',
-            color: '#64748b',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            fontSize: '14px'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#e2e8f0';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#f1f5f9';
-          }}
-        >
-          Réinitialiser
-        </button>
-      </div>
+      {/* Filtre période - segmented control premium */}
+      {(() => {
+        const presets = [
+          { id: '7d', label: '7 jours', days: 7 },
+          { id: '30d', label: '30 jours', days: 30 },
+          { id: '90d', label: '90 jours', days: 90 }
+        ];
+        // Détecter le preset actif par diff entre dateDebut et dateFin
+        const today = new Date();
+        const debut = dateDebut ? new Date(dateDebut) : null;
+        const diffDays = debut ? Math.round((today.getTime() - debut.getTime()) / (24 * 3600 * 1000)) : 0;
+        const activePreset = presets.find(p => Math.abs(p.days - diffDays) <= 1)?.id;
 
-      {/* Section Résumé global - Données réelles */}
-      <div style={{
-        background: 'rgba(255,255,255,0.95)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '16px',
-        padding: '32px',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-        border: '1px solid rgba(255,255,255,0.3)',
-        marginBottom: '32px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-          <BarChartIcon style={{ color: '#3b82f6', fontSize: '24px' }} />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            Résumé global
-          </h2>
-        </div>
+        const applyPreset = (days: number) => {
+          const fin = new Date();
+          const deb = new Date();
+          deb.setDate(deb.getDate() - days);
+          const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          dispatch(setFilterDateDebut(fmt(deb)));
+          dispatch(setFilterDateFin(fmt(fin)));
+          loadStatistiquesWithDates(fmt(deb), fmt(fin));
+        };
 
-        {/* Cartes des statistiques - Données réelles */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
-          <div style={{ 
-            textAlign: 'center',
-            padding: '24px',
-            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-            transition: 'all 0.2s ease'
-          }}>
-            <div style={{ fontSize: '3rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-              {statistiquesGlobales?.total || 0}
-            </div>
-            <div style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>
-              Total plaintes
-            </div>
-          </div>
-          
-          <div style={{ 
-            textAlign: 'center',
-            padding: '24px',
-            background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-            borderRadius: '12px',
-            border: '1px solid #93c5fd',
-            boxShadow: '0 4px 6px rgba(59, 130, 246, 0.1)',
-            transition: 'all 0.2s ease'
-          }}>
-            <div style={{ fontSize: '3rem', fontWeight: 700, color: '#2563eb', marginBottom: '8px' }}>
-              {statistiquesGlobales?.nouvelles || 0}
-            </div>
-            <div style={{ fontSize: '14px', color: '#1e40af', fontWeight: 500 }}>
-              Nouvelles
-            </div>
-          </div>
-          
-          <div style={{ 
-            textAlign: 'center',
-            padding: '24px',
-            background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-            borderRadius: '12px',
-            border: '1px solid #6ee7b7',
-            boxShadow: '0 4px 6px rgba(16, 185, 129, 0.1)',
-            transition: 'all 0.2s ease'
-          }}>
-            <div style={{ fontSize: '3rem', fontWeight: 700, color: '#059669', marginBottom: '8px' }}>
-              {statistiquesGlobales?.en_cours || 0}
-            </div>
-            <div style={{ fontSize: '14px', color: '#047857', fontWeight: 500 }}>
-              En cours
-            </div>
-          </div>
-          
-          <div style={{ 
-            textAlign: 'center',
-            padding: '24px',
-            background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
-            borderRadius: '12px',
-            border: '1px solid #86efac',
-            boxShadow: '0 4px 6px rgba(34, 197, 94, 0.1)',
-            transition: 'all 0.2s ease'
-          }}>
-            <div style={{ fontSize: '3rem', fontWeight: 700, color: '#16a34a', marginBottom: '8px' }}>
-              {statistiquesGlobales?.traitees || 0}
-            </div>
-            <div style={{ fontSize: '14px', color: '#15803d', fontWeight: 500 }}>
-              Traitées
-            </div>
-          </div>
-        </div>
-      </div>
+        const formatRange = () => {
+          if (!dateDebut || !dateFin) return 'Définir une période';
+          const d1 = new Date(dateDebut);
+          const d2 = new Date(dateFin);
+          const opts: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short' };
+          return `${d1.toLocaleDateString('fr-FR', opts)} – ${d2.toLocaleDateString('fr-FR', { ...opts, year: 'numeric' })}`;
+        };
 
-      {/* Section Analyse par Départements - Données réelles */}
-      <div style={{
-        background: 'rgba(255,255,255,0.95)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '16px',
-        padding: '32px',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-        border: '1px solid rgba(255,255,255,0.3)',
-        marginBottom: '32px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-          <AssignmentIcon style={{ color: '#3b82f6', fontSize: '24px' }} />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            Analyse par Départements
-          </h2>
-        </div>
-        <p style={{ fontSize: '14px', color: '#64748b', fontWeight: 500, marginBottom: '32px', margin: '0 0 32px 0' }}>
-          Performance et métriques détaillées par spécialité médicale
-        </p>
-
-        {/* Départements - Données réelles */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-          {statistiquesDepartements.map((departement) => {
-            const { icon: ServiceIcon, color, bgColor, borderColor } = getServiceIcon(departement.type_service);
-            
-            return (
-              <div key={departement.id} style={{
-                border: '2px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '24px',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                background: 'rgba(255,255,255,0.8)',
-                backdropFilter: 'blur(4px)'
+        return (
+          <div style={{
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 4px',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#86868b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Période</span>
+              {/* Segmented presets */}
+              <div style={{
+                display: 'inline-flex',
+                background: '#ffffff',
+                border: '1px solid #ebebef',
+                borderRadius: '8px',
+                padding: '3px',
+                boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ 
-                      color: color, 
-                      background: bgColor, 
-                      padding: '12px', 
-                      borderRadius: '12px',
-                      border: `1px solid ${borderColor}`
-                    }}>
-                      <ServiceIcon style={{ fontSize: '24px' }} />
-                    </div>
-                    <h4 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>
-                      {departement.nom.toUpperCase()}
-                    </h4>
+                {presets.map((p) => {
+                  const active = activePreset === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => applyPreset(p.days)}
+                      style={{
+                        padding: '5px 12px',
+                        background: active ? '#1d1d1f' : 'transparent',
+                        color: active ? '#ffffff' : '#86868b',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseOver={(e) => { if (!active) { e.currentTarget.style.color = '#1d1d1f'; e.currentTarget.style.background = '#f5f5f7'; } }}
+                      onMouseOut={(e) => { if (!active) { e.currentTarget.style.color = '#86868b'; e.currentTarget.style.background = 'transparent'; } }}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Range affiché + édition custom */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: '#86868b', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+                {formatRange()}
+              </span>
+              <details style={{ position: 'relative' }}>
+                <summary style={{
+                  listStyle: 'none',
+                  cursor: 'pointer',
+                  padding: '5px 12px',
+                  background: '#ffffff',
+                  border: '1px solid #ebebef',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#1d1d1f',
+                  display: 'inline-block',
+                  boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)'
+                }}>
+                  Personnalisé
+                </summary>
+                <div style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 'calc(100% + 6px)',
+                  background: '#ffffff',
+                  border: '1px solid #ebebef',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  boxShadow: '0 8px 24px rgba(16, 24, 40, 0.08)',
+                  zIndex: 10,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  minWidth: '240px'
+                }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#86868b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Du</label>
+                  <input
+                    type="date"
+                    value={dateDebut}
+                    onChange={(e) => handleDateDebutChange(e.target.value)}
+                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #ebebef', fontSize: '12px', color: '#1d1d1f' }}
+                  />
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#86868b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Au</label>
+                  <input
+                    type="date"
+                    value={dateFin}
+                    onChange={(e) => handleDateFinChange(e.target.value)}
+                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #ebebef', fontSize: '12px', color: '#1d1d1f' }}
+                  />
+                  <button
+                    onClick={handleDateFilter}
+                    style={{ padding: '6px 12px', background: '#1d1d1f', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}
+                  >
+                    Appliquer
+                  </button>
+                </div>
+              </details>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Section KPIs Exécutifs */}
+      {(() => {
+        const total = statistiquesGlobales?.total || 0;
+        const traitees = statistiquesGlobales?.traitees || 0;
+        const enCours = statistiquesGlobales?.en_cours || 0;
+        const nouvelles = statistiquesGlobales?.nouvelles || 0;
+        const tauxResolution = total > 0 ? Math.round((traitees / total) * 100) : 0;
+        const satisfactionAvg = statistiquesDepartements.length > 0
+          ? statistiquesDepartements.reduce((acc, d) => acc + (d.satisfaction_moyenne || 0), 0) / statistiquesDepartements.length
+          : 0;
+
+        const kpis = [
+          {
+            label: 'Plaintes traitées',
+            value: total.toLocaleString('fr-FR'),
+            sub: `${nouvelles} nouvelles · ${enCours} en cours`,
+            trend: '+12%',
+            trendPositive: true,
+            accent: '#0f172a'
+          },
+          {
+            label: 'Taux de résolution',
+            value: `${tauxResolution}%`,
+            sub: `${traitees.toLocaleString('fr-FR')} dossiers clôturés`,
+            trend: '+4 pts',
+            trendPositive: true,
+            accent: '#059669'
+          },
+          {
+            label: 'Satisfaction patient',
+            value: `${satisfactionAvg.toFixed(1)}/5`,
+            sub: 'Score agrégé multi-services',
+            trend: '+0.3',
+            trendPositive: true,
+            accent: '#0d9488'
+          },
+          {
+            label: 'Plaintes en cours',
+            value: enCours.toLocaleString('fr-FR'),
+            sub: `dont ${nouvelles} nouvelles cette période`,
+            trend: nouvelles > 10 ? `+${nouvelles}` : 'stable',
+            trendPositive: false,
+            accent: '#0f172a'
+          }
+        ];
+
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+            {kpis.map((kpi) => (
+              <div key={kpi.label} style={{
+                background: '#ffffff',
+                border: '1px solid #ebebef',
+                borderRadius: '12px',
+                padding: '20px 22px',
+                boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+                transition: 'border-color 0.2s ease, transform 0.2s ease'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#64748b',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  marginBottom: '10px'
+                }}>
+                  {kpi.label}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '2rem', fontWeight: 700, color: kpi.accent, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                    {kpi.value}
+                  </div>
+                  <div style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: kpi.trendPositive ? '#047857' : '#b45309',
+                    background: kpi.trendPositive ? '#ecfdf5' : '#fffbeb',
+                    border: `1px solid ${kpi.trendPositive ? '#a7f3d0' : '#fde68a'}`,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {kpi.trendPositive ? '↑' : '↗'} {kpi.trend}
                   </div>
                 </div>
-
-                {/* Statistiques principales */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
-                  <div style={{ 
-                    textAlign: 'center',
-                    padding: '16px',
-                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0'
-                  }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1e293b' }}>{departement.total}</div>
-                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Total</div>
-                  </div>
-                  <div style={{ 
-                    textAlign: 'center',
-                    padding: '16px',
-                    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-                    borderRadius: '12px',
-                    border: '1px solid #93c5fd'
-                  }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#2563eb' }}>{departement.nouvelles}</div>
-                    <div style={{ fontSize: '12px', color: '#1e40af', fontWeight: 500 }}>Nouvelles</div>
-                  </div>
-                  <div style={{ 
-                    textAlign: 'center',
-                    padding: '16px',
-                    background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-                    borderRadius: '12px',
-                    border: '1px solid #6ee7b7'
-                  }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#059669' }}>{departement.en_cours}</div>
-                    <div style={{ fontSize: '12px', color: '#047857', fontWeight: 500 }}>En cours</div>
-                  </div>
-                  <div style={{ 
-                    textAlign: 'center',
-                    padding: '16px',
-                    background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
-                    borderRadius: '12px',
-                    border: '1px solid #86efac'
-                  }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#16a34a' }}>{departement.cloturees}</div>
-                    <div style={{ fontSize: '12px', color: '#15803d', fontWeight: 500 }}>Cloturées</div>
-                  </div>
-                </div>
-
-                {/* Satisfaction */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '14px' }}>
-                  <span style={{ color: '#64748b', fontWeight: 500 }}>Satisfaction moyenne:</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ color: '#fbbf24', fontSize: '16px' }}>⭐</div>
-                    <span style={{ fontWeight: 600 }}>{departement.satisfaction_moyenne.toFixed(1)}/5</span>
-                  </div>
+                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+                  {kpi.sub}
                 </div>
               </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* HERO ROW : Évolution (60%) + Top services (40%) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '20px', marginBottom: '24px' }}>
+
+        {/* Graphique évolution - le HÉROS */}
+        <div style={{
+          background: '#ffffff',
+          border: '1px solid #ebebef',
+          borderRadius: '12px',
+          padding: '20px 24px',
+          boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1d1d1f', margin: 0, letterSpacing: '-0.01em' }}>
+                Évolution des plaintes
+              </h3>
+              <p style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500, margin: '2px 0 0 0', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                30 derniers jours · volume quotidien
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b' }}>
+              <div style={{ width: '8px', height: '8px', background: '#0d9488', borderRadius: '2px' }} />
+              <span>Plaintes / jour</span>
+            </div>
+          </div>
+          {evolutionPlaintes?.evolution_journaliere && evolutionPlaintes.evolution_journaliere.length > 0 ? (
+            <PlotlyChart
+              data={[
+                {
+                  x: evolutionPlaintes.evolution_journaliere.map(p => new Date(p.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })),
+                  y: evolutionPlaintes.evolution_journaliere.map(p => p.count),
+                  type: 'scatter',
+                  mode: 'lines',
+                  line: { color: '#0d9488', width: 2.5, shape: 'spline' },
+                  fill: 'tozeroy',
+                  fillcolor: 'rgba(13, 148, 136, 0.08)',
+                  hovertemplate: '<b>%{x}</b><br>%{y} plaintes<extra></extra>'
+                }
+              ]}
+              layout={{
+                margin: { l: 40, r: 16, t: 8, b: 40 },
+                xaxis: { showgrid: false, tickfont: { color: '#94a3b8', size: 10 }, tickangle: 0 },
+                yaxis: { showgrid: true, gridcolor: '#f1f5f9', tickfont: { color: '#94a3b8', size: 10 }, zeroline: false },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Inter, sans-serif', color: '#1d1d1f' },
+                hovermode: 'x unified',
+                showlegend: false
+              }}
+              className="h-72"
+            />
+          ) : (
+            <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>
+              Pas de données pour cette période
+            </div>
+          )}
+        </div>
+
+        {/* Top services ranking */}
+        <div style={{
+          background: '#ffffff',
+          border: '1px solid #ebebef',
+          borderRadius: '12px',
+          padding: '20px 24px',
+          boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)'
+        }}>
+          <div style={{ marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1d1d1f', margin: 0, letterSpacing: '-0.01em' }}>
+              Top services par volume
+            </h3>
+            <p style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500, margin: '2px 0 0 0', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+              {statistiquesDepartements.length} services suivis
+            </p>
+          </div>
+          {(() => {
+            const sorted = [...statistiquesDepartements].sort((a, b) => (b.total || 0) - (a.total || 0)).slice(0, 6);
+            const max = sorted[0]?.total || 1;
+            if (sorted.length === 0) {
+              return (
+                <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                  Aucun service à afficher
+                </div>
+              );
+            }
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {sorted.map((d) => {
+                  const pct = ((d.total || 0) / max) * 100;
+                  const sat = d.satisfaction_moyenne || 0;
+                  const satColor = sat >= 4 ? '#059669' : sat >= 3 ? '#b45309' : '#b91c1c';
+                  return (
+                    <div key={d.id}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1d1d1f', letterSpacing: '-0.005em' }}>
+                          {d.nom}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                          <span style={{ fontSize: '11px', color: satColor, fontWeight: 600 }}>★ {sat.toFixed(1)}</span>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#1d1d1f' }}>{d.total || 0}</span>
+                        </div>
+                      </div>
+                      <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div style={{
+                          width: `${pct}%`,
+                          height: '100%',
+                          background: 'linear-gradient(90deg, #0d9488, #5eead4)',
+                          borderRadius: '999px',
+                          transition: 'width 0.5s ease'
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             );
-          })}
+          })()}
         </div>
       </div>
 
-      {/* Contenu principal - Analytics */}
-      <div style={{ maxWidth: '100%', margin: '0 auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Analytics Content */}
-          <div style={{
-            background: 'rgba(255,255,255,0.95)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: '16px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-            border: '1px solid rgba(255,255,255,0.3)'
-          }}>
-            <AnalyticsContent selectedPeriod="30j" />
-          </div>
+      {/* Drill-down (onglets compacts) */}
+      <div>
+        <div style={{ marginBottom: '12px', padding: '0 4px' }}>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', margin: 0, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            Analyse détaillée
+          </h3>
         </div>
+        <AnalyticsContent selectedPeriod="30j" />
       </div>
     </div>
   );

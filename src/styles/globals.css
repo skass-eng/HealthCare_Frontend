@@ -126,11 +126,12 @@
   }
   
   body {
-    @apply bg-gradient-to-br from-blue-500 via-purple-500 to-purple-700 font-sans;
+    @apply font-sans;
     font-family: 'Inter', sans-serif;
     line-height: 1.6;
-    color: #1f2937;
-    /* S'assurer que le scroll fonctionne */
+    /* Palette Mercury Warm : warm off-white + texte near-black warm */
+    color: #1d1d1f;
+    background-color: #f5f5f7;
     overflow-x: hidden;
     overflow-y: auto;
   }

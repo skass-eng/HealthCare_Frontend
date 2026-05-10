@@ -1,6 +1,34 @@
 import { io, Socket } from 'socket.io-client';
 import { WebSocketMessage, Task, TaskStatus } from '@/types';
 
+// Détection automatique de l'hôte pour l'accès réseau local ou tunnel
+function getWebSocketBaseUrl(): string {
+  const currentHost = window.location.hostname;
+  
+  // Si on accède via localhost ou 127.0.0.1
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    return 'http://localhost:8000';
+  }
+  
+  // Si on accède via le domaine pulse-360.fr (production)
+  if (currentHost.includes('pulse-360.fr')) {
+    return 'https://api-healthcare.pulse-360.fr';
+  }
+  
+  // Si on accède via un tunnel externe (ngrok, localtunnel, cloudflare)
+  if (currentHost.includes('ngrok') || currentHost.includes('loca.lt') || currentHost.includes('trycloudflare.com')) {
+    const tunnelBackendUrl = localStorage.getItem('tunnel_backend_url');
+    if (tunnelBackendUrl) {
+      return tunnelBackendUrl;
+    }
+    // URL par défaut du backend Cloudflare Tunnel
+    return 'https://api-healthcare.pulse-360.fr';
+  }
+  
+  // Sinon, utiliser la même IP que celle utilisée pour accéder au frontend
+  return `http://${currentHost}:8000`;
+}
+
 class WebSocketService {
   private socket: Socket | null = null;
   private baseURL: string;
@@ -9,8 +37,8 @@ class WebSocketService {
   private reconnectDelay = 1000;
 
   constructor() {
-    // Configuration forcée pour le développement
-    this.baseURL = 'http://localhost:8000';
+    // Configuration dynamique pour l'accès réseau local
+    this.baseURL = getWebSocketBaseUrl();
     console.log('🔌 WebSocket URL configurée:', this.baseURL);
   }
 

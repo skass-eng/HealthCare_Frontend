@@ -12,8 +12,10 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: true,
+    host: '0.0.0.0',
     historyApiFallback: true,
+    // Autoriser tous les hôtes (nécessaire pour tunnels et accès réseau)
+    allowedHosts: ['.pulse-360.fr', '.ngrok-free.dev', '.ngrok.io', '.loca.lt', '.trycloudflare.com', 'localhost', '127.0.0.1', '192.168.1.151', 'MI-W15XDCK3'],
     // Configuration pour afficher tous les messages d'erreur
     hmr: {
       overlay: true,

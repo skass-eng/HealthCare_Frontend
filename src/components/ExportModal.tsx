@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -7,22 +7,23 @@ import {
   Button,
   TextField,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   Box,
   Typography,
   Alert,
   CircularProgress,
-  IconButton
+  IconButton,
+  Skeleton
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  Download as DownloadIcon,
   FileDownload as FileDownloadIcon,
   CloudDownload as CloudDownloadIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
+import { apiService } from '@/lib/api';
+import { API_CONSTANTS, JWT_STORAGE_KEY } from '@/lib/constants';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -37,9 +38,27 @@ interface ExportConfig {
   date_fin: string;
 }
 
+// Statuts disponibles (depuis l'enum StatutPlainte du backend)
+const STATUTS_PLAINTES = [
+  { value: '', label: 'Toutes les plaintes' },
+  { value: 'RECU', label: 'Reçues (Nouvelles)' },
+  { value: 'EN_COURS', label: 'En cours de traitement' },
+  { value: 'TRAITE', label: 'Traitées' },
+  { value: 'CLOTURE', label: 'Clôturées' }
+];
+
+interface ServiceOption {
+  id: number;
+  nom: string;
+  description?: string;
+  actif?: boolean;
+}
+
 export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
   const [loading, setLoading] = useState(false);
+  const [loadingServices, setLoadingServices] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [services, setServices] = useState<ServiceOption[]>([]);
   
   const [exportConfig, setExportConfig] = useState<ExportConfig>({
     format: 'csv',
@@ -49,26 +68,47 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
     date_fin: ''
   });
 
-  // Définir les dates par défaut (1 mois en arrière jusqu'à aujourd'hui)
-  React.useEffect(() => {
-    const today = new Date();
-    const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
-    
-    setExportConfig(prev => ({
-      ...prev,
-      date_debut: oneMonthAgo.toISOString().split('T')[0],
-      date_fin: today.toISOString().split('T')[0]
-    }));
-  }, []);
+  // Charger les services depuis l'API
+  const loadServices = async () => {
+    try {
+      setLoadingServices(true);
+      const response = await apiService.getServicesForComplaint();
+      if (response.success && response.data) {
+        setServices(response.data);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des services:', error);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  // Charger les services et définir les dates par défaut à l'ouverture
+  useEffect(() => {
+    if (isOpen) {
+      loadServices();
+      
+      // Définir les dates par défaut (1 mois en arrière jusqu'à aujourd'hui)
+      const today = new Date();
+      const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+      
+      setExportConfig(prev => ({
+        ...prev,
+        date_debut: oneMonthAgo.toISOString().split('T')[0],
+        date_fin: today.toISOString().split('T')[0]
+      }));
+    }
+  }, [isOpen]);
 
   const handleExport = async () => {
     try {
       setLoading(true);
       setMessage(null);
       
-      const params: any = { format: exportConfig.format };
+      // Construire les paramètres selon ce que le backend attend
+      const params: Record<string, string> = { format: exportConfig.format };
       if (exportConfig.statut) params.statut = exportConfig.statut;
-      if (exportConfig.service) params.service = exportConfig.service;
+      if (exportConfig.service) params.service_id = exportConfig.service; // Backend attend service_id
       if (exportConfig.date_debut) params.date_debut = exportConfig.date_debut;
       if (exportConfig.date_fin) params.date_fin = exportConfig.date_fin;
       
@@ -81,12 +121,16 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
       });
       
       const query = searchParams.toString();
-      const url = `http://localhost:8000/api/v1/plaintes/export${query ? `?${query}` : ''}`;
+      const url = `${API_CONSTANTS.apiUrlBase}/plaintes/export${query ? `?${query}` : ''}`;
+      
+      // Récupérer le token d'authentification
+      const token = localStorage.getItem(JWT_STORAGE_KEY);
       
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       });
       
@@ -208,17 +252,17 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
                   format: e.target.value as 'csv' | 'json' | 'xlsx' 
                 }))}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
+                  borderRadius: 3,
+                  background: '#fafbfc',
+                  '& .MuiOutlinedInput-notchedOutline': {
                     border: '2px solid #e5e7eb',
-                    background: '#fafbfc',
-                    '&:hover': {
-                      borderColor: '#4f8ff7'
-                    },
-                    '&.Mui-focused': {
-                      borderColor: '#4f8ff7',
-                      boxShadow: '0 0 0 3px rgba(79, 143, 247, 0.1)'
-                    }
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#4f8ff7'
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#4f8ff7',
+                    borderWidth: '2px'
                   }
                 }}
               >
@@ -246,60 +290,67 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
               <Select
                 value={exportConfig.statut}
                 onChange={(e) => setExportConfig(prev => ({ ...prev, statut: e.target.value }))}
+                displayEmpty
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
+                  borderRadius: 3,
+                  background: '#fafbfc',
+                  '& .MuiOutlinedInput-notchedOutline': {
                     border: '2px solid #e5e7eb',
-                    background: '#fafbfc',
-                    '&:hover': {
-                      borderColor: '#4f8ff7'
-                    },
-                    '&.Mui-focused': {
-                      borderColor: '#4f8ff7',
-                      boxShadow: '0 0 0 3px rgba(79, 143, 247, 0.1)'
-                    }
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#4f8ff7'
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#4f8ff7',
+                    borderWidth: '2px'
                   }
                 }}
               >
-                <MenuItem value="">Toutes les plaintes</MenuItem>
-                <MenuItem value="pending">En attente</MenuItem>
-                <MenuItem value="processing">En cours de traitement</MenuItem>
-                <MenuItem value="resolved">Résolues</MenuItem>
-                <MenuItem value="closed">Fermées</MenuItem>
+                {STATUTS_PLAINTES.map((statut) => (
+                  <MenuItem key={statut.value} value={statut.value}>
+                    {statut.label}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Box>
 
-          {/* Catégorie */}
+          {/* Catégorie / Service */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151', mb: 1 }}>
               Catégorie
             </Typography>
             <FormControl fullWidth>
-              <Select
-                value={exportConfig.service}
-                onChange={(e) => setExportConfig(prev => ({ ...prev, service: e.target.value }))}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
+              {loadingServices ? (
+                <Skeleton variant="rounded" height={56} sx={{ borderRadius: 3 }} />
+              ) : (
+                <Select
+                  value={exportConfig.service}
+                  onChange={(e) => setExportConfig(prev => ({ ...prev, service: e.target.value }))}
+                  displayEmpty
+                  sx={{
                     borderRadius: 3,
-                    border: '2px solid #e5e7eb',
                     background: '#fafbfc',
-                    '&:hover': {
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      border: '2px solid #e5e7eb',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: '#4f8ff7'
                     },
-                    '&.Mui-focused': {
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                       borderColor: '#4f8ff7',
-                      boxShadow: '0 0 0 3px rgba(79, 143, 247, 0.1)'
+                      borderWidth: '2px'
                     }
-                  }
-                }}
-              >
-                <MenuItem value="">Toutes les catégories</MenuItem>
-                <MenuItem value="service">Service client</MenuItem>
-                <MenuItem value="technique">Problème technique</MenuItem>
-                <MenuItem value="billing">Facturation</MenuItem>
-                <MenuItem value="other">Autre</MenuItem>
-              </Select>
+                  }}
+                >
+                  <MenuItem value="">Toutes les catégories</MenuItem>
+                  {services.map((service) => (
+                    <MenuItem key={service.id} value={service.id.toString()}>
+                      {service.nom}
+                    </MenuItem>
+                  ))}
+                </Select>
+              )}
             </FormControl>
           </Box>
 
@@ -318,17 +369,19 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
                   value={exportConfig.date_debut}
                   onChange={(e) => setExportConfig(prev => ({ ...prev, date_debut: e.target.value }))}
                   fullWidth
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
+                  InputProps={{
+                    sx: {
                       borderRadius: 3,
-                      border: '2px solid #e5e7eb',
                       background: '#fafbfc',
-                      '&:hover': {
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        border: '2px solid #e5e7eb',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
                         borderColor: '#4f8ff7'
                       },
-                      '&.Mui-focused': {
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                         borderColor: '#4f8ff7',
-                        boxShadow: '0 0 0 3px rgba(79, 143, 247, 0.1)'
+                        borderWidth: '2px'
                       }
                     }
                   }}
@@ -343,17 +396,19 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
                   value={exportConfig.date_fin}
                   onChange={(e) => setExportConfig(prev => ({ ...prev, date_fin: e.target.value }))}
                   fullWidth
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
+                  InputProps={{
+                    sx: {
                       borderRadius: 3,
-                      border: '2px solid #e5e7eb',
                       background: '#fafbfc',
-                      '&:hover': {
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        border: '2px solid #e5e7eb',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
                         borderColor: '#4f8ff7'
                       },
-                      '&.Mui-focused': {
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                         borderColor: '#4f8ff7',
-                        boxShadow: '0 0 0 3px rgba(79, 143, 247, 0.1)'
+                        borderWidth: '2px'
                       }
                     }
                   }}

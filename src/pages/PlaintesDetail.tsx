@@ -467,7 +467,7 @@ const PlaintesDetail: React.FC = () => {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: linear-gradient(135deg, #51cf66, #40c057);
+      background: #059669;
       color: white;
       padding: 15px 20px;
       border-radius: 12px;
@@ -508,15 +508,15 @@ const PlaintesDetail: React.FC = () => {
       case 'URGENT':
       case 'ELEVE':
       case 'HAUTE':
-        return 'linear-gradient(135deg, #ef4444, #dc2626)';
+        return '#dc2626';
       case 'MOYEN':
       case 'MOYENNE':
-        return 'linear-gradient(135deg, #f59e0b, #d97706)';
+        return '#d97706';
       case 'BAS':
       case 'BASSE':
-        return 'linear-gradient(135deg, #10b981, #059669)';
+        return '#059669';
       default:
-        return 'linear-gradient(135deg, #64748b, #475569)';
+        return '#86868b';
     }
   };
 
@@ -524,15 +524,15 @@ const PlaintesDetail: React.FC = () => {
     const s = status?.toUpperCase();
     switch (s) {
       case 'TRAITE':
-        return 'linear-gradient(135deg, #10b981, #059669)';
+        return '#059669';
       case 'EN_COURS':
-        return 'linear-gradient(135deg, #3b82f6, #2563eb)';
+        return '#1d1d1f';
       case 'CLOTURE':
-        return 'linear-gradient(135deg, #64748b, #475569)';
+        return '#86868b';
       case 'RECU':
-        return 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+        return '#0d9488';
       default:
-        return 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+        return '#0d9488';
     }
   };
 
@@ -544,7 +544,7 @@ const PlaintesDetail: React.FC = () => {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: '#f5f5f7',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -571,7 +571,7 @@ const PlaintesDetail: React.FC = () => {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: '#f5f5f7',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -608,16 +608,15 @@ const PlaintesDetail: React.FC = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: '#f5f5f7',
       padding: '20px'
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{
-          background: 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(20px)',
+          background: '#ffffff',
           borderRadius: '16px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
           border: '1px solid rgba(255,255,255,0.3)',
           padding: '24px',
           marginBottom: '32px'
@@ -629,7 +628,7 @@ const PlaintesDetail: React.FC = () => {
                 style={{
                   width: '48px',
                   height: '48px',
-                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  background: '#1d1d1f',
                   borderRadius: '12px',
                   border: 'none',
                   cursor: 'pointer',
@@ -721,10 +720,9 @@ const PlaintesDetail: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Informations de base */}
             <div style={{
-              background: 'rgba(255,255,255,0.95)',
-              backdropFilter: 'blur(20px)',
+              background: '#ffffff',
               borderRadius: '16px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
               border: '1px solid rgba(255,255,255,0.3)',
               padding: '32px'
             }}>
@@ -803,7 +801,7 @@ const PlaintesDetail: React.FC = () => {
               </div>
               
               <div style={{
-                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                background: '#ffffff',
                 padding: '24px',
                 borderRadius: '12px',
                 borderLeft: '4px solid #3b82f6'
@@ -827,10 +825,9 @@ const PlaintesDetail: React.FC = () => {
 
             {/* Progression du statut */}
             <div style={{
-              background: 'rgba(255,255,255,0.95)',
-              backdropFilter: 'blur(20px)',
+              background: '#ffffff',
               borderRadius: '16px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
               border: '1px solid rgba(255,255,255,0.3)',
               padding: '32px'
             }}>
@@ -879,7 +876,7 @@ const PlaintesDetail: React.FC = () => {
                       left: '48px',
                       right: '48px',
                       height: '4px',
-                      background: 'linear-gradient(90deg, #3b82f6, #3b82f6)',
+                      background: '#0d9488',
                       borderRadius: '2px',
                       transform: 'translateY(-50%)'
                     }} />
@@ -895,7 +892,7 @@ const PlaintesDetail: React.FC = () => {
                           fontSize: '18px',
                           fontWeight: 600,
                           background: index <= currentStep 
-                            ? 'linear-gradient(135deg, #3b82f6, #2563eb)' 
+                            ? '#1d1d1f' 
                             : '#f1f5f9',
                           color: index <= currentStep ? 'white' : '#9ca3af',
                           border: index <= currentStep ? 'none' : '2px solid #e5e7eb',
@@ -1045,7 +1042,7 @@ const PlaintesDetail: React.FC = () => {
                     style={{
                       width: '100%',
                       padding: '12px 16px',
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      background: '#059669',
                       color: 'white',
                       borderRadius: '8px',
                       fontSize: '14px',
@@ -1058,8 +1055,8 @@ const PlaintesDetail: React.FC = () => {
                       justifyContent: 'center',
                       gap: '8px'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #059669, #047857)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #10b981, #059669)'}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#047857'}
+                    onMouseOut={(e) => e.currentTarget.style.background = '#059669'}
                   >
                     <CheckIcon style={{ fontSize: '16px' }} />
                     Sauvegarder
@@ -1068,12 +1065,105 @@ const PlaintesDetail: React.FC = () => {
               )}
             </div>
 
-            {/* Réponse IA */}
+            {/* Réponse IA Générée - Affichage automatique */}
+            {aiResponse && (
+              <div style={{
+                background: '#f8fafc',
+                borderRadius: '16px',
+                boxShadow: '0 20px 40px rgba(139, 92, 246, 0.15)',
+                border: '2px solid rgba(139, 92, 246, 0.3)',
+                padding: '32px',
+                marginBottom: '24px'
+              }}>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: 700,
+                  color: '#7c3aed',
+                  margin: '0 0 20px 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <SparklesIcon style={{ fontSize: '24px', color: '#8b5cf6' }} />
+                  🤖 Réponse Juridique IA (Générée automatiquement)
+                </h2>
+                
+                <div style={{
+                  background: 'white',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  border: '1px solid rgba(139, 92, 246, 0.2)'
+                }}>
+                  <pre style={{
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'inherit',
+                    fontSize: '14px',
+                    lineHeight: '1.7',
+                    color: '#374151',
+                    margin: 0
+                  }}>
+                    {aiResponse}
+                  </pre>
+                </div>
+                
+                <div style={{ 
+                  marginTop: '16px', 
+                  display: 'flex', 
+                  gap: '12px',
+                  justifyContent: 'flex-end'
+                }}>
+                  <button
+                    onClick={() => {
+                      setManualResponse(aiResponse);
+                      setShowResponseEditor(true);
+                    }}
+                    style={{
+                      background: '#1d1d1f',
+                      color: 'white',
+                      padding: '10px 20px',
+                      borderRadius: '10px',
+                      fontWeight: 600,
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <PencilIcon style={{ fontSize: '16px' }} />
+                    Modifier cette réponse
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(aiResponse);
+                      showNotification('Réponse copiée dans le presse-papier ✅');
+                    }}
+                    style={{
+                      background: '#059669',
+                      color: 'white',
+                      padding: '10px 20px',
+                      borderRadius: '10px',
+                      fontWeight: 600,
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    📋 Copier
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Rédaction de réponse */}
             <div style={{
-              background: 'rgba(255,255,255,0.95)',
-              backdropFilter: 'blur(20px)',
+              background: '#ffffff',
               borderRadius: '16px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
               border: '1px solid rgba(255,255,255,0.3)',
               padding: '32px'
             }}>
@@ -1087,7 +1177,7 @@ const PlaintesDetail: React.FC = () => {
                 gap: '12px'
               }}>
                 <SparklesIcon style={{ fontSize: '24px', color: '#3b82f6' }} />
-                Rédaction de réponse
+                {aiResponse ? 'Rédiger une autre réponse' : 'Rédaction de réponse'}
               </h2>
               
               <div style={{
@@ -1096,7 +1186,10 @@ const PlaintesDetail: React.FC = () => {
                 padding: '24px'
               }}>
                 <p style={{ marginBottom: '16px', color: '#475569' }}>
-                  Rédigez une réponse personnalisée ou utilisez l'IA pour générer une réponse basée sur les meilleures pratiques.
+                  {aiResponse 
+                    ? 'Vous pouvez modifier la réponse IA ci-dessus ou rédiger une réponse personnalisée.'
+                    : 'Rédigez une réponse personnalisée ou utilisez l\'IA pour générer une réponse basée sur les meilleures pratiques.'
+                  }
                 </p>
                 
                 {!showResponseEditor ? (
@@ -1105,7 +1198,7 @@ const PlaintesDetail: React.FC = () => {
                       onClick={() => setShowResponseEditor(true)}
                       style={{
                         width: '100%',
-                        background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                        background: '#1d1d1f',
                         color: 'white',
                         padding: '12px 24px',
                         borderRadius: '12px',
@@ -1118,8 +1211,8 @@ const PlaintesDetail: React.FC = () => {
                         justifyContent: 'center',
                         gap: '8px'
                       }}
-                      onMouseOver={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #2563eb, #1d4ed8)'}
-                      onMouseOut={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)'}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#0f172a'}
+                      onMouseOut={(e) => e.currentTarget.style.background = '#1d1d1f'}
                     >
                       <PencilIcon style={{ fontSize: '20px' }} />
                       Rédiger une réponse manuelle
@@ -1130,7 +1223,7 @@ const PlaintesDetail: React.FC = () => {
                       disabled={generatingResponse}
                       style={{
                         width: '100%',
-                        background: generatingResponse ? '#9ca3af' : 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                        background: generatingResponse ? '#9ca3af' : '#0d9488',
                         color: 'white',
                         padding: '12px 24px',
                         borderRadius: '12px',
@@ -1145,10 +1238,10 @@ const PlaintesDetail: React.FC = () => {
                         gap: '8px'
                       }}
                       onMouseOver={(e) => {
-                        if (!generatingResponse) e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed, #6d28d9)';
+                        if (!generatingResponse) e.currentTarget.style.background = '#0f766e';
                       }}
                       onMouseOut={(e) => {
-                        if (!generatingResponse) e.currentTarget.style.background = 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+                        if (!generatingResponse) e.currentTarget.style.background = '#0d9488';
                       }}
                     >
                       {generatingResponse ? (
@@ -1195,7 +1288,7 @@ const PlaintesDetail: React.FC = () => {
                         onClick={saveManualResponse}
                         style={{
                           flex: 1,
-                          background: 'linear-gradient(135deg, #10b981, #059669)',
+                          background: '#059669',
                           color: 'white',
                           padding: '8px 16px',
                           borderRadius: '12px',
@@ -1208,8 +1301,8 @@ const PlaintesDetail: React.FC = () => {
                           justifyContent: 'center',
                           gap: '8px'
                         }}
-                        onMouseOver={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #059669, #047857)'}
-                        onMouseOut={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #10b981, #059669)'}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#047857'}
+                        onMouseOut={(e) => e.currentTarget.style.background = '#059669'}
                       >
                         <CheckIcon style={{ fontSize: '16px' }} />
                         Sauvegarder
@@ -1219,7 +1312,7 @@ const PlaintesDetail: React.FC = () => {
                         onClick={() => setShowResponseEditor(false)}
                         style={{
                           flex: 1,
-                          background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
+                          background: '#ffffff',
                           color: '#475569',
                           padding: '8px 16px',
                           borderRadius: '12px',
@@ -1232,8 +1325,8 @@ const PlaintesDetail: React.FC = () => {
                           justifyContent: 'center',
                           gap: '8px'
                         }}
-                        onMouseOver={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #e2e8f0, #cbd5e1)'}
-                        onMouseOut={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #f1f5f9, #e2e8f0)'}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#f5f5f7'}
+                        onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
                       >
                         <XMarkIcon style={{ fontSize: '16px' }} />
                         Annuler
@@ -1249,10 +1342,9 @@ const PlaintesDetail: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Informations du patient */}
             <div style={{
-              background: 'rgba(255,255,255,0.95)',
-              backdropFilter: 'blur(20px)',
+              background: '#ffffff',
               borderRadius: '16px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
               border: '1px solid rgba(255,255,255,0.3)',
               padding: '24px'
             }}>
@@ -1431,7 +1523,7 @@ const PlaintesDetail: React.FC = () => {
                       style={{
                         flex: 1,
                         padding: '8px 12px',
-                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        background: '#059669',
                         color: 'white',
                         borderRadius: '8px',
                         fontSize: '14px',
@@ -1445,12 +1537,12 @@ const PlaintesDetail: React.FC = () => {
                         gap: '8px'
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.style.background = 'linear-gradient(135deg, #059669, #047857)';
+                        e.currentTarget.style.background = '#047857';
                         e.currentTarget.style.transform = 'translateY(-1px)';
                         e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                        e.currentTarget.style.background = '#059669';
                         e.currentTarget.style.transform = 'translateY(0px)';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
@@ -1463,7 +1555,7 @@ const PlaintesDetail: React.FC = () => {
                       style={{
                         flex: 1,
                         padding: '8px 12px',
-                        background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
+                        background: '#ffffff',
                         color: '#475569',
                         borderRadius: '8px',
                         fontSize: '14px',
@@ -1477,12 +1569,12 @@ const PlaintesDetail: React.FC = () => {
                         gap: '8px'
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.style.background = 'linear-gradient(135deg, #e2e8f0, #cbd5e1)';
+                        e.currentTarget.style.background = '#f5f5f7';
                         e.currentTarget.style.transform = 'translateY(-1px)';
                         e.currentTarget.style.boxShadow = '0 4px 12px rgba(148, 163, 184, 0.3)';
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.background = 'linear-gradient(135deg, #f1f5f9, #e2e8f0)';
+                        e.currentTarget.style.background = '#ffffff';
                         e.currentTarget.style.transform = 'translateY(0px)';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
@@ -1497,10 +1589,9 @@ const PlaintesDetail: React.FC = () => {
 
             {/* Documents */}
             <div style={{
-              background: 'rgba(255,255,255,0.95)',
-              backdropFilter: 'blur(20px)',
+              background: '#ffffff',
               borderRadius: '16px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
               border: '1px solid rgba(255,255,255,0.3)',
               padding: '32px'
             }}>
@@ -1538,7 +1629,7 @@ const PlaintesDetail: React.FC = () => {
                       justifyContent: 'space-between',
                       gap: '16px',
                       padding: '16px',
-                      background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)',
+                      background: 'rgba(5, 150, 105, 0.08)',
                       borderRadius: '12px',
                       border: '1px solid #a7f3d0',
                       cursor: 'pointer',
@@ -1850,7 +1941,7 @@ const PlaintesDetail: React.FC = () => {
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
                         background: currentPriority === 'URGENT' 
-                          ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
+                          ? '#dc2626' 
                           : '#f1f5f9',
                         color: currentPriority === 'URGENT' ? 'white' : '#6b7280',
                         transform: currentPriority === 'URGENT' ? 'scale(1.05)' : 'scale(1)',
@@ -1876,7 +1967,7 @@ const PlaintesDetail: React.FC = () => {
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
                         background: currentPriority === 'MOYEN' 
-                          ? 'linear-gradient(135deg, #f59e0b, #d97706)' 
+                          ? '#d97706' 
                           : '#f1f5f9',
                         color: currentPriority === 'MOYEN' ? 'white' : '#6b7280',
                         transform: currentPriority === 'MOYEN' ? 'scale(1.05)' : 'scale(1)',
@@ -1902,7 +1993,7 @@ const PlaintesDetail: React.FC = () => {
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
                         background: currentPriority === 'BAS' 
-                          ? 'linear-gradient(135deg, #10b981, #059669)' 
+                          ? '#059669' 
                           : '#f1f5f9',
                         color: currentPriority === 'BAS' ? 'white' : '#6b7280',
                         transform: currentPriority === 'BAS' ? 'scale(1.05)' : 'scale(1)',
@@ -1926,7 +2017,7 @@ const PlaintesDetail: React.FC = () => {
                     style={{
                       flex: 1,
                       padding: '12px 16px',
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      background: '#059669',
                       color: 'white',
                       borderRadius: '12px',
                       fontWeight: 600,
@@ -1938,12 +2029,12 @@ const PlaintesDetail: React.FC = () => {
                       justifyContent: 'center'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #059669, #047857)';
+                      e.currentTarget.style.background = '#047857';
                       e.currentTarget.style.transform = 'translateY(-1px)';
                       e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                      e.currentTarget.style.background = '#059669';
                       e.currentTarget.style.transform = 'translateY(0px)';
                       e.currentTarget.style.boxShadow = 'none';
                     }}
@@ -1956,7 +2047,7 @@ const PlaintesDetail: React.FC = () => {
                     style={{
                       flex: 1,
                       padding: '12px 16px',
-                      background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
+                      background: '#ffffff',
                       color: '#475569',
                       borderRadius: '12px',
                       fontWeight: 600,
@@ -1968,12 +2059,12 @@ const PlaintesDetail: React.FC = () => {
                       justifyContent: 'center'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #e2e8f0, #cbd5e1)';
+                      e.currentTarget.style.background = '#f5f5f7';
                       e.currentTarget.style.transform = 'translateY(-1px)';
                       e.currentTarget.style.boxShadow = '0 4px 12px rgba(148, 163, 184, 0.3)';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #f1f5f9, #e2e8f0)';
+                      e.currentTarget.style.background = '#ffffff';
                       e.currentTarget.style.transform = 'translateY(0px)';
                       e.currentTarget.style.boxShadow = 'none';
                     }}

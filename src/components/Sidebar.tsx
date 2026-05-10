@@ -33,13 +33,13 @@ const navigationItems = [
     name: 'Vue d\'Ensemble',
     href: '/dashboard-unified',
     icon: ChartBarIcon,
-    badge: 'NEW'
+    badge: null
   },
   {
     name: 'Gestionnaire de Plaintes',
     href: '/plaintes-dashboard',
     icon: ClipboardDocumentListIcon,
-    badge: 'ACTIF'
+    badge: null
   },
   {
     name: 'Création & Saisie',
@@ -93,173 +93,175 @@ export default function Sidebar() {
   return (
     <Box
       sx={{
-        width: 320,
+        width: 232,
         height: '100vh',
         position: 'fixed',
         top: 0,
         left: 0,
         zIndex: 1200,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        borderRight: '1px solid rgba(226, 232, 240, 0.5)',
+        backgroundColor: '#ffffff',
+        borderRight: '1px solid #ebebef',
         display: 'flex',
         flexDirection: 'column',
         overflowY: 'auto',
-        p: 3
+        px: 1.5,
+        py: 2
       }}
     >
-      {/* Logo - Style Login */}
+      {/* Logo */}
       <Box
         onClick={() => navigate('/healthcare-ai')}
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 3,
-          mb: 4,
+          gap: 1.25,
+          mb: 3,
+          px: 1,
+          py: 0.5,
           cursor: 'pointer',
-          transition: 'all 0.3s',
-          '&:hover': { transform: 'scale(1.02)' }
+          borderRadius: 1.5,
+          transition: 'background 0.15s ease',
+          '&:hover': { bgcolor: '#f5f5f7' }
         }}
       >
-        <Avatar
+        <Box
           sx={{
-            width: 64,
-            height: 64,
-            background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
-            boxShadow: '0 25px 50px -12px rgba(59, 130, 246, 0.4)',
+            width: 32,
+            height: 32,
+            background: '#ffffff',
+            border: '1px solid #ebebef',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)'
           }}
         >
-          <SecurityIcon sx={{ fontSize: 32, color: 'white' }} />
-        </Avatar>
+          <SecurityIcon sx={{ fontSize: 16, color: '#0d9488' }} />
+        </Box>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography
-            variant="h6"
             sx={{
-              fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #1e293b, #1d4ed8, #0d9488)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontSize: { xs: '1rem', lg: '1.25rem' },
+              fontWeight: 700,
+              color: '#1d1d1f',
+              fontSize: '0.875rem',
+              lineHeight: 1.2,
+              letterSpacing: '-0.01em',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
             }}
           >
-            HealthCare AI
+            Pulse 360
           </Typography>
           <Typography
-            variant="body2"
             sx={{
-              color: '#64748b',
+              color: '#86868b',
               fontWeight: 500,
-              fontSize: { xs: '0.875rem', lg: '1rem' },
+              fontSize: '0.7rem',
+              letterSpacing: '0.02em',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
             }}
           >
-            Gestion Plaintes
+            Gestion plaintes
           </Typography>
         </Box>
       </Box>
-      
+
       {/* Navigation */}
       <List sx={{ flex: 1, py: 0 }}>
         {navigationItems.map((item) => {
           const isActive = location.pathname === item.href
           const Icon = item.icon
-          
-          // Badge dynamique pour "Création & Saisie"
+
           let badge: string | number | null = item.badge
           let isNotificationBadge = false
-          
+
           if (item.name === 'Création & Saisie') {
             badge = totalBadgeCount > 0 ? totalBadgeCount : null
             isNotificationBadge = totalBadgeCount > 0
           }
-          
+
           return (
-            <ListItem key={item.name} disablePadding sx={{ mb: 1 }}>
+            <ListItem key={item.name} disablePadding sx={{ mb: 0.25 }}>
               <ListItemButton
                 onClick={() => navigate(item.href)}
                 sx={{
-                  borderRadius: 2,
-                  p: 2,
-                  transition: 'all 0.3s',
+                  borderRadius: 1.5,
+                  px: 1.25,
+                  py: 0.875,
+                  minHeight: 0,
+                  transition: 'all 0.12s ease',
                   ...(isActive ? {
-                    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-                    color: 'white',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)'
-                    }
+                    backgroundColor: '#1d1d1f',
+                    color: '#ffffff',
+                    '&:hover': { backgroundColor: '#1d1d1f' }
                   } : {
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }
+                    color: '#86868b',
+                    '&:hover': { backgroundColor: '#f5f5f7', color: '#1d1d1f' }
                   })
                 }}
               >
                 <ListItemIcon
                   sx={{
-                    minWidth: 40,
-                    ...(isActive ? {
-                      color: 'white'
-                    } : {
-                      color: '#3b82f6'
-                    })
+                    minWidth: 28,
+                    color: isActive ? '#5eead4' : '#86868b'
                   }}
                 >
-                  <Icon />
+                  <Icon sx={{ fontSize: 17 }} />
                 </ListItemIcon>
                 <ListItemText
                   primary={item.name}
                   sx={{
+                    m: 0,
                     '& .MuiListItemText-primary': {
-                      fontWeight: 600,
-                      fontSize: { xs: '0.875rem', lg: '1rem' }
+                      fontWeight: 500,
+                      fontSize: '0.8125rem',
+                      letterSpacing: '-0.005em',
+                      color: 'inherit'
                     }
                   }}
                 />
                 {badge && (
                   isNotificationBadge ? (
-                    // Badge style Instagram pour les notifications de plaintes
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        minWidth: '24px',
-                        height: '24px',
-                        borderRadius: '12px',
-                        backgroundColor: '#ef4444', // Rouge vif Instagram
-                        color: 'white',
-                        fontWeight: 'bold',
-                        fontSize: '0.75rem',
-                        padding: '0 6px',
-                        boxShadow: '0 2px 8px rgba(239, 68, 68, 0.5)',
+                        minWidth: 18,
+                        height: 18,
+                        borderRadius: '999px',
+                        backgroundColor: '#dc2626',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        fontSize: '0.65rem',
+                        padding: '0 5px',
                         animation: pendingTasks.length > 0 ? 'pulse 2s infinite' : 'none',
                         '@keyframes pulse': {
-                          '0%': { transform: 'scale(1)', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.5)' },
-                          '50%': { transform: 'scale(1.1)', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.7)' },
-                          '100%': { transform: 'scale(1)', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.5)' },
+                          '0%': { transform: 'scale(1)' },
+                          '50%': { transform: 'scale(1.1)' },
+                          '100%': { transform: 'scale(1)' },
                         },
                       }}
                     >
                       {badge}
                     </Box>
                   ) : (
-                    // Badge standard pour les autres éléments de navigation
                     <Chip
                       label={badge}
                       size="small"
                       sx={{
-                        backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : '#3b82f6',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        fontSize: '0.75rem'
+                        height: 17,
+                        backgroundColor: isActive ? 'rgba(255, 255, 255, 0.14)' : '#f5f5f7',
+                        color: isActive ? '#ffffff' : '#86868b',
+                        fontWeight: 600,
+                        fontSize: '0.625rem',
+                        letterSpacing: '0.04em',
+                        '& .MuiChip-label': { px: 0.75 }
                       }}
                     />
                   )
@@ -268,56 +270,54 @@ export default function Sidebar() {
             </ListItem>
           )
         })}
-        
-        {/* Bouton de déconnexion */}
-        <ListItem disablePadding sx={{ mb: 1 }}>
+      </List>
+
+      {/* Logout en bas, séparé */}
+      <Box sx={{ borderTop: '1px solid #ebebef', pt: 1, mt: 1 }}>
+        <ListItem disablePadding>
           <ListItemButton
             onClick={handleLogout}
             sx={{
-              borderRadius: 2,
-              p: 2,
-              transition: 'all 0.3s',
-              '&:hover': {
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }
+              borderRadius: 1.5,
+              px: 1.25,
+              py: 0.875,
+              minHeight: 0,
+              color: '#86868b',
+              transition: 'all 0.12s ease',
+              '&:hover': { backgroundColor: '#f5f5f7', color: '#1d1d1f' }
             }}
           >
-            <ListItemIcon
-              sx={{
-                minWidth: 40,
-                color: '#3b82f6'
-              }}
-            >
-              <LogoutIcon />
+            <ListItemIcon sx={{ minWidth: 28, color: '#86868b' }}>
+              <LogoutIcon sx={{ fontSize: 17 }} />
             </ListItemIcon>
             <ListItemText
               primary="Déconnexion"
               sx={{
+                m: 0,
                 '& .MuiListItemText-primary': {
-                  fontWeight: 600,
-                  fontSize: { xs: '0.875rem', lg: '1rem' }
+                  fontWeight: 500,
+                  fontSize: '0.8125rem',
+                  color: 'inherit'
                 }
               }}
             />
           </ListItemButton>
         </ListItem>
-      </List>
-      
-      {/* Floating Action Button for Mobile */}
+      </Box>
+
+      {/* Floating Action Button - Mobile only */}
       <Fab
-        color="primary"
-        size="medium"
+        size="small"
         onClick={() => navigate('/plaintes/nouvelles')}
         sx={{
           position: 'fixed',
           bottom: 16,
           right: 16,
           display: { xs: 'flex', lg: 'none' },
-          background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-          '&:hover': {
-            background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)'
-          }
+          backgroundColor: '#1d1d1f',
+          color: '#ffffff',
+          boxShadow: '0 4px 12px rgba(16, 24, 40, 0.15)',
+          '&:hover': { backgroundColor: '#0f172a' }
         }}
       >
         <PlusIcon />

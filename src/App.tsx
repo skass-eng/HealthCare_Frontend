@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
-import { store } from '@/store';
+import { store, persistor } from '@/store';
 import Sidebar from '@/components/Sidebar';
 import Dashboard from '@/pages/Dashboard';
 import DashboardUnified from '@/pages/DashboardUnified';
@@ -332,7 +333,7 @@ const AppLayout: React.FC = () => {
           component="main"
           sx={{
             flexGrow: 1,
-            marginLeft: '320px',
+            marginLeft: '232px',
             minHeight: '100vh',
           }}
         >
@@ -377,11 +378,12 @@ const App: React.FC = () => {
   
   return (
     <Provider store={store}>
-      <AppClientProvider>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <Router>
-            <AuthInitializer>
+      <PersistGate loading={null} persistor={persistor}>
+        <AppClientProvider>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Router>
+              <AuthInitializer>
               {/* <WebSocketManager /> */}
               <Routes>
                 <Route path="/login" element={<Login />} />
@@ -395,10 +397,11 @@ const App: React.FC = () => {
                   }
                 />
               </Routes>
-            </AuthInitializer>
-          </Router>
-        </ThemeProvider>
-      </AppClientProvider>
+              </AuthInitializer>
+            </Router>
+          </ThemeProvider>
+        </AppClientProvider>
+      </PersistGate>
     </Provider>
   );
 };

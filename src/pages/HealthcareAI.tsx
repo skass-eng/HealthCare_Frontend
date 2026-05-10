@@ -112,10 +112,10 @@ const HealthcareAI: React.FC = () => {
   const getStatsFromData = () => {
     if (!formattedData) {
       return [
-        { icon: DescriptionIcon, number: '---', label: 'Total Plaintes', color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', isLoading: true, subtitle: undefined },
-        { icon: AnalyticsIcon, number: '---', label: 'En Cours', color: 'linear-gradient(135deg, #14b8a6, #0d9488)', isLoading: true, subtitle: undefined },
-        { icon: SecurityIcon, number: '---', label: 'Résolues', color: 'linear-gradient(135deg, #10b981, #059669)', isLoading: true, subtitle: undefined },
-        { icon: SettingsIcon, number: '---', label: 'Temps Moyen', color: 'linear-gradient(135deg, #64748b, #475569)', isLoading: true, subtitle: undefined }
+        { icon: DescriptionIcon, number: '---', label: 'Total Plaintes', color: '#1d1d1f', isLoading: true, subtitle: undefined },
+        { icon: AnalyticsIcon, number: '---', label: 'En Cours', color: '#0d9488', isLoading: true, subtitle: undefined },
+        { icon: SecurityIcon, number: '---', label: 'Résolues', color: '#059669', isLoading: true, subtitle: undefined },
+        { icon: SettingsIcon, number: '---', label: 'Temps Moyen', color: '#86868b', isLoading: true, subtitle: undefined }
       ];
     }
 
@@ -124,7 +124,7 @@ const HealthcareAI: React.FC = () => {
         icon: DescriptionIcon, 
         number: (formattedData.total || 0).toString(), 
         label: 'Total Plaintes', 
-        color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+        color: '#1d1d1f',
         subtitle: `+${formattedData.nouvelles || 0} nouvelles`,
         isLoading: false
       },
@@ -132,7 +132,7 @@ const HealthcareAI: React.FC = () => {
         icon: AnalyticsIcon, 
         number: (formattedData.inProgress || 0).toString(), 
         label: 'En Cours', 
-        color: 'linear-gradient(135deg, #14b8a6, #0d9488)',
+        color: '#0d9488',
         subtitle: `${formattedData.progressPercentage || 0}% du total`,
         isLoading: false
       },
@@ -140,7 +140,7 @@ const HealthcareAI: React.FC = () => {
         icon: SecurityIcon, 
         number: (formattedData.resolved || 0).toString(), 
         label: 'Résolues', 
-        color: 'linear-gradient(135deg, #10b981, #059669)',
+        color: '#059669',
         subtitle: `${formattedData.resolvedPercentage || 0}% du total`,
         isLoading: false
       },
@@ -148,7 +148,7 @@ const HealthcareAI: React.FC = () => {
         icon: SettingsIcon, 
         number: formattedData.avgResolutionTime || 'N/A', 
         label: 'Temps Moyen', 
-        color: 'linear-gradient(135deg, #64748b, #475569)',
+        color: '#86868b',
         subtitle: 'de résolution',
         isLoading: false
       }
@@ -162,43 +162,43 @@ const HealthcareAI: React.FC = () => {
       icon: DescriptionIcon,
       title: 'Gestion Complète',
       description: 'Interface intuitive pour le suivi et la validation des réclamations avec workflow automatisé',
-      color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-      bgColor: 'linear-gradient(135deg, #eff6ff, #dbeafe)'
+      color: '#1d1d1f',
+      bgColor: '#ffffff'
     },
     {
       icon: LightbulbIcon,
       title: 'IA & Optimisation',
       description: 'Suggestions intelligentes et améliorations continues basées sur l\'analyse des données',
-      color: 'linear-gradient(135deg, #14b8a6, #0d9488)',
-      bgColor: 'linear-gradient(135deg, #f0fdfa, #ccfbf1)'
+      color: '#0d9488',
+      bgColor: '#ffffff'
     },
     {
       icon: Cog8ToothIcon,
       title: 'Administration',
       description: 'Gestion des organisations et services avec configuration avancée',
-      color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-      bgColor: 'linear-gradient(135deg, #faf5ff, #f3e8ff)'
+      color: '#0d9488',
+      bgColor: '#ffffff'
     },
     {
       icon: FlashIcon,
       title: 'Traitement Rapide',
       description: 'Automatisation des processus pour réduire les délais de traitement des plaintes',
-      color: 'linear-gradient(135deg, #64748b, #475569)',
-      bgColor: 'linear-gradient(135deg, #f8fafc, #f1f5f9)'
+      color: '#86868b',
+      bgColor: '#ffffff'
     },
     {
       icon: SecurityIcon,
       title: 'Sécurité Renforcée',
       description: 'Protection des données sensibles avec chiffrement et accès sécurisé',
-      color: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-      bgColor: 'linear-gradient(135deg, #eef2ff, #e0e7ff)'
+      color: '#1d1d1f',
+      bgColor: '#ffffff'
     },
     {
       icon: SettingsIcon,
       title: 'Configuration Flexible',
       description: 'Paramètres personnalisables pour adapter la plateforme à vos besoins spécifiques',
-      color: 'linear-gradient(135deg, #06b6d4, #0891b2)',
-      bgColor: 'linear-gradient(135deg, #ecfeff, #cffafe)'
+      color: '#0d9488',
+      bgColor: '#ffffff'
     }
   ];
 
@@ -207,7 +207,7 @@ const HealthcareAI: React.FC = () => {
       icon: FaceSmileIcon,
       title: 'Analyse de Sentiment',
       description: 'Détection automatique du sentiment (positif, négatif, neutre) dans les plaintes',
-      color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+      color: '#1d1d1f',
       badge: '+ Disponible avec l\'API V2',
       badgeColor: '#3b82f6',
       badgeIcon: SparklesIcon
@@ -216,7 +216,7 @@ const HealthcareAI: React.FC = () => {
       icon: TagIcon,
       title: 'Classification Auto',
       description: 'Catégorisation intelligente des plaintes par type, priorité et service',
-      color: 'linear-gradient(135deg, #14b8a6, #0d9488)',
+      color: '#0d9488',
       badge: 'IA Intégrée',
       badgeColor: '#14b8a6',
       badgeIcon: SettingsIcon
@@ -225,7 +225,7 @@ const HealthcareAI: React.FC = () => {
       icon: LightbulbIcon,
       title: 'Suggestions IA',
       description: 'Recommandations automatiques pour le traitement des plaintes',
-      color: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+      color: '#1d1d1f',
       badge: 'Machine Learning',
       badgeColor: '#6366f1',
       badgeIcon: SparklesIcon
@@ -234,7 +234,7 @@ const HealthcareAI: React.FC = () => {
       icon: AnalyticsIcon,
       title: 'Analytics Prédictive',
       description: 'Prédiction des tendances et identification des risques',
-      color: 'linear-gradient(135deg, #64748b, #475569)',
+      color: '#86868b',
       badge: 'Big Data',
       badgeColor: '#64748b',
       badgeIcon: DescriptionIcon
@@ -243,7 +243,7 @@ const HealthcareAI: React.FC = () => {
       icon: ExclamationTriangleIcon,
       title: 'Détection d\'Anomalies',
       description: 'Identification automatique des patterns inhabituels',
-      color: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+      color: '#0d9488',
       badge: 'Temps Réel',
       badgeColor: '#06b6d4',
       badgeIcon: FlashIcon
@@ -252,7 +252,7 @@ const HealthcareAI: React.FC = () => {
       icon: SummaryIcon,
       title: 'Résumé Auto',
       description: 'Génération automatique de résumés et points clés',
-      color: 'linear-gradient(135deg, #10b981, #059669)',
+      color: '#059669',
       badge: 'NLP Avancé',
       badgeColor: '#10b981',
       badgeIcon: DescriptionIcon
@@ -260,89 +260,76 @@ const HealthcareAI: React.FC = () => {
   ];
 
   const workflowSteps = [
-    { step: '01', title: 'Réception', description: 'Plaintes reçues et enregistrées automatiquement', icon: '📨', color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' },
-    { step: '02', title: 'Analyse', description: 'Évaluation IA et classification des priorités', icon: '🔍', color: 'linear-gradient(135deg, #14b8a6, #0d9488)' },
-    { step: '03', title: 'Traitement', description: 'Résolution et suivi des actions correctives', icon: '⚡', color: 'linear-gradient(135deg, #10b981, #059669)' },
-    { step: '04', title: 'Validation', description: 'Contrôle qualité et clôture des dossiers', icon: '✅', color: 'linear-gradient(135deg, #64748b, #475569)' }
+    { step: '01', title: 'Réception', description: 'Plaintes reçues et enregistrées automatiquement', icon: '📨', color: '#1d1d1f' },
+    { step: '02', title: 'Analyse', description: 'Évaluation IA et classification des priorités', icon: '🔍', color: '#0d9488' },
+    { step: '03', title: 'Traitement', description: 'Résolution et suivi des actions correctives', icon: '⚡', color: '#059669' },
+    { step: '04', title: 'Validation', description: 'Contrôle qualité et clôture des dossiers', icon: '✅', color: '#86868b' }
   ];
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8fafc, #e2e8f0, #f0fdfa)' }}>
-      {/* Header Section */}
-      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-        {/* Background Effects */}
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(20, 184, 166, 0.1), rgba(16, 185, 129, 0.1))',
-            filter: 'blur(3rem)',
-            zIndex: 0
-          }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: '25%',
-            width: '24rem',
-            height: '24rem',
-            background: 'rgba(147, 197, 253, 0.2)',
-            borderRadius: '50%',
-            filter: 'blur(3rem)',
-            animation: 'pulse 2s infinite',
-            zIndex: 0
-          }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: 0,
-            right: '25%',
-            width: '24rem',
-            height: '24rem',
-            background: 'rgba(45, 212, 191, 0.2)',
-            borderRadius: '50%',
-            filter: 'blur(3rem)',
-            animation: 'pulse 2s infinite 1s',
-            zIndex: 0
-          }}
-        />
-
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, py: 8 }}>
+    <Box sx={{ minHeight: '100vh', background: '#f5f5f7' }}>
+      {/* Header Section - hero avec subtle teal wash pour donner de la vie */}
+      <Box sx={{
+        position: 'relative',
+        background: 'radial-gradient(ellipse at top, rgba(94, 234, 212, 0.18), transparent 60%), radial-gradient(ellipse at 80% 0%, rgba(13, 148, 136, 0.10), transparent 50%)',
+        overflow: 'hidden'
+      }}>
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, py: 5 }}>
           {/* Logo et Titre */}
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Avatar
+          <Box sx={{ textAlign: 'center', mb: 5 }}>
+            {/* Pill badge "PLATEFORME IA" pour donner de l'âme */}
+            <Box sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.75,
+              bgcolor: '#ffffff',
+              border: '1px solid #ebebef',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)',
+              borderRadius: '999px',
+              px: 1.5,
+              py: 0.5,
+              mb: 2.5
+            }}>
+              <Box sx={{ width: 6, height: 6, bgcolor: '#10b981', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+              <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#0d9488', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Plateforme IA · Healthcare
+              </Typography>
+            </Box>
+
+            <Box
               sx={{
-                width: 96,
-                height: 96,
-                background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                mb: 4,
-                mx: 'auto'
+                width: 64,
+                height: 64,
+                background: '#ffffff',
+                border: '1px solid #ebebef',
+                borderRadius: '14px',
+                boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+                mb: 3,
+                mx: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              <SecurityIcon sx={{ fontSize: 48, color: 'white' }} />
-            </Avatar>
+              <SecurityIcon sx={{ fontSize: 32, color: '#0d9488' }} />
+            </Box>
             <Typography
               variant="h1"
               sx={{
-                fontSize: { xs: '3rem', md: '5rem', lg: '7rem' },
-                fontWeight: 'bold',
-                background: 'linear-gradient(135deg, #1e293b, #1d4ed8, #0d9488)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                mb: 2
+                fontSize: { xs: '2rem', md: '2.75rem', lg: '3.25rem' },
+                fontWeight: 700,
+                color: '#1d1d1f',
+                letterSpacing: '-0.03em',
+                mb: 1
               }}
             >
-              HealthCare AI
+              HealthCare <Box component="span" sx={{ color: '#0d9488' }}>AI</Box>
             </Typography>
-            <Typography variant="h2" sx={{ fontSize: { xs: '1.5rem', md: '2rem' }, fontWeight: 600, color: '#475569', mb: 2 }}>
-              Gestion Plaintes
+            <Typography sx={{ fontSize: { xs: '1rem', md: '1.125rem' }, fontWeight: 500, color: '#86868b', mb: 1.5, letterSpacing: '-0.005em' }}>
+              Gestion intelligente des plaintes hospitalières
             </Typography>
-            <Typography variant="h6" sx={{ color: '#64748b', maxWidth: '48rem', mx: 'auto', lineHeight: 1.6 }}>
-              Plateforme intelligente de gestion des plaintes médicales avec analyse IA avancée
+            <Typography sx={{ fontSize: '14px', color: '#86868b', maxWidth: '40rem', mx: 'auto', lineHeight: 1.5 }}>
+              Une plateforme IA qui transforme la gestion des plaintes patient en moteur de qualité opérationnelle
             </Typography>
           </Box>
 
@@ -353,7 +340,7 @@ const HealthcareAI: React.FC = () => {
                 Données en temps réel
               </Typography>
               {summary.lastUpdated && (
-                <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+                <Typography variant="body2" sx={{ color: '#86868b' }}>
                   Dernière mise à jour: {new Date(summary.lastUpdated).toLocaleTimeString('fr-FR')}
                 </Typography>
               )}
@@ -367,12 +354,11 @@ const HealthcareAI: React.FC = () => {
                 px: 3,
                 py: 1,
                 color: '#64748b',
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(10px)',
+                backgroundColor: '#ffffff',
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                 '&:hover': {
                   backgroundColor: 'rgba(255, 255, 255, 1)',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                  boxShadow: '0 1px 3px rgba(16, 24, 40, 0.06)'
                 }
               }}
             >
@@ -401,35 +387,47 @@ const HealthcareAI: React.FC = () => {
               <Grid item xs={12} sm={6} md={3} key={index}>
                 <Card
                   sx={{
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: 4,
-                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.4)',
-                    transition: 'all 0.5s',
+                    background: '#ffffff',
+                    borderRadius: 3,
+                    boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+                    border: '1px solid #ebebef',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s ease',
                     '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                      transform: 'translateY(-2px)',
+                      borderColor: '#cbd5e1',
+                      boxShadow: '0 4px 12px rgba(16, 24, 40, 0.08)'
                     }
                   }}
                 >
+                  {/* Accent line top */}
+                  <Box sx={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                    background: stat.color,
+                    opacity: 0.85
+                  }} />
                   <CardContent sx={{ p: 3 }}>
-                    <Avatar
+                    <Box
                       sx={{
-                        width: 64,
-                        height: 64,
-                        background: stat.color,
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                        mb: 2
+                        width: 36,
+                        height: 36,
+                        background: `${stat.color}14`,
+                        border: `1px solid ${stat.color}33`,
+                        borderRadius: '8px',
+                        mb: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}
                     >
                       {stat.isLoading ? (
-                        <CircularProgress size={24} sx={{ color: 'white' }} />
+                        <CircularProgress size={18} sx={{ color: stat.color }} />
                       ) : (
-                        <stat.icon sx={{ fontSize: 32, color: 'white' }} />
+                        <stat.icon sx={{ fontSize: 20, color: stat.color }} />
                       )}
-                    </Avatar>
-                    <Typography variant="h3" sx={{ fontWeight: 'bold', color: '#1e293b', mb: 1 }}>
+                    </Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', color: '#1d1d1f', mb: 1 }}>
                       {stat.isLoading ? (
                         <Skeleton width="60%" />
                       ) : (
@@ -440,7 +438,7 @@ const HealthcareAI: React.FC = () => {
                       {stat.label}
                     </Typography>
                     {stat.subtitle && !stat.isLoading && (
-                      <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mt: 0.5 }}>
+                      <Typography variant="caption" sx={{ color: '#86868b', display: 'block', mt: 0.5 }}>
                         {stat.subtitle}
                       </Typography>
                     )}
@@ -453,17 +451,15 @@ const HealthcareAI: React.FC = () => {
       </Box>
 
       {/* Features Section */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Box sx={{ textAlign: 'center', mb: 8 }}>
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Box sx={{ textAlign: 'center', mb: 5 }}>
           <Typography
             variant="h2"
             sx={{
               fontSize: { xs: '2rem', md: '3rem' },
               fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #1e293b, #1d4ed8, #0d9488)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#1d1d1f',
+              letterSpacing: '-0.02em',
               mb: 3
             }}
           >
@@ -482,8 +478,8 @@ const HealthcareAI: React.FC = () => {
                 sx={{
                   background: feature.bgColor,
                   borderRadius: 4,
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+                  border: '1px solid #ebebef',
                   transition: 'all 0.5s',
                   cursor: 'pointer',
                   height: '100%',
@@ -491,23 +487,27 @@ const HealthcareAI: React.FC = () => {
                   flexDirection: 'column',
                   '&:hover': {
                     transform: 'translateY(-8px)',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                    boxShadow: '0 4px 12px rgba(16, 24, 40, 0.08)'
                   }
                 }}
               >
                 <CardContent sx={{ p: 4, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <Avatar
+                  <Box
                     sx={{
-                      width: 64,
-                      height: 64,
-                      background: feature.color,
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                      mb: 3
+                      width: 40,
+                      height: 40,
+                      background: `${feature.color}14`,
+                      border: `1px solid ${feature.color}33`,
+                      borderRadius: '8px',
+                      mb: 2.5,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}
                   >
-                    <feature.icon sx={{ fontSize: 32, color: 'white' }} />
-                  </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1e293b', mb: 2 }}>
+                    <feature.icon sx={{ fontSize: 22, color: feature.color }} />
+                  </Box>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1d1d1f', mb: 2 }}>
                     {feature.title}
                   </Typography>
                   <Typography variant="body1" sx={{ color: '#64748b', lineHeight: 1.6, flex: 1 }}>
@@ -516,7 +516,7 @@ const HealthcareAI: React.FC = () => {
                   <Typography
                     variant="body2"
                     sx={{
-                      color: '#3b82f6',
+                      color: '#0d9488',
                       fontWeight: 500,
                       mt: 2,
                       opacity: 0,
@@ -534,29 +534,32 @@ const HealthcareAI: React.FC = () => {
       </Container>
 
       {/* Fonctionnalités IA & Analytics Avancées */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Box sx={{ textAlign: 'center', mb: 8 }}>
-          <Avatar
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Box sx={{ textAlign: 'center', mb: 5 }}>
+          <Box
             sx={{
-              width: 80,
-              height: 80,
-              background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              mb: 4,
-              mx: 'auto'
+              width: 56,
+              height: 56,
+              background: '#ffffff',
+              border: '1px solid #ebebef',
+              borderRadius: '12px',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+              mb: 3,
+              mx: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <SparklesIcon sx={{ fontSize: 40, color: 'white' }} />
-          </Avatar>
+            <SparklesIcon sx={{ fontSize: 28, color: '#0d9488' }} />
+          </Box>
           <Typography
             variant="h2"
             sx={{
               fontSize: { xs: '2rem', md: '3rem' },
               fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #1e293b, #1d4ed8, #0d9488)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#1d1d1f',
+              letterSpacing: '-0.02em',
               mb: 3
             }}
           >
@@ -575,31 +578,35 @@ const HealthcareAI: React.FC = () => {
                   background: 'rgba(255, 255, 255, 0.9)',
                   backdropFilter: 'blur(10px)',
                   borderRadius: 4,
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+                  border: '1px solid #ebebef',
                   transition: 'all 0.5s',
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
                   '&:hover': {
                     transform: 'translateY(-8px)',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                    boxShadow: '0 4px 12px rgba(16, 24, 40, 0.08)'
                   }
                 }}
               >
                 <CardContent sx={{ p: 4, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <Avatar
+                  <Box
                     sx={{
-                      width: 64,
-                      height: 64,
-                      background: feature.color,
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                      mb: 3
+                      width: 40,
+                      height: 40,
+                      background: `${feature.color}14`,
+                      border: `1px solid ${feature.color}33`,
+                      borderRadius: '8px',
+                      mb: 2.5,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}
                   >
-                    <feature.icon sx={{ fontSize: 32, color: 'white' }} />
-                  </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1e293b', mb: 2 }}>
+                    <feature.icon sx={{ fontSize: 22, color: feature.color }} />
+                  </Box>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1d1d1f', mb: 2 }}>
                     {feature.title}
                   </Typography>
                   <Typography variant="body1" sx={{ color: '#64748b', lineHeight: 1.6, mb: 3, flex: 1 }}>
@@ -623,17 +630,15 @@ const HealthcareAI: React.FC = () => {
       </Container>
 
       {/* Process Flow Section */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Box sx={{ textAlign: 'center', mb: 8 }}>
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Box sx={{ textAlign: 'center', mb: 5 }}>
           <Typography
             variant="h2"
             sx={{
               fontSize: { xs: '2rem', md: '3rem' },
               fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #1e293b, #1d4ed8, #0d9488)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#1d1d1f',
+              letterSpacing: '-0.02em',
               mb: 3
             }}
           >
@@ -653,7 +658,7 @@ const HealthcareAI: React.FC = () => {
               left: 0,
               right: 0,
               height: 4,
-              background: 'linear-gradient(135deg, #3b82f6, #14b8a6, #10b981)',
+              background: '#0d9488',
               borderRadius: 2,
               display: { xs: 'none', md: 'block' },
               zIndex: 0
@@ -679,26 +684,33 @@ const HealthcareAI: React.FC = () => {
             {workflowSteps.map((step, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
                 <Box sx={{ textAlign: 'center', height: '100%' }}>
-                  <Avatar
+                  <Box
                     sx={{
-                      width: 80,
-                      height: 80,
-                      background: step.color,
-                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                      mb: 3,
+                      width: 56,
+                      height: 56,
+                      background: '#ffffff',
+                      border: '1px solid #ebebef',
+                      borderRadius: '14px',
+                      boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+                      mb: 2.5,
                       mx: 'auto',
-                      fontSize: '2rem'
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.5rem',
+                      position: 'relative',
+                      zIndex: 2
                     }}
                   >
                     {step.icon}
-                  </Avatar>
+                  </Box>
                   <Card
                     sx={{
                       background: 'rgba(255, 255, 255, 0.9)',
                       backdropFilter: 'blur(10px)',
                       borderRadius: 4,
-                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-                      border: '1px solid rgba(255, 255, 255, 0.4)',
+                      boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+                      border: '1px solid #ebebef',
                       height: '100%',
                       display: 'flex',
                       flexDirection: 'column'
@@ -708,7 +720,7 @@ const HealthcareAI: React.FC = () => {
                       <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#64748b', mb: 1 }}>
                         {step.step}
                       </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1e293b', mb: 2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1d1d1f', mb: 2 }}>
                         {step.title}
                       </Typography>
                       <Typography variant="body2" sx={{ color: '#64748b', flex: 1 }}>
@@ -723,55 +735,95 @@ const HealthcareAI: React.FC = () => {
         </Box>
       </Container>
 
-      {/* CTA Section */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
+      {/* CTA Section - dark hero finale (Linear/Stripe pattern) */}
+      <Container maxWidth="lg" sx={{ py: 6 }}>
         <Card
           sx={{
-            background: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(10px)',
+            background: 'linear-gradient(135deg, #0f172a 0%, #1d1d1f 100%)',
             borderRadius: 4,
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            border: '1px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 32px rgba(15, 23, 42, 0.18)',
+            border: '1px solid #1d1d1f',
             p: 6,
-            textAlign: 'center'
+            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden'
           }}
         >
+          {/* Subtle teal glow top-right */}
+          <Box sx={{
+            position: 'absolute',
+            top: -100, right: -100,
+            width: 320, height: 320,
+            background: 'radial-gradient(circle, rgba(94, 234, 212, 0.18), transparent 60%)',
+            pointerEvents: 'none'
+          }} />
+          <Box sx={{
+            position: 'absolute',
+            bottom: -80, left: -80,
+            width: 240, height: 240,
+            background: 'radial-gradient(circle, rgba(13, 148, 136, 0.14), transparent 60%)',
+            pointerEvents: 'none'
+          }} />
+
+          {/* Pill teal */}
+          <Box sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.75,
+            background: 'rgba(94, 234, 212, 0.12)',
+            border: '1px solid rgba(94, 234, 212, 0.25)',
+            borderRadius: '999px',
+            px: 1.5,
+            py: 0.5,
+            mb: 2.5,
+            position: 'relative'
+          }}>
+            <Box sx={{ width: 6, height: 6, bgcolor: '#5eead4', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#5eead4', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              Prêt en 5 minutes
+            </Typography>
+          </Box>
+
           <Typography
             variant="h3"
             sx={{
-              fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #1e293b, #1d4ed8, #0d9488)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              mb: 3
+              fontWeight: 700,
+              color: '#ffffff',
+              letterSpacing: '-0.025em',
+              fontSize: { xs: '1.75rem', md: '2.25rem' },
+              mb: 2,
+              position: 'relative'
             }}
           >
-            Prêt à révolutionner votre gestion des plaintes ?
+            Prêt à révolutionner votre gestion des plaintes&nbsp;?
           </Typography>
-          <Typography variant="h6" sx={{ color: '#64748b', mb: 4, maxWidth: '32rem', mx: 'auto' }}>
-            Rejoignez les établissements de santé qui ont déjà adopté HealthCare AI pour une gestion optimale de leurs plaintes
+          <Typography sx={{ color: 'rgba(255, 255, 255, 0.72)', mb: 4, maxWidth: '36rem', mx: 'auto', fontSize: '0.95rem', lineHeight: 1.55, position: 'relative' }}>
+            Rejoignez les établissements de santé qui ont déjà adopté HealthCare AI pour une gestion optimale de leurs plaintes patient.
           </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="center" sx={{ position: 'relative' }}>
             <Button
               onClick={handleStartNow}
               variant="contained"
               size="large"
               sx={{
-                background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
+                background: '#ffffff',
+                color: '#0f172a',
                 borderRadius: 2,
-                px: 4,
-                py: 1.5,
-                fontWeight: 600,
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+                px: 3.5,
+                py: 1.25,
+                fontWeight: 700,
+                fontSize: '14px',
+                textTransform: 'none',
+                boxShadow: '0 4px 12px rgba(255, 255, 255, 0.15)',
                 '&:hover': {
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                  transform: 'translateY(-2px)'
+                  background: '#f5f5f7',
+                  boxShadow: '0 6px 18px rgba(255, 255, 255, 0.22)',
+                  transform: 'translateY(-1px)'
                 },
-                transition: 'all 0.3s'
+                transition: 'all 0.2s'
               }}
             >
-              Commencer Maintenant
+              Commencer maintenant →
             </Button>
             <Button
               onClick={handleLearnMore}
@@ -779,19 +831,19 @@ const HealthcareAI: React.FC = () => {
               size="large"
               sx={{
                 borderRadius: 2,
-                px: 4,
-                py: 1.5,
+                px: 3.5,
+                py: 1.25,
                 fontWeight: 600,
-                borderColor: '#e2e8f0',
-                color: '#475569',
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(10px)',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+                fontSize: '14px',
+                textTransform: 'none',
+                borderColor: 'rgba(255, 255, 255, 0.18)',
+                color: 'rgba(255, 255, 255, 0.92)',
+                backgroundColor: 'transparent',
                 '&:hover': {
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                  transform: 'translateY(-2px)'
+                  borderColor: 'rgba(255, 255, 255, 0.35)',
+                  background: 'rgba(255, 255, 255, 0.05)'
                 },
-                transition: 'all 0.3s'
+                transition: 'all 0.2s'
               }}
             >
               En savoir plus

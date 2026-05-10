@@ -657,7 +657,7 @@ export default function AmeliorationsPage() {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #ccfbf1 100%)'
+        background: '#f5f5f7'
       }}>
         <Box sx={{ textAlign: 'center' }}>
           <CircularProgress size={60} sx={{ color: 'primary.main', mb: 2 }} />
@@ -672,32 +672,31 @@ export default function AmeliorationsPage() {
   return (
     <Box sx={{ 
       minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #ccfbf1 100%)',
+      background: '#f5f5f7',
       p: 3
     }}>
       <Box sx={{ maxWidth: 1600, mx: 'auto' }}>
         
         {/* Header Section */}
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Box sx={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            width: 64, 
-            height: 64, 
-            background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
-            borderRadius: 4,
-            boxShadow: '0 10px 40px rgba(59, 130, 246, 0.3)',
+          <Box sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 56,
+            height: 56,
+            background: '#ffffff',
+            border: '1px solid #ebebef',
+            borderRadius: '12px',
+            boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
             mb: 2
           }}>
-            <CpuChipIcon sx={{ fontSize: 32, color: 'white' }} />
+            <CpuChipIcon sx={{ fontSize: 28, color: '#0d9488' }} />
           </Box>
           <Typography variant="h4" sx={{ 
             fontWeight: 700, 
-            background: 'linear-gradient(135deg, #1e293b, #3b82f6, #14b8a6)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            color: '#1d1d1f',
+            letterSpacing: '-0.02em',
             mb: 1
           }}>
             IA & Optimisation
@@ -749,60 +748,46 @@ export default function AmeliorationsPage() {
         {/* Stats Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
-            { 
-              icon: <DocumentTextIcon sx={{ fontSize: 28, color: 'white' }} />, 
-              number: summary?.total || 0, 
-              label: 'Total Plaintes', 
-              color: 'linear-gradient(135deg, #64748b, #475569)',
-              subtext: `${summary?.nouvelles || 0} nouvelles`
-            },
-            { 
-              icon: <ClockIcon sx={{ fontSize: 28, color: 'white' }} />, 
-              number: summary?.in_progress || 0, 
-              label: 'En Cours', 
-              color: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-              subtext: 'En traitement'
-            },
-            { 
-              icon: <CheckCircleIcon sx={{ fontSize: 28, color: 'white' }} />, 
-              number: summary?.resolved || 0, 
-              label: 'Résolues', 
-              color: 'linear-gradient(135deg, #10b981, #059669)',
-              subtext: summary?.total ? `${((summary.resolved / summary.total) * 100).toFixed(0)}% du total` : '0%'
-            },
-            { 
-              icon: <BoltIcon sx={{ fontSize: 28, color: 'white' }} />, 
-              number: formatTime(summary?.avg_resolution_time_seconds || 0), 
-              label: 'Temps Moyen', 
-              color: 'linear-gradient(135deg, #f59e0b, #d97706)',
-              subtext: 'Résolution'
-            }
+            { Icon: DocumentTextIcon, number: summary?.total || 0, label: 'Total plaintes', accent: '#1d1d1f', subtext: `${summary?.nouvelles || 0} nouvelles` },
+            { Icon: ClockIcon, number: summary?.in_progress || 0, label: 'En cours', accent: '#0d9488', subtext: 'En traitement' },
+            { Icon: CheckCircleIcon, number: summary?.resolved || 0, label: 'Résolues', accent: '#059669', subtext: summary?.total ? `${((summary.resolved / summary.total) * 100).toFixed(0)}% du total` : '0%' },
+            { Icon: BoltIcon, number: formatTime(summary?.avg_resolution_time_seconds || 0), label: 'Temps moyen', accent: '#b45309', subtext: 'Résolution' }
           ].map((stat, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>
-              <Card sx={{ 
-                background: stat.color,
+              <Card sx={{
+                background: '#ffffff',
+                border: '1px solid #ebebef',
                 borderRadius: 3,
-                boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-                transition: 'transform 0.3s ease',
-                '&:hover': { transform: 'translateY(-4px)' }
+                boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'all 0.2s ease',
+                '&:hover': { borderColor: '#cbd5e1', transform: 'translateY(-1px)' }
               }}>
+                <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: stat.accent, opacity: 0.85 }} />
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ 
-                      p: 1.5, 
-                      bgcolor: 'rgba(255,255,255,0.2)', 
-                      borderRadius: 2 
+                    <Box sx={{
+                      width: 40,
+                      height: 40,
+                      background: `${stat.accent}14`,
+                      border: `1px solid ${stat.accent}33`,
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
                     }}>
-                      {stat.icon}
+                      <stat.Icon sx={{ fontSize: 22, color: stat.accent }} />
                     </Box>
-                    <Box>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: 'white' }}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontSize: '1.6rem', fontWeight: 700, color: stat.accent, lineHeight: 1, letterSpacing: '-0.02em' }}>
                         {stat.number}
                       </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                      <Typography sx={{ fontSize: '11.5px', color: '#86868b', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', mt: 0.5 }}>
                         {stat.label}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                      <Typography sx={{ fontSize: '11px', color: '#86868b', fontWeight: 500, mt: 0.25 }}>
                         {stat.subtext}
                       </Typography>
                     </Box>
@@ -816,9 +801,9 @@ export default function AmeliorationsPage() {
         {/* Main Content with Tabs */}
         <Card sx={{ 
           borderRadius: 4, 
-          boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
-          background: 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(20px)'
+          boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+          background: '#ffffff',
+          border: '1px solid #ebebef'
         }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 3, pt: 2 }}>
             <Tabs 
@@ -1281,11 +1266,11 @@ export default function AmeliorationsPage() {
                     onClick={runAIAnalysis}
                     disabled={aiLoading}
                     sx={{ 
-                      background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+                      background: '#0d9488',
                       fontWeight: 600,
                       px: 4,
                       '&:hover': { 
-                        background: 'linear-gradient(135deg, #6d28d9, #2563eb)'
+                        background: '#0f766e'
                       }
                     }}
                   >
@@ -1326,7 +1311,7 @@ export default function AmeliorationsPage() {
                             borderRadius: 6,
                             bgcolor: 'grey.200',
                             '& .MuiLinearProgress-bar': {
-                              background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+                              background: '#0d9488',
                               borderRadius: 6
                             }
                           }}
@@ -1638,12 +1623,12 @@ export default function AmeliorationsPage() {
                       onClick={runAIAnalysis}
                       disabled={aiLoading}
                       sx={{ 
-                        background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+                        background: '#0d9488',
                         fontWeight: 600,
                         px: 6,
                         py: 1.5,
                         '&:hover': { 
-                          background: 'linear-gradient(135deg, #6d28d9, #2563eb)'
+                          background: '#0f766e'
                         }
                       }}
                     >
@@ -1665,7 +1650,7 @@ export default function AmeliorationsPage() {
         {/* AI Analytics Banner */}
         <Card sx={{ 
           mt: 4,
-          background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+          background: '#0d9488',
           borderRadius: 4,
           boxShadow: '0 20px 60px rgba(124, 58, 237, 0.3)'
         }}>
@@ -1691,7 +1676,7 @@ export default function AmeliorationsPage() {
                 </Box>
                 <Box sx={{ 
                   bgcolor: 'rgba(255,255,255,0.15)', 
-                  backdropFilter: 'blur(10px)',
+                  /* backdropFilter removed */
                   borderRadius: 2, 
                   p: 2 
                 }}>

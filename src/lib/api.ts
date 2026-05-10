@@ -23,12 +23,49 @@ export interface ApiResponse<T> {
   message: string;
 }
 
+// Détection automatique de l'hôte API pour l'accès réseau local ou ngrok/localtunnel
+function getApiBaseUrl(): string {
+  const currentHost = window.location.hostname;
+  
+  // Si on accède via localhost ou 127.0.0.1
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    return 'http://localhost:8000';
+  }
+  
+  // Si on accède via le domaine pulse-360.fr (production)
+  if (currentHost.includes('pulse-360.fr')) {
+    const backendUrl = 'https://api-healthcare.pulse-360.fr';
+    console.log('🔗 Mode production pulse-360.fr - Backend URL:', backendUrl);
+    return backendUrl;
+  }
+  
+  // Si on accède via un tunnel externe (ngrok, localtunnel, cloudflare)
+  if (currentHost.includes('ngrok') || currentHost.includes('loca.lt') || currentHost.includes('trycloudflare.com')) {
+    // Vérifier si une URL backend est stockée dans localStorage
+    const tunnelBackendUrl = localStorage.getItem('tunnel_backend_url');
+    if (tunnelBackendUrl) {
+      return tunnelBackendUrl;
+    }
+    
+    // URL par défaut du backend Cloudflare Tunnel
+    const defaultBackendUrl = 'https://api-healthcare.pulse-360.fr';
+    console.log('🔗 Mode tunnel détecté - Backend URL:', defaultBackendUrl);
+    return defaultBackendUrl;
+  }
+  
+  // Sinon, utiliser la même IP que celle utilisée pour accéder au frontend
+  return `http://${currentHost}:8000`;
+}
+
 class AppClient {
   private api: AxiosInstance;
 
   constructor() {
+    const baseURL = getApiBaseUrl();
+    console.log('🔗 AppClient API URL configurée:', baseURL);
+    
     this.api = axios.create({
-      baseURL: 'http://localhost:8000',
+      baseURL,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -65,8 +102,8 @@ class ApiService {
   private baseURL: string;
 
   constructor() {
-    // Configuration forcée pour le développement
-    this.baseURL = 'http://localhost:8000';
+    // Configuration dynamique pour l'accès réseau local
+    this.baseURL = getApiBaseUrl();
     console.log('🔗 API URL configurée:', this.baseURL);
     
     this.api = axios.create({
@@ -1240,6 +1277,201 @@ class ApiService {
         success: false,
         data: null as any,
         message: error.message || 'Erreur lors de la création depuis l\'image'
+      } as ApiResponse<any>;
+    }
+  }
+
+  // ==================== CRÉATION DEPUIS ARCHIVE ====================
+
+  // Créer une plainte depuis un fichier d'archive (PDF ou image) - Mode ASYNC
+  // Retourne immédiatement avec un task_id, le résultat arrive via WebSocket
+  async createPlainteFromArchiveFile(
+    file: File,
+    options: {
+      source_archive: string;
+      batch_id: string;
+      processing_order: number;
+      auto_assign_service?: boolean;
+    }
+  ): Promise<ApiResponse<{
+    success: boolean;
+    async: boolean;
+    task_id: string;
+    celery_task_id?: string;
+    filename: string;
+    file_size: number;
+    batch_id: string;
+    processing_order: number;
+    message: string;
+    websocket_events?: {
+      started: string;
+      progress: string;
+      complete: string;
+      failed: string;
+    };
+    // Si async=false (fallback synchrone), les données sont directement disponibles
+    plainte_id?: number;
+    numero_plainte?: string;
+    plainte?: {
+      id: number;
+      numero_plainte: string;
+      titre: string;
+      statut: string;
+      priorite: string;
+      service_id: number;
+      service_nom: string;
+    };
+    plaignant?: {
+      nom: string;
+      prenom: string;
+    };
+  }>> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+      formData.append('source_archive', options.source_archive);
+      formData.append('batch_id', options.batch_id);
+      formData.append('processing_order', options.processing_order.toString());
+      
+      if (options.auto_assign_service !== undefined) {
+        formData.append('auto_assign_service', options.auto_assign_service.toString());
+      }
+
+      console.log('📤 [API Async] Envoi fichier archive:', file.name);
+
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-archive/fichier', formData, {
+        headers: {
+          'Content-Type': undefined,
+        } as any,
+        timeout: 30000, // 30s suffit car c'est asynchrone
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.data.message || 'Traitement lancé'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('❌ [API] Erreur création depuis archive:', error);
+      
+      let errorMessage = 'Erreur lors de la création depuis l\'archive';
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        errorMessage = typeof detail === 'string' ? detail : JSON.stringify(detail);
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        data: null as any,
+        message: errorMessage
+      } as ApiResponse<any>;
+    }
+  }
+
+  // Scanner un dossier d'archive (côté serveur)
+  async scanArchiveFolder(folderPath: string): Promise<ApiResponse<{
+    success: boolean;
+    folder_path: string;
+    files: Array<{
+      filename: string;
+      filepath: string;
+      file_size: number;
+      file_type: 'pdf' | 'image';
+      mime_type: string;
+    }>;
+    total_files: number;
+    message: string;
+  }>> {
+    try {
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-archive/scan-dossier', {
+        folder_path: folderPath
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Dossier scanné avec succès'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('Erreur lors du scan du dossier:', error);
+      
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || error.message || 'Erreur lors du scan'
+      } as ApiResponse<any>;
+    }
+  }
+
+  // Lancer le traitement batch d'une archive
+  async processArchiveBatch(
+    files: Array<{ filepath: string; filename: string }>,
+    options: {
+      auto_assign_service?: boolean;
+      batch_size?: number;
+      continue_on_error?: boolean;
+    }
+  ): Promise<ApiResponse<{
+    success: boolean;
+    batch_id: string;
+    task_id: string;
+    total_files: number;
+    message: string;
+  }>> {
+    try {
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-archive/traiter-batch', {
+        files,
+        options
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Traitement batch lancé'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('Erreur lors du lancement du traitement batch:', error);
+      
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || error.message || 'Erreur lors du lancement'
+      } as ApiResponse<any>;
+    }
+  }
+
+  // Annuler le traitement d'archive en cours
+  async cancelArchiveProcessing(
+    taskIds: string[],
+    batchId?: string
+  ): Promise<ApiResponse<{
+    success: boolean;
+    cancelled_count: number;
+    cancelled_tasks: string[];
+    failed_count: number;
+    failed_tasks: Array<{ task_id: string; error: string }>;
+    message: string;
+  }>> {
+    try {
+      const response = await this.api.post('/api/v1/plaintes/creation/depuis-archive/annuler', {
+        task_ids: taskIds,
+        batch_id: batchId
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.data.message || 'Traitement annulé'
+      } as ApiResponse<any>;
+    } catch (error: any) {
+      console.error('Erreur lors de l\'annulation:', error);
+      
+      return {
+        success: false,
+        data: null as any,
+        message: error.response?.data?.detail || error.message || 'Erreur lors de l\'annulation'
       } as ApiResponse<any>;
     }
   }

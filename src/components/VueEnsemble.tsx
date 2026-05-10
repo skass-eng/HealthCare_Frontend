@@ -46,139 +46,104 @@ interface VueEnsembleProps {
 const VueEnsemble: React.FC<VueEnsembleProps> = ({ analyticsData }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* KPIs Principaux - Version Simplifiée */}
-      <Card sx={{
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-        backdropFilter: 'blur(20px)',
-        borderRadius: 4,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-        '&:hover': {
-          boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
-          transform: 'translateY(-2px)',
-          transition: 'all 0.5s ease'
-        }
-      }}>
-        <Box sx={{ p: 4, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', mb: 1 }}>
-            <ChartBarIcon sx={{ mr: 1, color: 'primary.main' }} />
-            Indicateurs Clés
+      {/* KPIs Principaux - flat, sans card wrapper */}
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, px: 0.5 }}>
+          <Typography sx={{ fontWeight: 700, color: '#1d1d1f', fontSize: '0.95rem', letterSpacing: '-0.01em' }}>
+            Indicateurs clés
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{ 
-              width: 8, 
-              height: 8, 
-              bgcolor: 'success.main', 
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Box sx={{
+              width: 6,
+              height: 6,
+              bgcolor: '#10b981',
               borderRadius: '50%',
               animation: 'pulse 2s infinite'
             }} />
-            <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 500 }}>
-              Données en temps réel
+            <Typography sx={{ color: '#64748b', fontWeight: 500, fontSize: '11px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              Temps réel
             </Typography>
           </Box>
         </Box>
-        <Box sx={{ p: 4 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={6} md={3}>
-              <Box sx={{ 
-                textAlign: 'center', 
-                p: 3, 
-                bgcolor: 'grey.50', 
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: 'grey.200',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-              }}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  <ClipboardDocumentListIcon sx={{ color: 'grey.600', fontSize: 24 }} />
+        <Grid container spacing={2}>
+            {([
+              {
+                Icon: ClipboardDocumentListIcon,
+                value: (analyticsData?.plaintesParService.reduce((sum, service) => sum + service.count, 0) || 48).toString(),
+                label: 'Total plaintes',
+                accent: '#0f172a'
+              },
+              {
+                Icon: CheckCircleIcon,
+                value: `${(analyticsData?.metriquesPerformance?.satisfaction_client || 0).toFixed(1)}%`,
+                label: 'Satisfaction',
+                accent: '#059669'
+              },
+              {
+                Icon: ClockIcon,
+                value: `${(analyticsData?.metriquesPerformance?.temps_traitement_moyen || 0).toFixed(1)}j`,
+                label: 'Temps moyen',
+                accent: '#0d9488'
+              },
+              {
+                Icon: ExclamationTriangleIcon,
+                value: (analyticsData?.plaintesParPriorite.find(p => p.priorite === 'Urgent')?.count || 5).toString(),
+                label: 'Urgentes',
+                accent: '#b45309'
+              }
+            ] as const).map((kpi) => (
+              <Grid item xs={6} md={3} key={kpi.label}>
+                <Box sx={{
+                  p: 2.5,
+                  bgcolor: '#ffffff',
+                  borderRadius: 2,
+                  border: '1px solid #ebebef',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    borderColor: '#cbd5e1',
+                    transform: 'translateY(-1px)'
+                  }
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                    <Box sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 1.5,
+                      bgcolor: '#f8fafc',
+                      border: '1px solid #ebebef',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <kpi.Icon sx={{ color: kpi.accent, fontSize: 17 }} />
+                    </Box>
+                  </Box>
+                  <Typography sx={{ fontWeight: 700, color: kpi.accent, fontSize: '1.875rem', lineHeight: 1, letterSpacing: '-0.02em', mb: 0.5 }}>
+                    {kpi.value}
+                  </Typography>
+                  <Typography sx={{ color: '#64748b', fontWeight: 500, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {kpi.label}
+                  </Typography>
                 </Box>
-                <Typography variant="h4" sx={{ fontWeight: 600, color: 'grey.800' }}>
-                  {analyticsData?.plaintesParService.reduce((sum, service) => sum + service.count, 0) || 48}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'grey.600', fontWeight: 500 }}>
-                  Total Plaintes
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box sx={{ 
-                textAlign: 'center', 
-                p: 3, 
-                bgcolor: 'success.50', 
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: 'success.200',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-              }}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  <CheckCircleIcon sx={{ color: 'success.main', fontSize: 24 }} />
-                </Box>
-                <Typography variant="h4" sx={{ fontWeight: 600, color: 'success.main' }}>
-                  {(analyticsData?.metriquesPerformance?.satisfaction_client || 0).toFixed(2)}%
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'grey.600', fontWeight: 500 }}>
-                  Satisfaction
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box sx={{ 
-                textAlign: 'center', 
-                p: 3, 
-                bgcolor: 'info.50', 
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: 'info.200',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-              }}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  <ClockIcon sx={{ color: 'info.main', fontSize: 24 }} />
-                </Box>
-                <Typography variant="h4" sx={{ fontWeight: 600, color: 'info.main' }}>
-                  {(analyticsData?.metriquesPerformance?.temps_traitement_moyen || 0).toFixed(2)}j
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'grey.600', fontWeight: 500 }}>
-                  Temps Moyen
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box sx={{ 
-                textAlign: 'center', 
-                p: 3, 
-                bgcolor: 'warning.50', 
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: 'warning.200',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-              }}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  <ExclamationTriangleIcon sx={{ color: 'warning.main', fontSize: 24 }} />
-                </Box>
-                <Typography variant="h4" sx={{ fontWeight: 600, color: 'warning.main' }}>
-                  {analyticsData?.plaintesParPriorite.find(p => p.priorite === 'Urgent')?.count || 5}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'grey.600', fontWeight: 500 }}>
-                  Urgentes
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Box>
-      </Card>
+              </Grid>
+            ))}
+        </Grid>
+      </Box>
 
       {/* Graphiques Principaux */}
       <Grid container spacing={3}>
         {/* Répartition par Priorité */}
         <Grid item xs={12} lg={6}>
           <Card sx={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 4,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+            background: '#ffffff',
+            border: '1px solid #ebebef',
+            borderRadius: 3,
+            boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
             p: 3
           }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-              Répartition par Priorité
+            <Typography sx={{ fontWeight: 700, mb: 2.5, color: '#1d1d1f', fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
+              Répartition par priorité
             </Typography>
             {analyticsData?.plaintesParPriorite && analyticsData.plaintesParPriorite.some(p => p.count > 0) ? (
               <PlotlyChart
@@ -187,44 +152,43 @@ const VueEnsemble: React.FC<VueEnsembleProps> = ({ analyticsData }) => {
                     values: analyticsData.plaintesParPriorite.map(p => p.count),
                     labels: analyticsData.plaintesParPriorite.map(p => p.priorite),
                     type: 'pie',
+                    hole: 0.55,
                     marker: {
-                      colors: ['#94a3b8', '#34d399', '#5eead4', '#fb923c'], // Slate, Emerald, Teal, Orange avec même douceur
-                      line: { color: '#000000', width: 2 }, // Noir simple
-                      pattern: {
-                        shape: 'horizontal',
-                        size: 2,
-                        solidity: 0.15
-                      }
+                      colors: ['#0f172a', '#b45309', '#0d9488', '#94a3b8'],
+                      line: { color: '#ffffff', width: 2 }
                     },
                     textinfo: 'percent',
                     textposition: 'outside',
                     textfont: {
                       size: 12,
-                      color: '#374151',
+                      color: '#1d1d1f',
                       family: 'Inter, sans-serif'
                     },
-                    hovertemplate: '<b>%{label}</b><br>Plaintes: %{value}<br>Pourcentage: %{percent}<extra></extra>',
-                    pull: [0.02, 0.02, 0.02, 0.02], // Séparation subtile
-                    rotation: 0
+                    hovertemplate: '<b>%{label}</b><br>Plaintes: %{value}<br>Pourcentage: %{percent}<extra></extra>'
                   }
                 ]}
                 layout={{
-                  margin: { l: 20, r: 20, t: 40, b: 20 },
+                  margin: { l: 20, r: 20, t: 20, b: 20 },
                   plot_bgcolor: 'rgba(0,0,0,0)',
                   paper_bgcolor: 'rgba(0,0,0,0)',
-                  font: { 
-                    color: '#374151',
+                  font: {
+                    color: '#1d1d1f',
                     family: 'Inter, sans-serif'
                   },
-                  showlegend: false
+                  showlegend: true,
+                  legend: {
+                    orientation: 'h',
+                    y: -0.05,
+                    font: { size: 11, color: '#64748b' }
+                  }
                 }}
                 className="h-80"
               />
             ) : (
               <Box sx={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Box sx={{ textAlign: 'center', color: 'text.secondary' }}>
-                  <ChartPieIcon sx={{ fontSize: 64, opacity: 0.5, mb: 2 }} />
-                  <Typography>Aucune donnée disponible</Typography>
+                <Box sx={{ textAlign: 'center', color: '#94a3b8' }}>
+                  <ChartPieIcon sx={{ fontSize: 56, opacity: 0.4, mb: 1.5 }} />
+                  <Typography sx={{ fontSize: '13px' }}>Aucune donnée disponible</Typography>
                 </Box>
               </Box>
             )}
@@ -234,14 +198,14 @@ const VueEnsemble: React.FC<VueEnsembleProps> = ({ analyticsData }) => {
         {/* Évolution Temporelle */}
         <Grid item xs={12} lg={6}>
           <Card sx={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 4,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+            background: '#ffffff',
+            border: '1px solid #ebebef',
+            borderRadius: 3,
+            boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
             p: 3
           }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-              Évolution des Plaintes
+            <Typography sx={{ fontWeight: 700, mb: 2.5, color: '#1d1d1f', fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
+              Évolution des plaintes
             </Typography>
             {analyticsData?.evolutionTemporelle && analyticsData.evolutionTemporelle.length > 0 ? (
               <PlotlyChart
@@ -251,48 +215,47 @@ const VueEnsemble: React.FC<VueEnsembleProps> = ({ analyticsData }) => {
                     y: analyticsData.evolutionTemporelle.map(p => p.count),
                     type: 'scatter',
                     mode: 'lines+markers',
-                    line: { 
-                      color: '#10b981', // Emerald - cohérent avec le design
-                      width: 3,
+                    line: {
+                      color: '#0d9488',
+                      width: 2.5,
                       shape: 'spline'
                     },
-                    marker: { 
-                      color: '#10b981', 
+                    marker: {
+                      color: '#0d9488',
                       size: 6,
-                      line: { color: 'white', width: 1 }
+                      line: { color: '#ffffff', width: 1.5 }
                     },
-                    fill: 'tonexty',
-                    fillcolor: 'rgba(16, 185, 129, 0.1)', // Emerald avec transparence
+                    fill: 'tozeroy',
+                    fillcolor: 'rgba(13, 148, 136, 0.08)',
                     hovertemplate: '<b>%{x}</b><br>Plaintes: %{y}<extra></extra>'
                   }
                 ]}
                 layout={{
                   margin: { l: 50, r: 20, t: 20, b: 60 },
-                  xaxis: { 
-                    title: { text: 'Date', font: { color: '#6b7280' } },
-                    tickfont: { color: '#6b7280' },
-                    showgrid: true,
-                    gridcolor: 'rgba(0,0,0,0.1)',
-                    tickangle: -90
+                  xaxis: {
+                    title: { text: '', font: { color: '#94a3b8', size: 11 } },
+                    tickfont: { color: '#94a3b8', size: 11 },
+                    showgrid: false,
+                    tickangle: -45
                   },
-                  yaxis: { 
-                    title: { text: 'Nombre de plaintes', font: { color: '#6b7280' } },
-                    tickfont: { color: '#6b7280' },
+                  yaxis: {
+                    title: { text: '', font: { color: '#94a3b8', size: 11 } },
+                    tickfont: { color: '#94a3b8', size: 11 },
                     showgrid: true,
-                    gridcolor: 'rgba(0,0,0,0.1)'
+                    gridcolor: '#f1f5f9'
                   },
                   plot_bgcolor: 'rgba(0,0,0,0)',
                   paper_bgcolor: 'rgba(0,0,0,0)',
-                  font: { color: '#374151' },
+                  font: { color: '#1d1d1f', family: 'Inter, sans-serif' },
                   hovermode: 'x unified'
                 }}
                 className="h-80"
               />
             ) : (
               <Box sx={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Box sx={{ textAlign: 'center', color: 'text.secondary' }}>
-                  <ArrowTrendingUpIcon sx={{ fontSize: 64, opacity: 0.5, mb: 2 }} />
-                  <Typography>Aucune donnée disponible</Typography>
+                <Box sx={{ textAlign: 'center', color: '#94a3b8' }}>
+                  <ArrowTrendingUpIcon sx={{ fontSize: 56, opacity: 0.4, mb: 1.5 }} />
+                  <Typography sx={{ fontSize: '13px' }}>Aucune donnée disponible</Typography>
                 </Box>
               </Box>
             )}

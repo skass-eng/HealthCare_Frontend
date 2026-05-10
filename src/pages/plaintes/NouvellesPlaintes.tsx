@@ -1,16 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { PlusIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, CloudArrowUpIcon, FolderOpenIcon } from '@heroicons/react/24/outline';
 import { DocumentTextIcon } from '@heroicons/react/24/solid';
 import ManualFormPanel from '../../components/ManualFormPanel';
 import PdfUploadPanel from '../../components/PdfUploadPanel';
 import PhotoUploadPanel from '../../components/PhotoUploadPanel';
+import ArchiveUploadPanel from '../../components/ArchiveUploadPanel';
 import { apiService } from '../../lib/api';
 import { toast } from 'sonner';
 
 export default function NouvellesPlaintesPage() {
-  const [activePanel, setActivePanel] = useState<'manual' | 'pdf' | 'photo' | null>('manual');
+  const [activePanel, setActivePanel] = useState<'manual' | 'pdf' | 'photo' | 'archive' | null>('manual');
   const [loading, setLoading] = useState(false);
 
   const handleCreatePlainte = async (plainteData: any) => {
@@ -88,194 +89,213 @@ export default function NouvellesPlaintesPage() {
     setActivePanel(null); // Retour à aucun panel actif
   };
 
+  // Définition centralisée des options - palette Mercury Warm
+  type Option = {
+    id: 'manual' | 'pdf' | 'photo' | 'archive';
+    title: string;
+    description: string;
+    cta: string;
+    accent: string;          // teal / emerald / amber / slate accent
+    accentBgTint: string;    // bg quand actif
+    accentBorderTint: string;// border quand actif
+    Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+    badge?: string;
+  };
+
+  const options: Option[] = [
+    {
+      id: 'manual',
+      title: 'Formulaire manuel',
+      description: 'Saisissez directement les informations de votre plainte',
+      cta: 'Commencer',
+      accent: '#0d9488',
+      accentBgTint: 'rgba(13, 148, 136, 0.08)',
+      accentBorderTint: 'rgba(13, 148, 136, 0.40)',
+      Icon: PlusIcon
+    },
+    {
+      id: 'pdf',
+      title: 'Import PDF',
+      description: 'Importez un document PDF pour extraction automatique',
+      cta: 'Uploader',
+      accent: '#059669',
+      accentBgTint: 'rgba(5, 150, 105, 0.08)',
+      accentBorderTint: 'rgba(5, 150, 105, 0.40)',
+      Icon: CloudArrowUpIcon
+    },
+    {
+      id: 'photo',
+      title: 'Import photo',
+      description: 'Importez une photo de plainte pour analyse automatique',
+      cta: 'Importer',
+      accent: '#0891b2',
+      accentBgTint: 'rgba(8, 145, 178, 0.08)',
+      accentBorderTint: 'rgba(8, 145, 178, 0.40)',
+      Icon: ({ className, style }) => (
+        <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      )
+    },
+    {
+      id: 'archive',
+      title: 'Depuis archive',
+      description: 'Importez un dossier complet de plaintes archivées',
+      cta: 'Parcourir',
+      accent: '#b45309',
+      accentBgTint: 'rgba(180, 83, 9, 0.08)',
+      accentBorderTint: 'rgba(180, 83, 9, 0.40)',
+      Icon: FolderOpenIcon,
+      badge: 'Nouveau'
+    }
+  ];
+
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50 p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        
+    <div style={{ background: '#f5f5f7', padding: '24px', minHeight: '100%' }}>
+      <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
         {/* Header */}
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-teal-600 rounded-xl shadow-lg mb-3">
-            <DocumentTextIcon className="w-6 h-6 text-white" />
+        <div style={{ textAlign: 'center', paddingTop: '8px' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '48px',
+            height: '48px',
+            background: '#ffffff',
+            border: '1px solid #ebebef',
+            borderRadius: '12px',
+            boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+            marginBottom: '14px'
+          }}>
+            <DocumentTextIcon className="w-6 h-6" style={{ color: '#0d9488' }} />
           </div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-teal-700 bg-clip-text text-transparent mb-2">
-            Création de Plaintes
+          <h1 style={{
+            fontSize: '1.75rem',
+            fontWeight: 700,
+            color: '#1d1d1f',
+            letterSpacing: '-0.025em',
+            margin: '0 0 6px 0'
+          }}>
+            Création de plaintes
           </h1>
-          <p className="text-slate-600 max-w-3xl mx-auto text-sm">
+          <p style={{ color: '#86868b', fontSize: '13px', maxWidth: '40rem', margin: '0 auto' }}>
             Choisissez votre méthode préférée pour créer une nouvelle plainte
           </p>
         </div>
 
-        {/* Options de création */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          
-          {/* Création manuelle */}
-          <div className="relative group cursor-pointer h-full" onClick={() => setActivePanel('manual')}>
-            <div className={`absolute inset-0 rounded-2xl blur-xl transition-all duration-500 ${
-              activePanel === 'manual' 
-                ? 'bg-gradient-to-r from-blue-500/40 to-blue-600/40 blur-2xl' 
-                : 'bg-gradient-to-r from-blue-600/10 to-teal-600/10 group-hover:blur-2xl'
-            }`}></div>
-            <div className={`relative backdrop-blur-md rounded-2xl p-6 shadow-xl border-2 transition-all duration-500 transform hover:-translate-y-1 h-full flex flex-col ${
-              activePanel === 'manual'
-                ? 'bg-gradient-to-br from-blue-50 to-blue-100/80 border-blue-400 shadow-2xl scale-[1.02]'
-                : 'bg-white/95 border-white/40 hover:shadow-2xl'
-            }`}>
-              <div className="flex flex-col h-full">
-                {/* Section Icône et Titre */}
-                <div className="text-center mb-4">
-                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl shadow-lg mb-3 transition-all duration-300 ${
-                    activePanel === 'manual'
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 shadow-xl scale-110 ring-4 ring-blue-200'
-                      : 'bg-gradient-to-r from-blue-500 to-blue-600'
-                  }`}>
-                    <PlusIcon className="w-5 h-5 text-white" />
+        {/* Options */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+          {options.map((opt) => {
+            const isActive = activePanel === opt.id;
+            return (
+              <div
+                key={opt.id}
+                onClick={() => setActivePanel(opt.id)}
+                style={{
+                  position: 'relative',
+                  cursor: 'pointer',
+                  background: isActive ? opt.accentBgTint : '#ffffff',
+                  border: isActive ? `1px solid ${opt.accentBorderTint}` : '1px solid #ebebef',
+                  borderRadius: '14px',
+                  padding: '20px',
+                  boxShadow: isActive
+                    ? `0 0 0 3px ${opt.accentBgTint}, 0 1px 3px rgba(16, 24, 40, 0.06)`
+                    : '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+                onMouseOver={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.borderColor = '#ebebef';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
+              >
+                {opt.badge && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '12px',
+                    padding: '2px 8px',
+                    background: '#0d9488',
+                    color: '#ffffff',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    borderRadius: '999px',
+                    boxShadow: '0 1px 3px rgba(13, 148, 136, 0.3)'
+                  }}>
+                    {opt.badge}
+                  </span>
+                )}
+
+                <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                    background: opt.accentBgTint,
+                    border: `1px solid ${opt.accentBorderTint}`,
+                    borderRadius: '10px',
+                    marginBottom: '10px'
+                  }}>
+                    <opt.Icon className="w-5 h-5" style={{ color: opt.accent }} />
                   </div>
-                  <h3 className={`text-lg font-bold mb-2 transition-all duration-300 ${
-                    activePanel === 'manual'
-                      ? 'text-blue-900'
-                      : 'text-slate-800'
-                  }`}>Formulaire Manuel</h3>
+                  <h3 style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    color: '#1d1d1f',
+                    margin: 0,
+                    letterSpacing: '-0.01em'
+                  }}>
+                    {opt.title}
+                  </h3>
                 </div>
 
-                {/* Section Description */}
-                <div className="mb-4">
-                  <p className={`text-xs leading-relaxed text-center transition-all duration-300 ${
-                    activePanel === 'manual'
-                      ? 'text-blue-700'
-                      : 'text-slate-600'
-                  }`}>
-                    Saisissez directement les informations de votre plainte
-                  </p>
-                </div>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#86868b',
+                  textAlign: 'center',
+                  lineHeight: 1.45,
+                  margin: '0 0 16px 0',
+                  flex: 1
+                }}>
+                  {opt.description}
+                </p>
 
-                {/* Section Bouton */}
-                <div className="mt-auto">
-                  <button className={`w-full px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2 text-sm ${
-                    activePanel === 'manual'
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl ring-2 ring-blue-300'
-                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                  }`}>
-                    <PlusIcon className="w-4 h-4" />
-                    <span>Commencer</span>
-                  </button>
-                </div>
+                <button style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  background: isActive ? opt.accent : '#ffffff',
+                  color: isActive ? '#ffffff' : '#334155',
+                  border: isActive ? `1px solid ${opt.accent}` : '1px solid #ebebef',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}>
+                  <opt.Icon className="w-4 h-4" />
+                  <span>{opt.cta}</span>
+                </button>
               </div>
-            </div>
-          </div>
-
-          {/* Upload PDF */}
-          <div className="relative group cursor-pointer h-full" onClick={() => setActivePanel('pdf')}>
-            <div className={`absolute inset-0 rounded-2xl blur-xl transition-all duration-500 ${
-              activePanel === 'pdf' 
-                ? 'bg-gradient-to-r from-teal-500/40 to-emerald-500/40 blur-2xl' 
-                : 'bg-gradient-to-r from-teal-600/10 to-emerald-600/10 group-hover:blur-2xl'
-            }`}></div>
-            <div className={`relative backdrop-blur-md rounded-2xl p-6 shadow-xl border-2 transition-all duration-500 transform hover:-translate-y-1 h-full flex flex-col ${
-              activePanel === 'pdf'
-                ? 'bg-gradient-to-br from-teal-50 to-emerald-100/80 border-teal-400 shadow-2xl scale-[1.02]'
-                : 'bg-white/95 border-white/40 hover:shadow-2xl'
-            }`}>
-              <div className="flex flex-col h-full">
-                {/* Section Icône et Titre */}
-                <div className="text-center mb-4">
-                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl shadow-lg mb-3 transition-all duration-300 ${
-                    activePanel === 'pdf'
-                      ? 'bg-gradient-to-r from-teal-600 to-teal-700 shadow-xl scale-110 ring-4 ring-teal-200'
-                      : 'bg-gradient-to-r from-teal-500 to-teal-600'
-                  }`}>
-                    <CloudArrowUpIcon className="w-5 h-5 text-white" />
-                  </div>
-                  <h3 className={`text-lg font-bold mb-2 transition-all duration-300 ${
-                    activePanel === 'pdf'
-                      ? 'text-teal-900'
-                      : 'text-slate-800'
-                  }`}>Import PDF</h3>
-                </div>
-
-                {/* Section Description */}
-                <div className="mb-4">
-                  <p className={`text-xs leading-relaxed text-center transition-all duration-300 ${
-                    activePanel === 'pdf'
-                      ? 'text-teal-700'
-                      : 'text-slate-600'
-                  }`}>
-                    Importez un document PDF pour extraction automatique
-                  </p>
-                </div>
-
-                {/* Section Bouton */}
-                <div className="mt-auto">
-                  <button className={`w-full px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2 text-sm ${
-                    activePanel === 'pdf'
-                      ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-xl ring-2 ring-teal-300'
-                      : 'bg-gradient-to-r from-teal-500 to-teal-600 text-white'
-                  }`}>
-                    <CloudArrowUpIcon className="w-4 h-4" />
-                    <span>Uploader</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Import Photo */}
-          <div className="relative group cursor-pointer h-full" onClick={() => setActivePanel('photo')}>
-            <div className={`absolute inset-0 rounded-2xl blur-xl transition-all duration-500 ${
-              activePanel === 'photo' 
-                ? 'bg-gradient-to-r from-emerald-500/40 to-green-500/40 blur-2xl' 
-                : 'bg-gradient-to-r from-emerald-600/10 to-green-600/10 group-hover:blur-2xl'
-            }`}></div>
-            <div className={`relative backdrop-blur-md rounded-2xl p-6 shadow-xl border-2 transition-all duration-500 transform hover:-translate-y-1 h-full flex flex-col ${
-              activePanel === 'photo'
-                ? 'bg-gradient-to-br from-emerald-50 to-green-100/80 border-emerald-400 shadow-2xl scale-[1.02]'
-                : 'bg-white/95 border-white/40 hover:shadow-2xl'
-            }`}>
-              <div className="flex flex-col h-full">
-                {/* Section Icône et Titre */}
-                <div className="text-center mb-4">
-                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl shadow-lg mb-3 transition-all duration-300 ${
-                    activePanel === 'photo'
-                      ? 'bg-gradient-to-r from-emerald-600 to-green-700 shadow-xl scale-110 ring-4 ring-emerald-200'
-                      : 'bg-gradient-to-r from-emerald-500 to-green-600'
-                  }`}>
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <h3 className={`text-lg font-bold mb-2 transition-all duration-300 ${
-                    activePanel === 'photo'
-                      ? 'text-emerald-900'
-                      : 'text-slate-800'
-                  }`}>Import Photo</h3>
-                </div>
-
-                {/* Section Description */}
-                <div className="mb-4">
-                  <p className={`text-xs leading-relaxed text-center transition-all duration-300 ${
-                    activePanel === 'photo'
-                      ? 'text-emerald-700'
-                      : 'text-slate-600'
-                  }`}>
-                    Importez une photo de plainte pour analyse automatique
-                  </p>
-                </div>
-
-                {/* Section Bouton */}
-                <div className="mt-auto">
-                  <button className={`w-full px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2 text-sm ${
-                    activePanel === 'photo'
-                      ? 'bg-gradient-to-r from-emerald-600 to-green-700 text-white shadow-xl ring-2 ring-emerald-300'
-                      : 'bg-gradient-to-r from-emerald-500 to-green-600 text-white'
-                  }`}>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span>Importer</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         {/* Panels intégrés - seulement affichés si un panel est actif */}
@@ -295,6 +315,13 @@ export default function NouvellesPlaintesPage() {
         
         {activePanel === 'photo' && (
           <PhotoUploadPanel 
+            onSubmit={handleCreatePlainte} 
+            onClose={handlePanelClose}
+          />
+        )}
+        
+        {activePanel === 'archive' && (
+          <ArchiveUploadPanel 
             onSubmit={handleCreatePlainte} 
             onClose={handlePanelClose}
           />

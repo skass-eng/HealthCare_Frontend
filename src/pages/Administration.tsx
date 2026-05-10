@@ -25,65 +25,110 @@ export default function AdministrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-teal-600/10 to-emerald-600/10 blur-3xl pointer-events-none"></div>
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-300/20 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none"></div>
-      
+    <div style={{ minHeight: '100vh', background: '#f5f5f7' }}>
       {/* Notification de bienvenue */}
       {showWelcome && (
-        <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-blue-600 to-teal-600 text-white p-4 rounded-lg shadow-lg max-w-sm animate-slide-in-right">
-          <div className="flex items-center gap-2 mb-2">
-            <Cog8ToothIcon className="w-5 h-5" />
-            <span className="font-bold">Bienvenue dans l'Administration !</span>
+        <div style={{
+          position: 'fixed',
+          top: '16px',
+          right: '16px',
+          zIndex: 50,
+          background: '#1d1d1f',
+          color: '#ffffff',
+          padding: '14px 18px',
+          paddingRight: '36px',
+          borderRadius: '10px',
+          boxShadow: '0 8px 24px rgba(16, 24, 40, 0.18)',
+          maxWidth: '360px',
+          border: '1px solid #1d1d1f',
+          animation: 'slide-in-right 0.3s ease-out'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <Cog8ToothIcon className="w-4 h-4" style={{ color: '#5eead4' }} />
+            <span style={{ fontWeight: 700, fontSize: '13px' }}>Bienvenue dans l'administration</span>
           </div>
-          <p className="text-sm text-white/90">
+          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.72)', margin: 0 }}>
             Gérez les organisations, services et configurations du système.
           </p>
-          <button 
+          <button
             onClick={() => setShowWelcome(false)}
-            className="absolute top-2 right-2 text-white/70 hover:text-white"
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '10px',
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255,255,255,0.55)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              padding: 0
+            }}
           >
             ✕
           </button>
         </div>
       )}
-      
+
       {/* En-tête */}
-      <div className="relative z-10 bg-white/90 backdrop-blur-md border-b border-white/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            <div className="flex items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Cog8ToothIcon className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-teal-700 bg-clip-text text-transparent">
-                    Administration
-                  </h1>
-                  <p className="text-slate-600 mt-1">
-                    Gestion des organisations et services
-                  </p>
-                </div>
+      <div style={{ padding: '24px' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #ebebef',
+            borderRadius: '12px',
+            padding: '20px 24px',
+            boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+            marginBottom: '20px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                background: '#ffffff',
+                border: '1px solid #ebebef',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)'
+              }}>
+                <Cog8ToothIcon className="w-5 h-5" style={{ color: '#0d9488' }} />
+              </div>
+              <div>
+                <h1 style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 700,
+                  color: '#1d1d1f',
+                  margin: 0,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.2
+                }}>
+                  Administration
+                </h1>
+                <p style={{
+                  fontSize: '13px',
+                  color: '#86868b',
+                  fontWeight: 500,
+                  margin: '4px 0 0 0'
+                }}>
+                  Gestion des organisations, services &amp; configurations système
+                </p>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Contenu principal */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Contenu de la section Administration */}
-        <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border border-white/40">
-          {/* Contenu */}
-          <div className="p-8 overflow-y-auto">
+          {/* Contenu principal */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #ebebef',
+            borderRadius: '12px',
+            boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+            padding: '24px'
+          }}>
             <AdminPanelV2 />
           </div>
         </div>
       </div>
-
     </div>
   );
 } 

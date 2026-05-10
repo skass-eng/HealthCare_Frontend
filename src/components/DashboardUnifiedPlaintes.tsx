@@ -219,7 +219,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
                          <h3 style={{
                fontSize: '18px',
                fontWeight: '600',
-               color: '#1e293b',
+               color: '#1d1d1f',
                margin: '0 0 8px 0',
                overflow: 'hidden',
                textOverflow: 'ellipsis',
@@ -259,17 +259,17 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
         {/* Informations de la plainte */}
         <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
                      <p style={{ color: '#64748b', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-             <span style={{ fontWeight: 500, color: '#1e293b' }}>Titre:</span> {plainte.titre}
+             <span style={{ fontWeight: 500, color: '#1d1d1f' }}>Titre:</span> {plainte.titre}
            </p>
           <p style={{ color: '#64748b', margin: 0 }}>
-            <span style={{ fontWeight: 500, color: '#1e293b' }}>Date:</span> {formatDate(plainte.date_creation)}
+            <span style={{ fontWeight: 500, color: '#1d1d1f' }}>Date:</span> {formatDate(plainte.date_creation)}
           </p>
                      <p style={{ color: '#64748b', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-             <span style={{ fontWeight: 500, color: '#1e293b' }}>Service:</span> {plainte.service?.nom || `Service ID: ${plainte.service_id}`}
+             <span style={{ fontWeight: 500, color: '#1d1d1f' }}>Service:</span> {plainte.service?.nom || `Service ID: ${plainte.service_id}`}
            </p>
           {plainte.categorie_principale && (
             <p style={{ color: '#64748b', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <span style={{ fontWeight: 500, color: '#1e293b' }}>Catégorie:</span> {plainte.categorie_principale}
+              <span style={{ fontWeight: 500, color: '#1d1d1f' }}>Catégorie:</span> {plainte.categorie_principale}
             </p>
           )}
                      <p style={{ 
@@ -280,7 +280,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
              WebkitBoxOrient: 'vertical',
              overflow: 'hidden'
            }}>
-             <span style={{ fontWeight: 500, color: '#1e293b' }}>Description:</span> {plainte.description}
+             <span style={{ fontWeight: 500, color: '#1d1d1f' }}>Description:</span> {plainte.description}
            </p>
         </div>
 
@@ -290,7 +290,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             <div 
               style={{
                 height: '100%',
-                background: 'linear-gradient(90deg, #3b82f6, #14b8a6)',
+                background: '#0d9488',
                 borderRadius: '4px',
                 transition: 'width 0.8s ease',
                 width: `${progressWidth}%`,
@@ -300,7 +300,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
               <div style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                background: 'transparent',
                 animation: 'pulse 2s infinite'
               }} />
             </div>
@@ -330,7 +330,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
                       {isCompleted && (
                         <div style={{
                           height: '100%',
-                          background: 'linear-gradient(90deg, #10b981, #10b981)',
+                          background: '#059669',
                           borderRadius: '2px',
                           transition: 'all 0.8s ease'
                         }} />
@@ -338,7 +338,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
                       {isActive && (
                         <div style={{
                           height: '100%',
-                          background: 'linear-gradient(90deg, #3b82f6, #14b8a6)',
+                          background: '#0d9488',
                           borderRadius: '2px',
                           transition: 'all 0.8s ease',
                           width: '50%'
@@ -358,7 +358,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
                     marginBottom: '8px',
                     position: 'relative',
                     zIndex: 1,
-                    background: isCompleted ? '#10b981' : isActive ? '#3b82f6' : '#e2e8f0',
+                    background: isCompleted ? '#059669' : isActive ? '#0d9488' : '#ebebef',
                     color: isCompleted || isActive ? 'white' : '#94a3b8',
                     fontSize: '16px',
                     fontWeight: 'bold',
@@ -370,7 +370,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
                   {/* Label de statut */}
                   <div style={{
                     fontSize: '12px',
-                    color: isCompleted ? '#10b981' : isActive ? '#3b82f6' : '#64748b',
+                    color: isCompleted ? '#059669' : isActive ? '#0d9488' : '#86868b',
                     fontWeight: isActive ? '600' : '500',
                     textAlign: 'center'
                   }}>
@@ -447,7 +447,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
           <h2 style={{
             fontSize: '24px',
             fontWeight: 'bold',
-            color: '#1e293b',
+            color: '#1d1d1f',
             margin: '0 0 8px 0'
           }}>
             Suivi des Plaintes
@@ -500,22 +500,23 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             <div style={{
               width: '64px',
               height: '64px',
-              background: activeType === 'recu' ? '#3b82f6' : '#e2e8f0',
+              background: activeType === 'recu' ? 'rgba(13, 148, 136, 0.12)' : '#f5f5f7',
+              border: activeType === 'recu' ? '1px solid rgba(13, 148, 136, 0.35)' : '1px solid #ebebef',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: activeType === 'recu' ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none',
+              boxShadow: activeType === 'recu' ? '0 0 0 3px rgba(13, 148, 136, 0.15)' : 'none',
               marginBottom: '12px',
               transition: 'all 0.3s ease'
             }}>
-              <span style={{ fontSize: '24px', color: activeType === 'recu' ? 'white' : '#94a3b8' }}>📨</span>
+              <span style={{ fontSize: '24px', filter: activeType === 'recu' ? 'none' : 'none' }}>📨</span>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{
                 fontSize: '14px',
                 fontWeight: 'bold',
-                color: activeType === 'recu' ? '#3b82f6' : '#64748b',
+                color: activeType === 'recu' ? '#0d9488' : '#86868b',
                 marginBottom: '4px'
               }}>
                 REÇU
@@ -550,7 +551,8 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             <div style={{
               width: '64px',
               height: '64px',
-              background: activeType === 'en-cours' ? '#3b82f6' : '#e2e8f0',
+              background: activeType === 'en-cours' ? 'rgba(13, 148, 136, 0.12)' : '#f5f5f7',
+              border: activeType === 'en-cours' ? '1px solid rgba(13, 148, 136, 0.35)' : '1px solid #ebebef',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
@@ -558,13 +560,13 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
               marginBottom: '12px',
               transition: 'all 0.3s ease'
             }}>
-              <span style={{ fontSize: '24px', color: activeType === 'en-cours' ? 'white' : '#94a3b8' }}>⏳</span>
+              <span style={{ fontSize: '24px', filter: activeType === 'en-cours' ? 'none' : 'none' }}>⏳</span>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{
                 fontSize: '14px',
                 fontWeight: 'bold',
-                color: activeType === 'en-cours' ? '#3b82f6' : '#64748b',
+                color: activeType === 'en-cours' ? '#0d9488' : '#86868b',
                 marginBottom: '4px'
               }}>
                 EN COURS
@@ -599,7 +601,8 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             <div style={{
               width: '64px',
               height: '64px',
-              background: activeType === 'traite' ? '#3b82f6' : '#e2e8f0',
+              background: activeType === 'traite' ? 'rgba(5, 150, 105, 0.12)' : '#f5f5f7',
+              border: activeType === 'traite' ? '1px solid rgba(5, 150, 105, 0.35)' : '1px solid #ebebef',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
@@ -607,13 +610,13 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
               marginBottom: '12px',
               transition: 'all 0.3s ease'
             }}>
-              <span style={{ fontSize: '24px', color: activeType === 'traite' ? 'white' : '#94a3b8' }}>✅</span>
+              <span style={{ fontSize: '24px', filter: activeType === 'traite' ? 'none' : 'none' }}>✅</span>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{
                 fontSize: '14px',
                 fontWeight: 'bold',
-                color: activeType === 'traite' ? '#3b82f6' : '#64748b',
+                color: activeType === 'traite' ? '#0d9488' : '#86868b',
                 marginBottom: '4px'
               }}>
                 TRAITÉ
@@ -648,7 +651,8 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             <div style={{
               width: '64px',
               height: '64px',
-              background: activeType === 'cloture' ? '#3b82f6' : '#e2e8f0',
+              background: activeType === 'cloture' ? 'rgba(29, 29, 31, 0.08)' : '#f5f5f7',
+              border: activeType === 'cloture' ? '1px solid rgba(29, 29, 31, 0.20)' : '1px solid #ebebef',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
@@ -656,13 +660,13 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
               marginBottom: '12px',
               transition: 'all 0.3s ease'
             }}>
-              <span style={{ fontSize: '24px', color: activeType === 'cloture' ? 'white' : '#94a3b8' }}>🔒</span>
+              <span style={{ fontSize: '24px', filter: activeType === 'cloture' ? 'none' : 'none' }}>🔒</span>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{
                 fontSize: '14px',
                 fontWeight: 'bold',
-                color: activeType === 'cloture' ? '#3b82f6' : '#64748b',
+                color: activeType === 'cloture' ? '#0d9488' : '#86868b',
                 marginBottom: '4px'
               }}>
                 CLÔTURÉ
@@ -691,7 +695,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             padding: '20px',
             background: activeType === 'recu' ? '#eff6ff' : '#f8fafc',
             borderRadius: '12px',
-            border: activeType === 'recu' ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+            border: activeType === 'recu' ? '2px solid #1d1d1f' : '1px solid #e2e8f0',
             cursor: 'pointer',
             transition: 'all 0.3s ease'
           }}
@@ -708,7 +712,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             <div style={{
               fontSize: '32px',
               fontWeight: 'bold',
-              color: activeType === 'recu' ? '#3b82f6' : '#64748b',
+              color: activeType === 'recu' ? '#0d9488' : '#86868b',
               marginBottom: '8px'
             }}>
               {statistiquesGlobales?.nouvelles || 0}
@@ -728,7 +732,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             padding: '20px',
             background: activeType === 'en-cours' ? '#eff6ff' : '#f8fafc',
             borderRadius: '12px',
-            border: activeType === 'en-cours' ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+            border: activeType === 'en-cours' ? '2px solid #1d1d1f' : '1px solid #e2e8f0',
             cursor: 'pointer',
             transition: 'all 0.3s ease'
           }}
@@ -745,7 +749,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             <div style={{
               fontSize: '32px',
               fontWeight: 'bold',
-              color: activeType === 'en-cours' ? '#3b82f6' : '#64748b',
+              color: activeType === 'en-cours' ? '#0d9488' : '#86868b',
               marginBottom: '8px'
             }}>
               {statistiquesGlobales?.en_cours || 0}
@@ -765,7 +769,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             padding: '20px',
             background: activeType === 'traite' ? '#eff6ff' : '#f8fafc',
             borderRadius: '12px',
-            border: activeType === 'traite' ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+            border: activeType === 'traite' ? '2px solid #1d1d1f' : '1px solid #e2e8f0',
             cursor: 'pointer',
             transition: 'all 0.3s ease'
           }}
@@ -782,7 +786,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             <div style={{
               fontSize: '32px',
               fontWeight: 'bold',
-              color: activeType === 'traite' ? '#3b82f6' : '#64748b',
+              color: activeType === 'traite' ? '#0d9488' : '#86868b',
               marginBottom: '8px'
             }}>
               {statistiquesGlobales?.traitees || 0}
@@ -802,7 +806,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             padding: '20px',
             background: activeType === 'cloture' ? '#eff6ff' : '#f8fafc',
             borderRadius: '12px',
-            border: activeType === 'cloture' ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+            border: activeType === 'cloture' ? '2px solid #1d1d1f' : '1px solid #e2e8f0',
             cursor: 'pointer',
             transition: 'all 0.3s ease'
           }}
@@ -819,7 +823,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             <div style={{
               fontSize: '32px',
               fontWeight: 'bold',
-              color: activeType === 'cloture' ? '#3b82f6' : '#64748b',
+              color: activeType === 'cloture' ? '#0d9488' : '#86868b',
               marginBottom: '8px'
             }}>
               {statistiquesGlobales?.cloturees || 0}
@@ -855,7 +859,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
                   <span style={{
                     fontSize: '14px',
                     fontWeight: '600',
-                    color: '#1e293b'
+                    color: '#1d1d1f'
                   }}>
                     Progression globale
                   </span>
@@ -876,7 +880,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
                   <div style={{
                     height: '100%',
                     width: `${progression}%`,
-                    background: 'linear-gradient(90deg, #3b82f6, #14b8a6)',
+                    background: '#0d9488',
                     borderRadius: '4px',
                     transition: 'width 0.3s ease'
                   }} />
@@ -922,10 +926,10 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
       ) : plaintes.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
-          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#1e293b', margin: '0 0 8px 0' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#ffffff', margin: '0 0 8px 0' }}>
             Aucune plainte trouvée
           </h3>
-          <p style={{ color: '#64748b', margin: 0 }}>
+          <p style={{ color: '#f1f5f9', margin: 0 }}>
             Aucune plainte ne correspond aux critères de recherche actuels.
           </p>
         </div>
@@ -950,7 +954,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             disabled={currentPage <= 1}
             style={{
               padding: '8px 16px',
-              background: currentPage <= 1 ? '#f1f5f9' : '#3b82f6',
+              background: currentPage <= 1 ? '#f1f1f3' : '#1d1d1f',
               color: currentPage <= 1 ? '#94a3b8' : 'white',
               border: 'none',
               borderRadius: '8px',
@@ -970,7 +974,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             disabled={currentPage >= Math.ceil(total / limit)}
             style={{
               padding: '8px 16px',
-              background: currentPage >= Math.ceil(total / limit) ? '#f1f5f9' : '#3b82f6',
+              background: currentPage >= Math.ceil(total / limit) ? '#f1f1f3' : '#1d1d1f',
               color: currentPage >= Math.ceil(total / limit) ? '#94a3b8' : 'white',
               border: 'none',
               borderRadius: '8px',

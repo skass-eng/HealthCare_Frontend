@@ -58,7 +58,7 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
   className = '' 
 }) => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'trends' | 'performance'>('overview');
+  const [activeTab, setActiveTab] = useState<'services' | 'trends' | 'performance'>('services');
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   // Récupérer les données Redux
@@ -368,557 +368,361 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
     <VueEnsemble analyticsData={analyticsData} />
   );
 
-  const renderServices = () => (
-    <Card sx={{
-      background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-      backdropFilter: 'blur(20px)',
-      borderRadius: 4,
-      boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-      '&:hover': {
-        boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
-        transform: 'translateY(-2px)',
-        transition: 'all 0.5s ease'
-      }
-    }}>
-      <Box sx={{ p: 4, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-          <ChartPieIcon sx={{ mr: 1, color: 'primary.main' }} />
-          Analyse Détaillée par Service
-        </Typography>
-      </Box>
-      
-      <Box sx={{ p: 4 }}>
-        <Grid container spacing={3}>
-          {analyticsData?.plaintesParService.map((service, index) => (
-            <Grid item xs={12} md={6} lg={4} key={index}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-                backdropFilter: 'blur(10px)',
-                borderRadius: 3,
-                boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                p: 3,
-                height: '100%',
-                '&:hover': {
-                  boxShadow: '0 12px 35px rgba(0,0,0,0.15)',
-                  transform: 'translateY(-2px)',
-                  transition: 'all 0.3s ease'
-                }
-              }}>
-                <Typography variant="h6" sx={{ 
-                  fontWeight: 600, 
-                  mb: 3,
-                  color: '#1e293b',
-                  fontSize: '1.125rem'
-                }}>
+  const renderServices = () => {
+    const services = (analyticsData?.plaintesParService || []).slice().sort((a, b) => b.count - a.count);
+    const maxCount = services[0]?.count || 1;
+    const totalCount = services.reduce((s, x) => s + x.count, 0);
+
+    return (
+      <Card sx={{
+        background: '#ffffff',
+        border: '1px solid #ebebef',
+        borderRadius: 3,
+        boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+        overflow: 'hidden'
+      }}>
+        {/* Header table */}
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: '2fr 1fr 2.5fr 1fr',
+          gap: 2,
+          px: 3,
+          py: 1.5,
+          borderBottom: '1px solid #ebebef',
+          bgcolor: '#fafafa'
+        }}>
+          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#86868b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Service</Typography>
+          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#86868b', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'right' }}>Volume</Typography>
+          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#86868b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Distribution</Typography>
+          <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#86868b', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'right' }}>% du total</Typography>
+        </Box>
+
+        {/* Lignes */}
+        {services.length === 0 && (
+          <Box sx={{ p: 5, textAlign: 'center', color: '#86868b', fontSize: '13px' }}>
+            Aucune donnée disponible
+          </Box>
+        )}
+        {services.map((service, idx) => {
+          const pct = totalCount > 0 ? (service.count / totalCount) * 100 : 0;
+          const barWidth = (service.count / maxCount) * 100;
+          return (
+            <Box
+              key={service.service}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 2.5fr 1fr',
+                gap: 2,
+                px: 3,
+                py: 1.75,
+                alignItems: 'center',
+                borderBottom: idx < services.length - 1 ? '1px solid #f5f5f7' : 'none',
+                transition: 'background 0.15s ease',
+                '&:hover': { bgcolor: '#fafafa' }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+                <Box sx={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '6px',
+                  bgcolor: '#f5f5f7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#86868b',
+                  flexShrink: 0
+                }}>{idx + 1}</Box>
+                <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#1d1d1f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {service.service}
                 </Typography>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2" sx={{ 
-                      color: '#64748b',
-                      fontWeight: 500
-                    }}>
-                      Plaintes:
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      fontWeight: 600,
-                      color: '#1e293b'
-                    }}>
-                      {service.count}
-                    </Typography>
-                  </Box>
-                </Box>
-                
-                <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2" sx={{ 
-                      color: '#64748b',
-                      fontWeight: 500
-                    }}>
-                      Pourcentage:
-                    </Typography>
-                                         <Typography variant="body2" sx={{ 
-                       fontWeight: 600,
-                       color: '#1e293b'
-                     }}>
-                       {service.percentage.toFixed(2)}%
-                     </Typography>
-                  </Box>
-                </Box>
-                
-                <LinearProgress 
-                  variant="determinate" 
-                  value={service.percentage} 
-                  sx={{ 
-                    height: 8, 
-                    borderRadius: 4,
-                    bgcolor: '#e2e8f0',
-                    '& .MuiLinearProgress-bar': {
-                      background: 'linear-gradient(90deg, #3b82f6, #1d4ed8)',
-                      borderRadius: 4
-                    }
-                  }}
-                />
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-    </Card>
-  );
+              </Box>
+              <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#1d1d1f', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {service.count}
+              </Typography>
+              <Box sx={{ width: '100%', height: 6, bgcolor: '#f1f1f3', borderRadius: '999px', overflow: 'hidden' }}>
+                <Box sx={{
+                  width: `${barWidth}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #0d9488, #5eead4)',
+                  borderRadius: '999px',
+                  transition: 'width 0.4s ease'
+                }} />
+              </Box>
+              <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#86868b', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {pct.toFixed(1)}%
+              </Typography>
+            </Box>
+          );
+        })}
+      </Card>
+    );
+  };
 
   const renderTrends = () => (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Évolution temporelle */}
+      {/* Évolution temporelle - chart hero */}
       <Card sx={{
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-        backdropFilter: 'blur(20px)',
-        borderRadius: 4,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-        '&:hover': {
-          boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
-          transform: 'translateY(-2px)',
-          transition: 'all 0.5s ease'
-        }
+        background: '#ffffff',
+        border: '1px solid #ebebef',
+        borderRadius: 3,
+        boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+        p: 3
       }}>
-        <Box sx={{ p: 4, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-            <ArrowTrendingUpIcon sx={{ mr: 1, color: 'primary.main' }} />
-            Évolution des plaintes
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 2 }}>
+          <Box>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#1d1d1f', letterSpacing: '-0.01em' }}>
+              Évolution des plaintes
+            </Typography>
+            <Typography sx={{ fontSize: '11px', color: '#86868b', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', mt: 0.25 }}>
+              Volume quotidien · 30 derniers jours
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: '12px', color: '#86868b' }}>
+            <Box sx={{ width: 8, height: 8, bgcolor: '#0d9488', borderRadius: '2px' }} />
+            <span>Plaintes / jour</span>
+          </Box>
         </Box>
-        <Box sx={{ p: 4 }}>
-          <PlotlyChart
-            data={[
-              {
-                x: analyticsData?.evolutionTemporelle.map(p => new Date(p.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })) || [],
-                y: analyticsData?.evolutionTemporelle.map(p => p.count) || [],
-                type: 'scatter',
-                mode: 'lines+markers',
-                line: { 
-                  color: '#0ea5e9', // Sky blue - cohérent avec le thème
-                  width: 3,
-                  shape: 'spline'
-                },
-                marker: { 
-                  color: '#0ea5e9', 
-                  size: 8,
-                  line: { color: 'white', width: 2 }
-                },
-                fill: 'tonexty',
-                fillcolor: 'rgba(14, 165, 233, 0.1)', // Sky blue avec transparence
-                hovertemplate: '<b>%{x}</b><br>Plaintes: %{y}<extra></extra>'
-              }
-            ]}
-            layout={{
-              margin: { l: 50, r: 20, t: 20, b: 60 },
-              xaxis: { 
-                title: { text: 'Date', font: { color: '#6b7280' } },
-                tickfont: { color: '#6b7280' },
-                showgrid: true,
-                gridcolor: 'rgba(0,0,0,0.1)'
-              },
-              yaxis: { 
-                title: { text: 'Nombre de plaintes', font: { color: '#6b7280' } },
-                tickfont: { color: '#6b7280' },
-                showgrid: true,
-                gridcolor: 'rgba(0,0,0,0.1)'
-              },
-              plot_bgcolor: 'rgba(0,0,0,0)',
-              paper_bgcolor: 'rgba(0,0,0,0)',
-              font: { color: '#374151' },
-              hovermode: 'x unified'
-            }}
-            className="h-80"
-          />
-        </Box>
+        <PlotlyChart
+          data={[
+            {
+              x: analyticsData?.evolutionTemporelle.map(p => new Date(p.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })) || [],
+              y: analyticsData?.evolutionTemporelle.map(p => p.count) || [],
+              type: 'scatter',
+              mode: 'lines',
+              line: { color: '#0d9488', width: 2.5, shape: 'spline' },
+              fill: 'tozeroy',
+              fillcolor: 'rgba(13, 148, 136, 0.08)',
+              hovertemplate: '<b>%{x}</b><br>%{y} plaintes<extra></extra>'
+            }
+          ]}
+          layout={{
+            margin: { l: 40, r: 16, t: 8, b: 40 },
+            xaxis: { showgrid: false, tickfont: { color: '#86868b', size: 10 } },
+            yaxis: { showgrid: true, gridcolor: '#f1f1f3', tickfont: { color: '#86868b', size: 10 }, zeroline: false },
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            font: { family: 'Inter, sans-serif', color: '#1d1d1f' },
+            hovermode: 'x unified',
+            showlegend: false
+          }}
+          className="h-80"
+        />
       </Card>
 
-      {/* Tendances détectées */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card sx={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 4,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
-              transform: 'translateY(-2px)',
-              transition: 'all 0.5s ease'
-            },
-            p: 3
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <ArrowTrendingUpIcon sx={{ color: '#ea580c', mr: 1 }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                En augmentation
-              </Typography>
-            </Box>
-            <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none' }}>
-              {analyticsData?.tendances.augmentation.map((trend, index) => (
-                <Box component="li" key={index} sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  mb: 1,
-                  fontSize: '0.875rem',
-                  color: '#64748b'
-                }}>
-                  <Box sx={{ 
-                    width: 8, 
-                    height: 8, 
-                    bgcolor: '#ea580c', 
-                    borderRadius: '50%', 
-                    mr: 1 
-                  }} />
-                  {trend}
-                </Box>
-              ))}
-              {(!analyticsData?.tendances.augmentation || analyticsData.tendances.augmentation.length === 0) && (
-                <Box component="li" sx={{ 
-                  fontSize: '0.875rem', 
-                  color: '#94a3b8', 
-                  fontStyle: 'italic' 
-                }}>
-                  Aucune tendance en augmentation
-                </Box>
-              )}
-            </Box>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Card sx={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 4,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
-              transform: 'translateY(-2px)',
-              transition: 'all 0.5s ease'
-            },
-            p: 3
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <ArrowTrendingUpIcon sx={{ color: '#059669', mr: 1, transform: 'rotate(180deg)' }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                En diminution
-              </Typography>
-            </Box>
-            <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none' }}>
-              {analyticsData?.tendances.diminution.map((trend, index) => (
-                <Box component="li" key={index} sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  mb: 1,
-                  fontSize: '0.875rem',
-                  color: '#64748b'
-                }}>
-                  <Box sx={{ 
-                    width: 8, 
-                    height: 8, 
-                    bgcolor: '#059669', 
-                    borderRadius: '50%', 
-                    mr: 1 
-                  }} />
-                  {trend}
-                </Box>
-              ))}
-              {(!analyticsData?.tendances.diminution || analyticsData.tendances.diminution.length === 0) && (
-                <Box component="li" sx={{ 
-                  fontSize: '0.875rem', 
-                  color: '#94a3b8', 
-                  fontStyle: 'italic' 
-                }}>
-                  Aucune tendance en diminution
-                </Box>
-              )}
-            </Box>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Card sx={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 4,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
-              transform: 'translateY(-2px)',
-              transition: 'all 0.5s ease'
-            },
-            p: 3
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <CheckCircleIcon sx={{ color: '#0d9488', mr: 1 }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                Stable
-              </Typography>
-            </Box>
-            <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none' }}>
-              {analyticsData?.tendances.stable.map((trend, index) => (
-                <Box component="li" key={index} sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  mb: 1,
-                  fontSize: '0.875rem',
-                  color: '#64748b'
-                }}>
-                  <Box sx={{ 
-                    width: 8, 
-                    height: 8, 
-                    bgcolor: '#0d9488', 
-                    borderRadius: '50%', 
-                    mr: 1 
-                  }} />
-                  {trend}
-                </Box>
-              ))}
-              {(!analyticsData?.tendances.stable || analyticsData.tendances.stable.length === 0) && (
-                <Box component="li" sx={{ 
-                  fontSize: '0.875rem', 
-                  color: '#94a3b8', 
-                  fontStyle: 'italic' 
-                }}>
-                  Aucune tendance stable
-                </Box>
-              )}
-            </Box>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Analyse des tendances par service */}
+      {/* Distribution par statut */}
       <Card sx={{
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-        backdropFilter: 'blur(20px)',
-        borderRadius: 4,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-        '&:hover': {
-          boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
-          transform: 'translateY(-2px)',
-          transition: 'all 0.5s ease'
-        }
+        background: '#ffffff',
+        border: '1px solid #ebebef',
+        borderRadius: 3,
+        boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+        p: 3
       }}>
-        <Box sx={{ p: 4, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Tendances par Service
+        <Box sx={{ mb: 2.5 }}>
+          <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#1d1d1f', letterSpacing: '-0.01em' }}>
+            Distribution par statut
+          </Typography>
+          <Typography sx={{ fontSize: '11px', color: '#86868b', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', mt: 0.25 }}>
+            Pipeline de traitement
           </Typography>
         </Box>
-        <Box sx={{ p: 4 }}>
-          <Grid container spacing={3}>
-            {analyticsData?.plaintesParService.map((service, index) => {
-              const trend = service.count > 10 ? 'up' : service.count > 5 ? 'stable' : 'down'
-              const trendColor = trend === 'up' ? '#ea580c' : trend === 'stable' ? '#0d9488' : '#059669'
-              const trendText = trend === 'up' ? 'En hausse' : trend === 'stable' ? 'Stable' : 'En baisse'
-              
-              return (
-                <Grid item xs={12} md={6} lg={4} key={index}>
-                  <Card sx={{
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: 3,
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    p: 3,
-                    '&:hover': {
-                      boxShadow: '0 12px 35px rgba(0,0,0,0.15)',
-                      transform: 'translateY(-2px)',
-                      transition: 'all 0.3s ease'
-                    }
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                        {service.service}
-                      </Typography>
-                      <Typography variant="caption" sx={{ 
-                        fontWeight: 600, 
-                        color: trendColor,
-                        fontSize: '0.75rem'
-                      }}>
-                        {trendText}
+        {(() => {
+          const statuts = [
+            { key: 'RECU', label: 'Reçues', color: '#86868b' },
+            { key: 'EN_COURS', label: 'En cours', color: '#0d9488' },
+            { key: 'TRAITE', label: 'Traitées', color: '#059669' },
+            { key: 'CLOTURE', label: 'Clôturées', color: '#1d1d1f' }
+          ];
+          const totals = statistiquesGlobales || { nouvelles: 0, en_cours: 0, traitees: 0, cloturees: 0 } as any;
+          const counts: Record<string, number> = {
+            RECU: totals.nouvelles || 0,
+            EN_COURS: totals.en_cours || 0,
+            TRAITE: totals.traitees || 0,
+            CLOTURE: totals.cloturees || 0
+          };
+          const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+
+          return (
+            <>
+              {/* Barre stack horizontale */}
+              <Box sx={{ display: 'flex', height: 14, borderRadius: '999px', overflow: 'hidden', mb: 2.5, bgcolor: '#f1f1f3' }}>
+                {statuts.map(s => {
+                  const w = (counts[s.key] / total) * 100;
+                  if (w === 0) return null;
+                  return (
+                    <Box key={s.key} sx={{
+                      width: `${w}%`,
+                      bgcolor: s.color,
+                      transition: 'width 0.5s ease'
+                    }} />
+                  );
+                })}
+              </Box>
+              {/* Légende avec compteurs */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
+                {statuts.map(s => (
+                  <Box key={s.key}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+                      <Box sx={{ width: 8, height: 8, bgcolor: s.color, borderRadius: '2px' }} />
+                      <Typography sx={{ fontSize: '11px', color: '#86868b', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                        {s.label}
                       </Typography>
                     </Box>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#1e293b', mb: 1 }}>
-                      {service.count}
+                    <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, color: '#1d1d1f', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                      {counts[s.key]}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#64748b', mb: 2 }}>
-                      {service.percentage.toFixed(1)}% du total
+                    <Typography sx={{ fontSize: '11px', color: '#86868b', fontWeight: 500, mt: 0.25 }}>
+                      {((counts[s.key] / total) * 100).toFixed(1)}% du total
                     </Typography>
-                    <Box sx={{ mt: 2 }}>
-                      <Box sx={{ 
-                        width: '100%', 
-                        bgcolor: '#e2e8f0', 
-                        borderRadius: 1, 
-                        height: 8 
-                      }}>
-                        <Box 
-                          sx={{ 
-                            background: 'linear-gradient(90deg, #3b82f6, #1d4ed8)',
-                            height: 8,
-                            borderRadius: 1,
-                            transition: 'all 0.3s ease'
-                          }}
-                          style={{ width: `${service.percentage}%` }}
-                        />
-                      </Box>
-                    </Box>
-                  </Card>
-                </Grid>
-              )
-            })}
-          </Grid>
-        </Box>
+                  </Box>
+                ))}
+              </Box>
+            </>
+          );
+        })()}
       </Card>
 
-      {/* Indicateurs de tendances */}
-      <Card sx={{
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-        backdropFilter: 'blur(20px)',
-        borderRadius: 4,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-        '&:hover': {
-          boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
-          transform: 'translateY(-2px)',
-          transition: 'all 0.5s ease'
-        }
-      }}>
-        <Box sx={{ p: 4, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Indicateurs de Tendances
-          </Typography>
-        </Box>
-        <Box sx={{ p: 4 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6} lg={3}>
-              <Box sx={{
-                textAlign: 'center',
-                p: 3,
-                background: 'linear-gradient(135deg, rgba(254, 215, 170, 0.3), rgba(251, 191, 36, 0.3))',
-                borderRadius: 3,
-                border: '1px solid rgba(251, 191, 36, 0.3)',
-                boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
-              }}>
-                <Typography variant="h3" sx={{ fontWeight: 600, color: '#ea580c' }}>
-                  {analyticsData?.tendances.augmentation.length || 0}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500 }}>
-                  Tendances en hausse
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={6} lg={3}>
-              <Box sx={{
-                textAlign: 'center',
-                p: 3,
-                background: 'linear-gradient(135deg, rgba(167, 243, 208, 0.3), rgba(34, 197, 94, 0.3))',
-                borderRadius: 3,
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-                boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
-              }}>
-                <Typography variant="h3" sx={{ fontWeight: 600, color: '#059669' }}>
-                  {analyticsData?.tendances.diminution.length || 0}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500 }}>
-                  Tendances en baisse
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={6} lg={3}>
-              <Box sx={{
-                textAlign: 'center',
-                p: 3,
-                background: 'linear-gradient(135deg, rgba(153, 246, 228, 0.3), rgba(20, 184, 166, 0.3))',
-                borderRadius: 3,
-                border: '1px solid rgba(20, 184, 166, 0.3)',
-                boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
-              }}>
-                <Typography variant="h3" sx={{ fontWeight: 600, color: '#0d9488' }}>
-                  {analyticsData?.tendances.stable.length || 0}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500 }}>
-                  Tendances stables
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={6} lg={3}>
-              <Box sx={{
-                textAlign: 'center',
-                p: 3,
-                background: 'linear-gradient(135deg, rgba(241, 245, 249, 0.3), rgba(148, 163, 184, 0.3))',
-                borderRadius: 3,
-                border: '1px solid rgba(148, 163, 184, 0.3)',
-                boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
-              }}>
-                <Typography variant="h3" sx={{ fontWeight: 600, color: '#64748b' }}>
-                  {((analyticsData?.tendances.augmentation.length || 0) + 
-                    (analyticsData?.tendances.diminution.length || 0) + 
-                    (analyticsData?.tendances.stable.length || 0))}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500 }}>
-                  Total des tendances
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Box>
-      </Card>
     </Box>
   );
 
-  const renderPerformance = () => (
-    <Card sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-        Métriques de Performance
-      </Typography>
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        {analyticsData && Object.entries(analyticsData.metriquesPerformance).map(([key, value]) => (
-          <Grid item xs={12} md={6} key={key}>
-            <Box sx={{ p: 2, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                {typeof value === 'number' ? value.toFixed(1) : value}
-                {key.includes('taux') || key.includes('satisfaction') ? '%' : key.includes('temps') ? 'j' : ''}
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={typeof value === 'number' ? Math.min(value, 100) : 0}
-                sx={{ mt: 1, height: 6, borderRadius: 3 }}
-              />
+  const renderPerformance = () => {
+    // Définition des KPIs avec cible, unité, formatage
+    type Kpi = { key: string; label: string; value: number; target: number; unit: '%' | 'j' | ''; higherIsBetter: boolean };
+    const m = analyticsData?.metriquesPerformance;
+    const kpis: Kpi[] = m ? [
+      { key: 'taux_resolution', label: 'Taux de résolution', value: m.taux_resolution, target: 80, unit: '%', higherIsBetter: true },
+      { key: 'satisfaction_client', label: 'Satisfaction patient', value: (m.satisfaction_client / 5) * 100, target: 80, unit: '%', higherIsBetter: true },
+      { key: 'qualite_soins', label: 'Qualité des soins', value: m.qualite_soins, target: 90, unit: '%', higherIsBetter: true },
+      { key: 'temps_traitement_moyen', label: 'Délai de traitement', value: m.temps_traitement_moyen, target: 5, unit: 'j', higherIsBetter: false },
+      { key: 'temps_reponse_moyen', label: 'Temps de réponse', value: m.temps_reponse_moyen, target: 2, unit: 'j', higherIsBetter: false },
+      { key: 'taux_recurrence', label: 'Taux de récurrence', value: m.taux_recurrence, target: 5, unit: '%', higherIsBetter: false }
+    ] : [];
+
+    return (
+      <Card sx={{
+        background: '#ffffff',
+        border: '1px solid #ebebef',
+        borderRadius: 3,
+        boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+        overflow: 'hidden'
+      }}>
+        <Box sx={{ px: 3, py: 2, borderBottom: '1px solid #ebebef', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <Box>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#1d1d1f', letterSpacing: '-0.01em' }}>
+              Indicateurs de performance
+            </Typography>
+            <Typography sx={{ fontSize: '11px', color: '#86868b', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', mt: 0.25 }}>
+              Mesure vs objectifs internes
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontSize: '11px', color: '#86868b' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ width: 7, height: 7, bgcolor: '#059669', borderRadius: '50%' }} />
+              <span>Atteint</span>
             </Box>
-          </Grid>
-        ))}
-      </Grid>
-    </Card>
-  );
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ width: 7, height: 7, bgcolor: '#b45309', borderRadius: '50%' }} />
+              <span>Proche</span>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ width: 7, height: 7, bgcolor: '#86868b', borderRadius: '50%' }} />
+              <span>Hors cible</span>
+            </Box>
+          </Box>
+        </Box>
+
+        {kpis.map((kpi, idx) => {
+          // Pour les "moins c'est mieux", on inverse l'échelle visuelle
+          const scale = kpi.higherIsBetter ? 100 : Math.max(kpi.target * 2, kpi.value * 1.3);
+          const pct = Math.min((kpi.value / scale) * 100, 100);
+          const targetPct = Math.min((kpi.target / scale) * 100, 100);
+
+          // Status
+          const ratio = kpi.higherIsBetter ? kpi.value / kpi.target : kpi.target / kpi.value;
+          const status = ratio >= 1 ? 'on' : ratio >= 0.85 ? 'near' : 'off';
+          const statusColor = status === 'on' ? '#059669' : status === 'near' ? '#b45309' : '#86868b';
+          const barColor = status === 'on' ? '#0d9488' : status === 'near' ? '#d97706' : '#86868b';
+
+          return (
+            <Box
+              key={kpi.key}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '220px 90px 1fr 90px',
+                gap: 3,
+                alignItems: 'center',
+                px: 3,
+                py: 2,
+                borderBottom: idx < kpis.length - 1 ? '1px solid #f5f5f7' : 'none',
+                transition: 'background 0.15s ease',
+                '&:hover': { bgcolor: '#fafafa' }
+              }}
+            >
+              {/* Label + status dot */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ width: 7, height: 7, bgcolor: statusColor, borderRadius: '50%', flexShrink: 0 }} />
+                <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#1d1d1f' }}>
+                  {kpi.label}
+                </Typography>
+              </Box>
+
+              {/* Valeur actuelle */}
+              <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: '#1d1d1f', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+                {kpi.value.toFixed(1)}{kpi.unit}
+              </Typography>
+
+              {/* Bullet bar avec target tick */}
+              <Box sx={{ position: 'relative', height: 8, bgcolor: '#f1f1f3', borderRadius: '999px', overflow: 'visible' }}>
+                <Box sx={{
+                  width: `${pct}%`,
+                  height: '100%',
+                  bgcolor: barColor,
+                  borderRadius: '999px',
+                  transition: 'width 0.5s ease'
+                }} />
+                {/* Target tick mark */}
+                <Box sx={{
+                  position: 'absolute',
+                  left: `${targetPct}%`,
+                  top: -3,
+                  bottom: -3,
+                  width: 2,
+                  bgcolor: '#1d1d1f',
+                  borderRadius: '1px',
+                  transform: 'translateX(-1px)'
+                }} />
+              </Box>
+
+              {/* Cible */}
+              <Typography sx={{ fontSize: '11px', fontWeight: 500, color: '#86868b', textAlign: 'right', letterSpacing: '0.02em' }}>
+                Cible {kpi.target}{kpi.unit}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Card>
+    );
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-      {/* Tabs - Style exact du projet Healthcare */}
-      <Card sx={{ 
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98))',
-        backdropFilter: 'blur(20px)',
-        borderRadius: 4,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-        '&:hover': {
-          boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
-          transform: 'translateY(-2px)',
-          transition: 'all 0.5s ease'
-        },
-        p: 1
+      {/* Tabs - Premium executive style */}
+      <Box sx={{
+        background: '#ffffff',
+        borderRadius: '10px',
+        border: '1px solid #ebebef',
+        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+        p: 0.5,
+        display: 'inline-flex',
+        alignSelf: 'flex-start'
       }}>
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', gap: 0.25 }}>
           {[
-            { id: 'overview', label: 'VUE D\'ENSEMBLE', icon: ChartBarIcon },
-            { id: 'services', label: 'PAR SERVICE', icon: ChartPieIcon },
-            { id: 'trends', label: 'TENDANCES', icon: ArrowTrendingUpIcon },
-            { id: 'performance', label: 'PERFORMANCE', icon: ClockIcon }
+            { id: 'services', label: 'Par service', icon: ChartPieIcon },
+            { id: 'trends', label: 'Tendances', icon: ArrowTrendingUpIcon },
+            { id: 'performance', label: 'Performance', icon: ClockIcon }
           ].map((tab) => (
             <Box
               key={tab.id}
@@ -926,52 +730,43 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1,
-                px: 3,
-                py: 1.5,
-                fontSize: '0.875rem',
-                borderRadius: 3,
-                transition: 'all 0.3s ease',
+                gap: 0.75,
+                px: 2,
+                py: 1,
+                fontSize: '0.8125rem',
+                borderRadius: '7px',
+                transition: 'all 0.15s ease',
                 fontWeight: 600,
                 cursor: 'pointer',
-                textTransform: 'uppercase',
-                letterSpacing: '0.025em',
+                letterSpacing: '-0.005em',
                 ...(activeTab === tab.id
                   ? {
-                      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                      color: 'white',
-                      boxShadow: '0 8px 25px rgba(59, 130, 246, 0.3)',
-                      transform: 'scale(1.05)',
-                      '& .MuiSvgIcon-root': {
-                        color: 'white'
-                      }
+                      background: '#0f172a',
+                      color: '#ffffff',
+                      '& .MuiSvgIcon-root': { color: '#5eead4' }
                     }
                   : {
                       color: '#64748b',
                       '&:hover': {
-                        color: '#1e293b',
-                        bgcolor: 'grey.50',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+                        color: '#1d1d1f',
+                        bgcolor: '#f8fafc'
                       },
-                      '& .MuiSvgIcon-root': {
-                        color: '#64748b'
-                      }
+                      '& .MuiSvgIcon-root': { color: '#94a3b8' }
                     }
                 )
               }}
             >
-              <tab.icon sx={{ fontSize: 20 }} />
+              <tab.icon sx={{ fontSize: 16 }} />
               <Typography variant="body2" sx={{ fontWeight: 'inherit', fontSize: 'inherit' }}>
                 {tab.label}
               </Typography>
             </Box>
           ))}
         </Box>
-      </Card>
+      </Box>
 
-      {/* Contenu des tabs */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {activeTab === 'overview' && renderOverview()}
+      {/* Contenu des tabs - hauteur stabilisée pour éviter le saut visuel */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, minHeight: '600px' }}>
         {activeTab === 'services' && renderServices()}
         {activeTab === 'trends' && renderTrends()}
         {activeTab === 'performance' && renderPerformance()}
