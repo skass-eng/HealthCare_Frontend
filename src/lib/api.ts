@@ -286,6 +286,119 @@ class ApiService {
     } as ApiResponse<void>;
   }
 
+  // ==================== SUIVI / RÉPONSE / NOTES / HISTORIQUE ====================
+
+  // Récupérer l'historique des actions d'une plainte
+  async getPlainteHistorique(plainteId: number): Promise<ApiResponse<{
+    historique: Array<{
+      action: string;
+      details?: string | null;
+      donnees_avant?: any;
+      donnees_apres?: any;
+      date: string;
+    }>;
+  }>> {
+    const response = await this.api.get(`/api/v1/plaintes/${plainteId}/historique`);
+    return {
+      success: true,
+      data: response.data,
+      message: 'Historique récupéré avec succès'
+    } as ApiResponse<{
+      historique: Array<{
+        action: string;
+        details?: string | null;
+        donnees_avant?: any;
+        donnees_apres?: any;
+        date: string;
+      }>;
+    }>;
+  }
+
+  // Récupérer les notes d'instruction d'une plainte
+  async getPlainteNotes(plainteId: number): Promise<ApiResponse<any[]>> {
+    const response = await this.api.get(`/api/v1/plaintes/${plainteId}/notes`);
+    return {
+      success: true,
+      data: response.data,
+      message: 'Notes récupérées avec succès'
+    } as ApiResponse<any[]>;
+  }
+
+  // Ajouter une note d'instruction à une plainte
+  async addPlainteNote(plainteId: number, contenu: string, auteurId?: number | null): Promise<ApiResponse<any>> {
+    const response = await this.api.post(`/api/v1/plaintes/${plainteId}/notes`, {
+      contenu,
+      auteur_id: auteurId ?? null
+    });
+    return {
+      success: true,
+      data: response.data,
+      message: 'Note ajoutée avec succès'
+    } as ApiResponse<any>;
+  }
+
+  // Enregistrer le brouillon de réponse officielle d'une plainte
+  async savePlainteReponse(plainteId: number, contenu: string): Promise<ApiResponse<any>> {
+    const response = await this.api.put(`/api/v1/plaintes/${plainteId}/reponse`, { contenu });
+    return {
+      success: true,
+      data: response.data,
+      message: 'Réponse enregistrée avec succès'
+    } as ApiResponse<any>;
+  }
+
+  // Marquer la réponse comme envoyée au plaignant
+  async envoyerPlainteReponse(plainteId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.post(`/api/v1/plaintes/${plainteId}/reponse/envoyer`);
+    return {
+      success: true,
+      data: response.data,
+      message: 'Réponse envoyée avec succès'
+    } as ApiResponse<any>;
+  }
+
+  // Émettre l'accusé de réception d'une plainte
+  async envoyerAccuseReception(plainteId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.post(`/api/v1/plaintes/${plainteId}/accuse-reception`);
+    return {
+      success: true,
+      data: response.data,
+      message: 'Accusé de réception envoyé avec succès'
+    } as ApiResponse<any>;
+  }
+
+  // Récupérer les statistiques de performance (délais, retards, satisfaction…)
+  async getStatistiquesPerformance(): Promise<ApiResponse<{
+    total: number;
+    resolues: number;
+    taux_resolution: number;
+    temps_traitement_moyen_jours: number | null;
+    nb_en_retard: number;
+    taux_en_retard: number;
+    satisfaction_pct: number | null;
+    taux_recurrence: number;
+    nb_reponses_envoyees: number;
+    nb_accuses_reception: number;
+  }>> {
+    const response = await this.api.get('/api/v1/plaintes/statistiques/performance');
+    return {
+      success: true,
+      data: response.data,
+      message: 'Statistiques de performance récupérées avec succès'
+    } as ApiResponse<{
+      total: number;
+      resolues: number;
+      taux_resolution: number;
+      temps_traitement_moyen_jours: number | null;
+      nb_en_retard: number;
+      taux_en_retard: number;
+      satisfaction_pct: number | null;
+      taux_recurrence: number;
+      nb_reponses_envoyees: number;
+      nb_accuses_reception: number;
+    }>;
+  }
+
   // ==================== GESTION DES ANALYSES ====================
 
   // Déclencher des analyses pour une plainte

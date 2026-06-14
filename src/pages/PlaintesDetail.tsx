@@ -90,6 +90,34 @@ interface Plainte {
   pdf_rapport?: PdfRapport | null;
   analyse_ia?: AnalyseIA | null;
   assigned_user?: { id: number; nom: string; prenom: string; email: string } | null;
+  assignee_a_id?: number | null;
+  // Suivi des délais et de la réponse officielle
+  date_limite_reponse?: string | null;
+  date_resolution?: string | null;
+  est_en_retard?: boolean;
+  jours_restants?: number | null;
+  reponse_redigee?: string | null;
+  reponse_envoyee?: boolean;
+  date_reponse_envoyee?: string | null;
+  accuse_reception_envoye?: boolean;
+  date_accuse_reception?: string | null;
+}
+
+interface PlainteNote {
+  id?: number;
+  contenu: string;
+  auteur_id?: number | null;
+  auteur_nom?: string | null;
+  date_creation?: string;
+  date?: string;
+}
+
+interface HistoriqueEntry {
+  action: string;
+  details?: string | null;
+  donnees_avant?: any;
+  donnees_apres?: any;
+  date: string;
 }
 
 interface EditFormData {
@@ -109,8 +137,6 @@ const PlaintesDetail: React.FC = () => {
   const [plainte, setPlainte] = useState<Plainte | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
-  const [aiResponse, setAiResponse] = useState<string>('');
-  const [generatingResponse, setGeneratingResponse] = useState(false);
   const [documents, setDocuments] = useState<PlainteDocument[]>([]);
   const [pdfRapport, setPdfRapport] = useState<PdfRapport | null>(null);
   const [analyseIA, setAnalyseIA] = useState<AnalyseIA | null>(null);
@@ -135,12 +161,28 @@ const PlaintesDetail: React.FC = () => {
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [currentPriority, setCurrentPriority] = useState('MOYEN');
   const [currentStatus, setCurrentStatus] = useState('TRAITE');
-  const [manualResponse, setManualResponse] = useState<string>('');
-  const [showResponseEditor, setShowResponseEditor] = useState<boolean>(false);
+
+  // États pour la réponse officielle, l'accusé de réception, les notes, l'historique et la ré-affectation
+  const [officialResponse, setOfficialResponse] = useState<string>('');
+  const [savingResponse, setSavingResponse] = useState(false);
+  const [sendingResponse, setSendingResponse] = useState(false);
+  const [sendingAccuse, setSendingAccuse] = useState(false);
+  const [notes, setNotes] = useState<PlainteNote[]>([]);
+  const [newNote, setNewNote] = useState<string>('');
+  const [addingNote, setAddingNote] = useState(false);
+  const [historique, setHistorique] = useState<HistoriqueEntry[]>([]);
+  const [servicesList, setServicesList] = useState<Array<{ id: number; nom: string }>>([]);
+  const [usersList, setUsersList] = useState<Array<{ id: number; nom_complet?: string; email: string }>>([]);
+  const [selectedServiceId, setSelectedServiceId] = useState<number | ''>('');
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<number | ''>('');
+  const [savingAssignment, setSavingAssignment] = useState(false);
 
   useEffect(() => {
     if (id) {
       loadPlainte();
+      loadNotes();
+      loadHistorique();
+      loadAssignmentOptions();
     }
   }, [id]);
 
@@ -184,10 +226,31 @@ const PlaintesDetail: React.FC = () => {
           documents: data.documents || [],
           pdf_rapport: data.pdf_rapport,
           analyse_ia: data.analyse_ia,
-          assigned_user: data.assigned_user
+          assigned_user: data.assigned_user,
+          assignee_a_id: data.assignee_a_id ?? data.assigned_user?.id ?? null,
+          date_limite_reponse: data.date_limite_reponse,
+          date_resolution: data.date_resolution,
+          est_en_retard: data.est_en_retard,
+          jours_restants: data.jours_restants,
+          reponse_redigee: data.reponse_redigee,
+          reponse_envoyee: data.reponse_envoyee,
+          date_reponse_envoyee: data.date_reponse_envoyee,
+          accuse_reception_envoye: data.accuse_reception_envoye,
+          date_accuse_reception: data.date_accuse_reception
         };
-        
+
         setPlainte(plainteData);
+
+        // Pré-remplir la réponse officielle (brouillon rédigé sinon suggestion IA)
+        setOfficialResponse(
+          data.reponse_redigee || data.analyse_ia?.reponse_suggeree || ''
+        );
+
+        // Pré-sélectionner le service et le responsable courants pour la ré-affectation
+        setSelectedServiceId(
+          data.service_id ?? (typeof data.service === 'object' ? data.service?.id : '') ?? ''
+        );
+        setSelectedAssigneeId(data.assignee_a_id ?? data.assigned_user?.id ?? '');
         
         // Mettre à jour les documents
         if (data.documents && data.documents.length > 0) {
@@ -199,12 +262,9 @@ const PlaintesDetail: React.FC = () => {
           setPdfRapport(data.pdf_rapport);
         }
         
-        // Mettre à jour l'analyse IA et pré-remplir la réponse suggérée
+        // Mettre à jour l'analyse IA (la réponse suggérée pré-remplit la réponse officielle ci-dessous)
         if (data.analyse_ia) {
           setAnalyseIA(data.analyse_ia);
-          if (data.analyse_ia.reponse_suggeree) {
-            setAiResponse(data.analyse_ia.reponse_suggeree);
-          }
         }
         
         // Mettre à jour le statut
@@ -246,6 +306,186 @@ const PlaintesDetail: React.FC = () => {
     }
   };
 
+  // Charger les notes d'instruction
+  const loadNotes = async () => {
+    if (!id) return;
+    try {
+      const response = await apiService.getPlainteNotes(parseInt(id));
+      if (response.success && Array.isArray(response.data)) {
+        setNotes(response.data);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des notes:', error);
+    }
+  };
+
+  // Charger l'historique des actions
+  const loadHistorique = async () => {
+    if (!id) return;
+    try {
+      const response = await apiService.getPlainteHistorique(parseInt(id));
+      if (response.success && response.data?.historique) {
+        setHistorique(response.data.historique);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement de l\'historique:', error);
+    }
+  };
+
+  // Charger les services et utilisateurs pour la ré-affectation
+  const loadAssignmentOptions = async () => {
+    try {
+      const [servicesResp, usersResp] = await Promise.all([
+        apiService.getServicesForComplaint(),
+        apiService.getUsersForAssignment()
+      ]);
+      if (servicesResp.success && Array.isArray(servicesResp.data)) {
+        setServicesList(servicesResp.data.map((s: any) => ({ id: s.id, nom: s.nom })));
+      }
+      if (usersResp.success && Array.isArray(usersResp.data)) {
+        setUsersList(usersResp.data.map((u: any) => ({
+          id: u.id,
+          nom_complet: u.nom_complet,
+          email: u.email
+        })));
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des options d\'affectation:', error);
+    }
+  };
+
+  // Enregistrer le brouillon de réponse officielle
+  const saveOfficialResponse = async () => {
+    if (!id) return;
+    if (!officialResponse.trim()) {
+      showNotification('Veuillez saisir une réponse');
+      return;
+    }
+    try {
+      setSavingResponse(true);
+      const response = await apiService.savePlainteReponse(parseInt(id), officialResponse);
+      if (response.success) {
+        setPlainte(prev => prev ? { ...prev, reponse_redigee: officialResponse } : null);
+        showNotification('Réponse enregistrée ✅');
+        loadHistorique();
+      } else {
+        showNotification('Erreur lors de l\'enregistrement de la réponse ❌');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement de la réponse:', error);
+      showNotification('Erreur lors de l\'enregistrement de la réponse ❌');
+    } finally {
+      setSavingResponse(false);
+    }
+  };
+
+  // Envoyer la réponse au plaignant
+  const sendOfficialResponse = async () => {
+    if (!id) return;
+    if (!officialResponse.trim()) {
+      showNotification('Veuillez saisir une réponse avant de l\'envoyer');
+      return;
+    }
+    try {
+      setSendingResponse(true);
+      // S'assurer que le brouillon est sauvegardé avant l'envoi
+      await apiService.savePlainteReponse(parseInt(id), officialResponse);
+      const response = await apiService.envoyerPlainteReponse(parseInt(id));
+      if (response.success) {
+        setPlainte(prev => prev ? {
+          ...prev,
+          reponse_redigee: officialResponse,
+          reponse_envoyee: true,
+          date_reponse_envoyee: response.data?.date_reponse_envoyee || new Date().toISOString()
+        } : null);
+        showNotification('Réponse envoyée au plaignant ✅');
+        loadHistorique();
+      } else {
+        showNotification('Erreur lors de l\'envoi de la réponse ❌');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de la réponse:', error);
+      showNotification('Erreur lors de l\'envoi de la réponse ❌');
+    } finally {
+      setSendingResponse(false);
+    }
+  };
+
+  // Envoyer l'accusé de réception
+  const sendAccuseReception = async () => {
+    if (!id) return;
+    try {
+      setSendingAccuse(true);
+      const response = await apiService.envoyerAccuseReception(parseInt(id));
+      if (response.success) {
+        setPlainte(prev => prev ? {
+          ...prev,
+          accuse_reception_envoye: true,
+          date_accuse_reception: response.data?.date_accuse_reception || new Date().toISOString()
+        } : null);
+        showNotification('Accusé de réception envoyé ✅');
+        loadHistorique();
+      } else {
+        showNotification('Erreur lors de l\'envoi de l\'accusé de réception ❌');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de l\'accusé de réception:', error);
+      showNotification('Erreur lors de l\'envoi de l\'accusé de réception ❌');
+    } finally {
+      setSendingAccuse(false);
+    }
+  };
+
+  // Ajouter une note d'instruction
+  const addNote = async () => {
+    if (!id) return;
+    if (!newNote.trim()) {
+      showNotification('Veuillez saisir une note');
+      return;
+    }
+    try {
+      setAddingNote(true);
+      const response = await apiService.addPlainteNote(parseInt(id), newNote, null);
+      if (response.success) {
+        setNewNote('');
+        await loadNotes();
+        showNotification('Note ajoutée ✅');
+      } else {
+        showNotification('Erreur lors de l\'ajout de la note ❌');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de la note:', error);
+      showNotification('Erreur lors de l\'ajout de la note ❌');
+    } finally {
+      setAddingNote(false);
+    }
+  };
+
+  // Enregistrer la ré-affectation (service et/ou responsable)
+  const saveAssignment = async () => {
+    if (!id) return;
+    const updatedData: any = {};
+    if (selectedServiceId !== '') updatedData.service_id = Number(selectedServiceId);
+    updatedData.assignee_a_id = selectedAssigneeId === '' ? null : Number(selectedAssigneeId);
+
+    try {
+      setSavingAssignment(true);
+      const response = await apiService.updatePlainte(parseInt(id), updatedData);
+      if (response.success) {
+        showNotification('Affectation mise à jour ✅');
+        await loadPlainte();
+        loadHistorique();
+      } else {
+        showNotification('Erreur lors de la mise à jour de l\'affectation ❌');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'affectation:', error);
+      showNotification('Erreur lors de la mise à jour de l\'affectation ❌');
+    } finally {
+      setSavingAssignment(false);
+    }
+  };
+
   // Fonction pour télécharger un document
   const downloadDocument = (doc: PlainteDocument) => {
     if (!id) return;
@@ -266,31 +506,6 @@ const PlaintesDetail: React.FC = () => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
-  const generateAIResponse = async () => {
-    if (!plainte) return;
-    
-    try {
-      setGeneratingResponse(true);
-      // Utiliser la réponse suggérée de l'analyse IA si disponible
-      if (analyseIA?.reponse_suggeree) {
-        setAiResponse(analyseIA.reponse_suggeree);
-        setGeneratingResponse(false);
-        showNotification('Réponse IA récupérée avec succès ✅');
-        return;
-      }
-      
-      // Sinon, simulation d'une réponse IA
-      setTimeout(() => {
-        setAiResponse('Cher(e) ' + plainte.nom_plaignant + ',\n\nNous vous remercions de nous avoir fait part de votre préoccupation concernant le temps d\'attente aux urgences. Nous comprenons votre frustration et nous nous excusons pour ce désagrément.\n\nNous avons transmis votre plainte à l\'équipe de direction des urgences qui va examiner les circonstances de votre visite et prendre les mesures nécessaires pour améliorer nos délais de prise en charge.\n\nUn responsable vous contactera dans les 48 heures pour un suivi personnalisé.\n\nCordialement,\nService Qualité');
-        setGeneratingResponse(false);
-      }, 2000);
-    } catch (error) {
-      console.error('Erreur lors de la génération de la réponse IA:', error);
-      setAiResponse('Erreur lors de la génération de la réponse IA.');
-      setGeneratingResponse(false);
-    }
   };
 
   const handleStatusChange = async (direction: 'next' | 'prev') => {
@@ -430,36 +645,6 @@ const PlaintesDetail: React.FC = () => {
     }
   };
 
-  const saveManualResponse = () => {
-    if (!manualResponse.trim()) {
-      showNotification('Veuillez saisir une réponse');
-      return;
-    }
-    
-    // Sauvegarde locale uniquement (la colonne reponse_manuelle n'existe pas en BDD)
-    setShowResponseEditor(false);
-    showNotification('Réponse sauvegardée localement ✅');
-  };
-
-  const generateAIResponseAndFill = async () => {
-    if (!plainte) return;
-    
-    try {
-      setGeneratingResponse(true);
-      // Simulation d'une réponse IA
-      setTimeout(() => {
-        const response = 'Cher(e) ' + plainte.nom_plaignant + ',\n\nNous vous remercions de nous avoir fait part de votre préoccupation. Nous allons examiner votre dossier avec attention et vous tenir informé(e) des suites données.\n\nCordialement,\nService Qualité';
-        setManualResponse(response);
-        setShowResponseEditor(true);
-        showNotification('Réponse IA générée et ajoutée au rédacteur ✅');
-        setGeneratingResponse(false);
-      }, 2000);
-    } catch (error) {
-      console.error('Erreur lors de la génération de la réponse IA:', error);
-      setGeneratingResponse(false);
-    }
-  };
-
   const showNotification = (message: string) => {
     // Créer une notification temporaire
     const notification = document.createElement('div');
@@ -534,6 +719,32 @@ const PlaintesDetail: React.FC = () => {
       default:
         return '#0d9488';
     }
+  };
+
+  // Couleur du badge de délai selon le retard / les jours restants
+  const getDelaiBadge = (): { label: string; bg: string } => {
+    if (plainte?.est_en_retard) {
+      return { label: 'EN RETARD', bg: '#dc2626' };
+    }
+    const jours = plainte?.jours_restants;
+    if (jours == null) {
+      return { label: 'Pas d\'échéance', bg: '#86868b' };
+    }
+    if (jours < 0) {
+      return { label: `J${jours}`, bg: '#dc2626' };
+    }
+    if (jours <= 7) {
+      return { label: `J-${jours}`, bg: '#d97706' };
+    }
+    return { label: `J-${jours}`, bg: '#059669' };
+  };
+
+  // Rendre lisible une clé d'action de l'historique
+  const formatHistoriqueAction = (action: string): string => {
+    if (!action) return 'Action';
+    return action
+      .replace(/_/g, ' ')
+      .replace(/^\w/, (c) => c.toUpperCase());
   };
 
   const handleBack = () => {
@@ -712,6 +923,51 @@ const PlaintesDetail: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Bandeau délai de réponse */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+          border: '1px solid rgba(255,255,255,0.3)',
+          padding: '20px 24px',
+          marginBottom: '32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <ClockIcon style={{ fontSize: '22px', color: '#3b82f6' }} />
+            <div>
+              <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Délai de réponse
+              </p>
+              <p style={{ margin: '2px 0 0 0', fontSize: '15px', fontWeight: 600, color: '#1f2937' }}>
+                {plainte.date_limite_reponse
+                  ? `Échéance : ${formatDate(plainte.date_limite_reponse)}`
+                  : 'Aucune échéance définie'}
+              </p>
+            </div>
+          </div>
+          {(() => {
+            const badge = getDelaiBadge();
+            return (
+              <span style={{
+                padding: '8px 18px',
+                borderRadius: '24px',
+                fontSize: '14px',
+                fontWeight: 700,
+                color: 'white',
+                background: badge.bg,
+                whiteSpace: 'nowrap'
+              }}>
+                {badge.label}
+              </span>
+            );
+          })()}
         </div>
 
         {/* Contenu principal */}
@@ -1065,101 +1321,153 @@ const PlaintesDetail: React.FC = () => {
               )}
             </div>
 
-            {/* Réponse IA Générée - Affichage automatique */}
-            {aiResponse && (
-              <div style={{
-                background: '#f8fafc',
-                borderRadius: '16px',
-                boxShadow: '0 20px 40px rgba(139, 92, 246, 0.15)',
-                border: '2px solid rgba(139, 92, 246, 0.3)',
-                padding: '32px',
-                marginBottom: '24px'
-              }}>
+            {/* Réponse officielle au plaignant */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              padding: '32px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <h2 style={{
                   fontSize: '20px',
                   fontWeight: 700,
-                  color: '#7c3aed',
-                  margin: '0 0 20px 0',
+                  color: '#1f2937',
+                  margin: 0,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px'
                 }}>
-                  <SparklesIcon style={{ fontSize: '24px', color: '#8b5cf6' }} />
-                  🤖 Réponse Juridique IA (Générée automatiquement)
+                  <SparklesIcon style={{ fontSize: '24px', color: '#3b82f6' }} />
+                  Réponse officielle
                 </h2>
-                
-                <div style={{
-                  background: 'white',
-                  borderRadius: '12px',
-                  padding: '24px',
-                  border: '1px solid rgba(139, 92, 246, 0.2)'
-                }}>
-                  <pre style={{
-                    whiteSpace: 'pre-wrap',
-                    fontFamily: 'inherit',
-                    fontSize: '14px',
-                    lineHeight: '1.7',
-                    color: '#374151',
-                    margin: 0
+                {plainte.reponse_envoyee && (
+                  <span style={{
+                    padding: '6px 14px',
+                    borderRadius: '24px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: 'white',
+                    background: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}>
-                    {aiResponse}
-                  </pre>
-                </div>
-                
-                <div style={{ 
-                  marginTop: '16px', 
-                  display: 'flex', 
-                  gap: '12px',
-                  justifyContent: 'flex-end'
-                }}>
-                  <button
-                    onClick={() => {
-                      setManualResponse(aiResponse);
-                      setShowResponseEditor(true);
-                    }}
-                    style={{
-                      background: '#1d1d1f',
-                      color: 'white',
-                      padding: '10px 20px',
-                      borderRadius: '10px',
-                      fontWeight: 600,
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <PencilIcon style={{ fontSize: '16px' }} />
-                    Modifier cette réponse
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(aiResponse);
-                      showNotification('Réponse copiée dans le presse-papier ✅');
-                    }}
-                    style={{
-                      background: '#059669',
-                      color: 'white',
-                      padding: '10px 20px',
-                      borderRadius: '10px',
-                      fontWeight: 600,
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    📋 Copier
-                  </button>
-                </div>
+                    <CheckIcon style={{ fontSize: '16px' }} />
+                    Envoyée{plainte.date_reponse_envoyee ? ` le ${formatDate(plainte.date_reponse_envoyee)}` : ''}
+                  </span>
+                )}
               </div>
-            )}
 
-            {/* Rédaction de réponse */}
+              <p style={{ marginBottom: '12px', color: '#475569', fontSize: '14px' }}>
+                Réponse pré-remplie à partir du brouillon enregistré ou de la suggestion IA. Modifiez-la avant de l'envoyer au plaignant.
+              </p>
+
+              {analyseIA?.reponse_suggeree && (
+                <button
+                  onClick={() => {
+                    setOfficialResponse(analyseIA.reponse_suggeree);
+                    showNotification('Réponse réinitialisée depuis la suggestion IA ✅');
+                  }}
+                  style={{
+                    marginBottom: '12px',
+                    background: 'rgba(139, 92, 246, 0.1)',
+                    color: '#7c3aed',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <SparklesIcon style={{ fontSize: '16px' }} />
+                  Réinitialiser depuis la suggestion IA
+                </button>
+              )}
+
+              <textarea
+                value={officialResponse}
+                onChange={(e) => setOfficialResponse(e.target.value)}
+                placeholder="Rédigez la réponse officielle ici..."
+                style={{
+                  width: '100%',
+                  minHeight: '180px',
+                  padding: '16px',
+                  background: '#f8fafc',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '12px',
+                  color: '#1f2937',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  lineHeight: 1.6,
+                  resize: 'vertical',
+                  outline: 'none',
+                  transition: 'border-color 0.2s ease',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
+              />
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={saveOfficialResponse}
+                  disabled={savingResponse}
+                  style={{
+                    flex: '1 1 160px',
+                    background: savingResponse ? '#9ca3af' : '#1d1d1f',
+                    color: 'white',
+                    padding: '12px 20px',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: savingResponse ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseOver={(e) => { if (!savingResponse) e.currentTarget.style.background = '#0f172a'; }}
+                  onMouseOut={(e) => { if (!savingResponse) e.currentTarget.style.background = '#1d1d1f'; }}
+                >
+                  <CheckIcon style={{ fontSize: '18px' }} />
+                  {savingResponse ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+
+                <button
+                  onClick={sendOfficialResponse}
+                  disabled={sendingResponse}
+                  style={{
+                    flex: '1 1 200px',
+                    background: sendingResponse ? '#9ca3af' : '#059669',
+                    color: 'white',
+                    padding: '12px 20px',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: sendingResponse ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseOver={(e) => { if (!sendingResponse) e.currentTarget.style.background = '#047857'; }}
+                  onMouseOut={(e) => { if (!sendingResponse) e.currentTarget.style.background = '#059669'; }}
+                >
+                  <PaperAirplaneIcon style={{ fontSize: '18px' }} />
+                  {sendingResponse ? 'Envoi...' : 'Envoyer au plaignant'}
+                </button>
+              </div>
+            </div>
+
+            {/* Notes d'instruction */}
             <div style={{
               background: '#ffffff',
               borderRadius: '16px',
@@ -1171,175 +1479,309 @@ const PlaintesDetail: React.FC = () => {
                 fontSize: '20px',
                 fontWeight: 700,
                 color: '#1f2937',
-                margin: '0 0 24px 0',
+                margin: '0 0 20px 0',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px'
               }}>
-                <SparklesIcon style={{ fontSize: '24px', color: '#3b82f6' }} />
-                {aiResponse ? 'Rédiger une autre réponse' : 'Rédaction de réponse'}
+                <DocumentTextIcon style={{ fontSize: '24px', color: '#3b82f6' }} />
+                Notes d'instruction ({notes.length})
               </h2>
-              
-              <div style={{
-                background: '#f8fafc',
-                borderRadius: '12px',
-                padding: '24px'
-              }}>
-                <p style={{ marginBottom: '16px', color: '#475569' }}>
-                  {aiResponse 
-                    ? 'Vous pouvez modifier la réponse IA ci-dessus ou rédiger une réponse personnalisée.'
-                    : 'Rédigez une réponse personnalisée ou utilisez l\'IA pour générer une réponse basée sur les meilleures pratiques.'
-                  }
-                </p>
-                
-                {!showResponseEditor ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <button
-                      onClick={() => setShowResponseEditor(true)}
-                      style={{
-                        width: '100%',
-                        background: '#1d1d1f',
-                        color: 'white',
-                        padding: '12px 24px',
-                        borderRadius: '12px',
-                        fontWeight: 600,
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.background = '#0f172a'}
-                      onMouseOut={(e) => e.currentTarget.style.background = '#1d1d1f'}
-                    >
-                      <PencilIcon style={{ fontSize: '20px' }} />
-                      Rédiger une réponse manuelle
-                    </button>
-                    
-                    <button
-                      onClick={generateAIResponseAndFill}
-                      disabled={generatingResponse}
-                      style={{
-                        width: '100%',
-                        background: generatingResponse ? '#9ca3af' : '#0d9488',
-                        color: 'white',
-                        padding: '12px 24px',
-                        borderRadius: '12px',
-                        fontWeight: 600,
-                        border: 'none',
-                        cursor: generatingResponse ? 'not-allowed' : 'pointer',
-                        opacity: generatingResponse ? 0.5 : 1,
-                        transition: 'all 0.3s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                      }}
-                      onMouseOver={(e) => {
-                        if (!generatingResponse) e.currentTarget.style.background = '#0f766e';
-                      }}
-                      onMouseOut={(e) => {
-                        if (!generatingResponse) e.currentTarget.style.background = '#0d9488';
-                      }}
-                    >
-                      {generatingResponse ? (
-                        <div style={{
-                          width: '20px',
-                          height: '20px',
-                          border: '2px solid #f3f4f6',
-                          borderTop: '2px solid #8b5cf6',
-                          borderRadius: '50%',
-                          animation: 'spin 1s linear infinite'
-                        }} />
-                      ) : (
-                        <SparklesIcon style={{ fontSize: '20px' }} />
-                      )}
-                      {generatingResponse ? 'Génération en cours...' : 'Générer avec l\'IA'}
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <textarea
-                      value={manualResponse}
-                      onChange={(e) => setManualResponse(e.target.value)}
-                      placeholder="Rédigez votre réponse ici..."
-                      style={{
-                        width: '100%',
-                        height: '128px',
-                        padding: '16px',
-                        background: 'white',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '12px',
-                        color: '#1f2937',
-                        fontSize: '14px',
-                        fontFamily: 'inherit',
-                        resize: 'none',
-                        outline: 'none',
-                        transition: 'border-color 0.2s ease'
-                      }}
-                      onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
-                      onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
-                    />
-                    
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <button
-                        onClick={saveManualResponse}
-                        style={{
-                          flex: 1,
-                          background: '#059669',
-                          color: 'white',
-                          padding: '8px 16px',
-                          borderRadius: '12px',
-                          fontWeight: 600,
-                          border: 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.background = '#047857'}
-                        onMouseOut={(e) => e.currentTarget.style.background = '#059669'}
-                      >
-                        <CheckIcon style={{ fontSize: '16px' }} />
-                        Sauvegarder
-                      </button>
-                      
-                      <button
-                        onClick={() => setShowResponseEditor(false)}
-                        style={{
-                          flex: 1,
-                          background: '#ffffff',
-                          color: '#475569',
-                          padding: '8px 16px',
-                          borderRadius: '12px',
-                          fontWeight: 600,
-                          border: 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.background = '#f5f5f7'}
-                        onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                      >
-                        <XMarkIcon style={{ fontSize: '16px' }} />
-                        Annuler
-                      </button>
+
+              {notes.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                  {notes.map((note, idx) => (
+                    <div key={note.id ?? idx} style={{
+                      background: '#f8fafc',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      borderLeft: '4px solid #3b82f6'
+                    }}>
+                      <p style={{ margin: 0, color: '#374151', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                        {note.contenu}
+                      </p>
+                      <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>
+                        {note.auteur_nom ? `${note.auteur_nom} • ` : ''}
+                        {(note.date_creation || note.date) ? formatDate((note.date_creation || note.date) as string) : ''}
+                      </p>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '20px' }}>
+                  Aucune note d'instruction pour le moment.
+                </p>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <textarea
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Ajouter une note d'instruction interne..."
+                  style={{
+                    width: '100%',
+                    minHeight: '80px',
+                    padding: '12px 16px',
+                    background: 'white',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '12px',
+                    color: '#1f2937',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    outline: 'none',
+                    transition: 'border-color 0.2s ease',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+                  onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
+                />
+                <button
+                  onClick={addNote}
+                  disabled={addingNote}
+                  style={{
+                    alignSelf: 'flex-start',
+                    background: addingNote ? '#9ca3af' : '#3b82f6',
+                    color: 'white',
+                    padding: '10px 20px',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: addingNote ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseOver={(e) => { if (!addingNote) e.currentTarget.style.background = '#2563eb'; }}
+                  onMouseOut={(e) => { if (!addingNote) e.currentTarget.style.background = '#3b82f6'; }}
+                >
+                  <CheckIcon style={{ fontSize: '16px' }} />
+                  {addingNote ? 'Ajout...' : 'Ajouter la note'}
+                </button>
               </div>
+            </div>
+
+            {/* Historique */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              padding: '32px'
+            }}>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: 700,
+                color: '#1f2937',
+                margin: '0 0 20px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <ClockIcon style={{ fontSize: '24px', color: '#3b82f6' }} />
+                Historique
+              </h2>
+
+              {historique.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                  {historique.map((entry, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex',
+                      gap: '12px',
+                      paddingBottom: idx < historique.length - 1 ? '16px' : '0',
+                      position: 'relative'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          background: '#3b82f6',
+                          marginTop: '4px',
+                          flexShrink: 0
+                        }} />
+                        {idx < historique.length - 1 && (
+                          <div style={{ width: '2px', flex: 1, background: '#e5e7eb', marginTop: '4px' }} />
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>
+                          {formatHistoriqueAction(entry.action)}
+                        </p>
+                        {entry.details && (
+                          <p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#6b7280', whiteSpace: 'pre-wrap' }}>
+                            {entry.details}
+                          </p>
+                        )}
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>
+                          {entry.date ? formatDate(entry.date) : ''}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: '#9ca3af', fontSize: '14px', margin: 0 }}>
+                  Aucun événement enregistré pour le moment.
+                </p>
+              )}
             </div>
           </div>
 
           {/* Sidebar */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Accusé de réception */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              padding: '24px'
+            }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1f2937', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <PaperAirplaneIcon style={{ fontSize: '20px', color: '#3b82f6' }} />
+                Accusé de réception
+              </h2>
+              {plainte.accuse_reception_envoye ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 16px',
+                  background: 'rgba(5, 150, 105, 0.08)',
+                  borderRadius: '12px',
+                  border: '1px solid #a7f3d0'
+                }}>
+                  <CheckIcon style={{ fontSize: '18px', color: '#059669' }} />
+                  <div>
+                    <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#065f46' }}>Envoyé</p>
+                    {plainte.date_accuse_reception && (
+                      <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#047857' }}>
+                        {formatDate(plainte.date_accuse_reception)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={sendAccuseReception}
+                  disabled={sendingAccuse}
+                  style={{
+                    width: '100%',
+                    background: sendingAccuse ? '#9ca3af' : '#1d1d1f',
+                    color: 'white',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: sendingAccuse ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseOver={(e) => { if (!sendingAccuse) e.currentTarget.style.background = '#0f172a'; }}
+                  onMouseOut={(e) => { if (!sendingAccuse) e.currentTarget.style.background = '#1d1d1f'; }}
+                >
+                  <PaperAirplaneIcon style={{ fontSize: '16px' }} />
+                  {sendingAccuse ? 'Envoi...' : 'Envoyer l\'accusé de réception'}
+                </button>
+              )}
+            </div>
+
+            {/* Ré-affectation */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              padding: '24px'
+            }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1f2937', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <UserIcon style={{ fontSize: '20px', color: '#3b82f6' }} />
+                Affectation
+              </h2>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                  Service
+                </label>
+                <select
+                  value={selectedServiceId === '' ? '' : String(selectedServiceId)}
+                  onChange={(e) => setSelectedServiceId(e.target.value === '' ? '' : Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    background: 'white',
+                    color: '#1f2937',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="">— Sélectionner un service —</option>
+                  {servicesList.map((s) => (
+                    <option key={s.id} value={String(s.id)}>{s.nom}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                  Responsable
+                </label>
+                <select
+                  value={selectedAssigneeId === '' ? '' : String(selectedAssigneeId)}
+                  onChange={(e) => setSelectedAssigneeId(e.target.value === '' ? '' : Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    background: 'white',
+                    color: '#1f2937',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="">— Non assigné —</option>
+                  {usersList.map((u) => (
+                    <option key={u.id} value={String(u.id)}>{u.nom_complet || u.email}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={saveAssignment}
+                disabled={savingAssignment}
+                style={{
+                  width: '100%',
+                  background: savingAssignment ? '#9ca3af' : '#059669',
+                  color: 'white',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: savingAssignment ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onMouseOver={(e) => { if (!savingAssignment) e.currentTarget.style.background = '#047857'; }}
+                onMouseOut={(e) => { if (!savingAssignment) e.currentTarget.style.background = '#059669'; }}
+              >
+                <CheckIcon style={{ fontSize: '16px' }} />
+                {savingAssignment ? 'Enregistrement...' : 'Mettre à jour l\'affectation'}
+              </button>
+            </div>
+
             {/* Informations du patient */}
             <div style={{
               background: '#ffffff',
