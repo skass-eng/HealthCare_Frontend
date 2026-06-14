@@ -230,17 +230,20 @@ const archiveExtractionSlice = createSlice({
       state.isProcessing = true;
       state.processingTaskId = action.payload.taskId;
       state.processingBatchId = action.payload.batchId;
+      // On ne (re)traite que les fichiers sélectionnés PAS déjà complétés: évite de
+      // recréer des plaintes en double si on relance après un batch partiel.
+      const aTraiter = (f: DetectedFile) => f.selected && f.status !== 'completed';
       state.progress = {
         ...initialProgress,
-        total: state.detectedFiles.filter(f => f.selected).length,
+        total: state.detectedFiles.filter(aTraiter).length,
         startTime: Date.now(),
       };
       state.results = [];
       state.error = null;
-      
-      // Marquer les fichiers sélectionnés comme "processing"
+
+      // Marquer les fichiers à traiter comme "pending" (sans toucher aux déjà complétés)
       state.detectedFiles.forEach(f => {
-        if (f.selected) {
+        if (aTraiter(f)) {
           f.status = 'pending';
           f.progress = 0;
         }

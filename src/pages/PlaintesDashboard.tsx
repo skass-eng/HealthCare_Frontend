@@ -103,11 +103,30 @@ const PlaintesDashboard: React.FC = () => {
     }
   };
 
-  // Charger les données au montage du composant avec les valeurs du store Redux
+  // Charger les données au montage du composant avec les valeurs du store Redux.
+  // Si la date de fin persistée (redux-persist) est périmée (>30 j dans le passé), on
+  // réinitialise sur la fenêtre par défaut (3 derniers mois) pour éviter un dashboard
+  // vide à cause d'un vieux filtre — même garde que DashboardUnified.
   useEffect(() => {
-    console.log('🔄 Chargement initial avec filtres Redux:', { currentPage, currentStatut, dateDebut, dateFin });
-    loadStatistiques(dateDebut, dateFin);
-    loadPlaintes(currentPage, currentStatut, dateDebut, dateFin);
+    const today = new Date();
+    const persistedFin = dateFin ? new Date(dateFin) : null;
+    const isStale = !persistedFin || (today.getTime() - persistedFin.getTime()) > 30 * 24 * 3600 * 1000;
+
+    if (isStale) {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const defDebut = fmt(threeMonthsAgo);
+      const defFin = fmt(today);
+      console.log('🔄 Filtres de dates périmés → réinitialisation 3 derniers mois');
+      dispatch(resetDateFilters());
+      loadStatistiques(defDebut, defFin);
+      loadPlaintes(currentPage, currentStatut, defDebut, defFin);
+    } else {
+      console.log('🔄 Chargement initial avec filtres Redux:', { currentPage, currentStatut, dateDebut, dateFin });
+      loadStatistiques(dateDebut, dateFin);
+      loadPlaintes(currentPage, currentStatut, dateDebut, dateFin);
+    }
   }, []);
 
   // Fonction pour gérer le changement de page (appelée par DashboardUnifiedPlaintes avec type, page)

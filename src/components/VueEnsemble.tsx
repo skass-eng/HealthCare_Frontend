@@ -17,6 +17,7 @@ import {
   Warning as ExclamationTriangleIcon
 } from '@mui/icons-material';
 import PlotlyChart from './PlotlyChart';
+import { scoreSentimentToPercent } from '@/lib/metrics';
 
 interface AnalyticsData {
   plaintesParService: { service: string; count: number; percentage: number }[];
@@ -75,7 +76,7 @@ const VueEnsemble: React.FC<VueEnsembleProps> = ({ analyticsData }) => {
               },
               {
                 Icon: CheckCircleIcon,
-                value: `${(analyticsData?.metriquesPerformance?.satisfaction_client || 0).toFixed(1)}%`,
+                value: `${scoreSentimentToPercent(analyticsData?.metriquesPerformance?.satisfaction_client).toFixed(0)}%`,
                 label: 'Satisfaction',
                 accent: '#059669'
               },

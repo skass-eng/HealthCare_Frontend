@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
+import { scoreSentimentToPercent } from '@/lib/metrics';
 import { 
   Box, 
   Card, 
@@ -593,7 +594,7 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
     const m = analyticsData?.metriquesPerformance;
     const kpis: Kpi[] = m ? [
       { key: 'taux_resolution', label: 'Taux de résolution', value: m.taux_resolution, target: 80, unit: '%', higherIsBetter: true },
-      { key: 'satisfaction_client', label: 'Satisfaction patient', value: (m.satisfaction_client / 5) * 100, target: 80, unit: '%', higherIsBetter: true },
+      { key: 'satisfaction_client', label: 'Satisfaction patient', value: scoreSentimentToPercent(m.satisfaction_client), target: 80, unit: '%', higherIsBetter: true },
       { key: 'qualite_soins', label: 'Qualité des soins', value: m.qualite_soins, target: 90, unit: '%', higherIsBetter: true },
       { key: 'temps_traitement_moyen', label: 'Délai de traitement', value: m.temps_traitement_moyen, target: 5, unit: 'j', higherIsBetter: false },
       { key: 'temps_reponse_moyen', label: 'Temps de réponse', value: m.temps_reponse_moyen, target: 2, unit: 'j', higherIsBetter: false },

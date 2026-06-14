@@ -44,6 +44,10 @@ import apiService from '@/lib/api';
 import wsService from '@/lib/websocket';
 import { toast } from 'sonner';
 
+// Délai d'inactivité (aucun event WebSocket) au-delà duquel on clôt un batch d'archive
+// resté bloqué (worker tombé / event de fin perdu sur la chaîne Redis→Socket.IO).
+const WATCHDOG_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
+
 interface ArchiveUploadPanelProps {
   onSubmit: (data: any) => void;
   onClose: () => void;
@@ -107,6 +111,40 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
   // Compteurs pour le batch
   const batchCountersRef = useRef({ success: 0, fail: 0, total: 0 });
 
+  // Watchdog: si aucun event WS n'arrive pendant WATCHDOG_TIMEOUT_MS, on clôt le batch
+  // pour ne pas laisser l'UI figée en "traitement" indéfiniment.
+  const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearWatchdog = useCallback(() => {
+    if (watchdogRef.current) {
+      clearTimeout(watchdogRef.current);
+      watchdogRef.current = null;
+    }
+  }, []);
+
+  const armWatchdog = useCallback(() => {
+    clearWatchdog();
+    watchdogRef.current = setTimeout(() => {
+      watchdogRef.current = null;
+      const { success, fail, total } = batchCountersRef.current;
+      if (total > 0 && success + fail < total) {
+        // Des fichiers n'ont jamais reçu d'event de fin (worker tombé / WS perdu):
+        // on les marque en échec et on clôt le batch.
+        const stranded = total - (success + fail);
+        Array.from(taskToFileMapRef.current.values()).forEach((fileId) => {
+          dispatch(fileProcessingFailed({ fileId, error: 'Délai dépassé (aucune réponse du serveur)' }));
+        });
+        dispatch(processingComplete({
+          message: `Traitement terminé (délai dépassé): ${success} réussies, ${fail + stranded} échec(s)`,
+        }));
+        toast.warning(`⏱️ ${stranded} fichier(s) sans réponse — traitement clôturé après délai`);
+        setShowResults(true);
+        taskToFileMapRef.current.clear();
+        batchCountersRef.current = { success: 0, fail: 0, total: 0 };
+      }
+    }, WATCHDOG_TIMEOUT_MS);
+  }, [clearWatchdog, dispatch]);
+
   // Configurer les listeners WebSocket pour le traitement batch
   useEffect(() => {
     if (!wsService.isConnected()) {
@@ -125,6 +163,7 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
           status: 'processing',
           progress: 25,
         }));
+        armWatchdog(); // activité reçue → on repousse le délai d'inactivité
       }
     };
 
@@ -139,6 +178,7 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
           status: 'processing',
           progress: progressPercent,
         }));
+        armWatchdog(); // activité reçue → on repousse le délai d'inactivité
       }
     };
 
@@ -198,6 +238,7 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
     const checkBatchComplete = () => {
       const { success, fail, total } = batchCountersRef.current;
       if (success + fail >= total && total > 0) {
+        clearWatchdog(); // batch terminé → plus besoin du watchdog
         dispatch(processingComplete({
           message: `Traitement terminé: ${success} réussies, ${fail} échecs`,
         }));
@@ -207,6 +248,9 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
         setShowResults(true);
         // Reset counters
         batchCountersRef.current = { success: 0, fail: 0, total: 0 };
+      } else if (total > 0) {
+        // Progression mais batch pas terminé → on repousse le délai d'inactivité
+        armWatchdog();
       }
     };
 
@@ -218,14 +262,15 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
     wsService.on('archive_file_cancelled', handleArchiveFileCancelled);
 
     return () => {
-      // Nettoyer les listeners
+      // Nettoyer les listeners et le watchdog
       wsService.off('archive_file_started');
       wsService.off('archive_file_progress');
       wsService.off('archive_file_complete');
       wsService.off('archive_file_failed');
       wsService.off('archive_file_cancelled');
+      clearWatchdog();
     };
-  }, [dispatch]);
+  }, [dispatch, armWatchdog, clearWatchdog]);
 
   // Gérer la sélection de dossier
   const handleFolderSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -287,9 +332,13 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
 
   // Lancer le traitement batch (mode async avec WebSocket)
   const handleStartProcessing = async () => {
-    const selectedFiles = detectedFiles.filter(f => f.selected);
+    // On exclut les fichiers déjà complétés pour ne pas recréer de plaintes en double.
+    const selectedFiles = detectedFiles.filter(f => f.selected && f.status !== 'completed');
     if (selectedFiles.length === 0) {
-      toast.warning('⚠️ Veuillez sélectionner au moins un fichier');
+      const hasCompleted = detectedFiles.some(f => f.selected && f.status === 'completed');
+      toast.warning(hasCompleted
+        ? '⚠️ Les fichiers sélectionnés sont déjà traités'
+        : '⚠️ Veuillez sélectionner au moins un fichier');
       return;
     }
 
@@ -307,6 +356,18 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
     batchCountersRef.current = { success: 0, fail: 0, total: selectedFiles.length };
     taskToFileMapRef.current.clear();
 
+    // Indexer les fichiers stockés par chemin relatif (unique). Le repli par nom ne sert
+    // que si ce nom est non ambigu, pour ne pas associer le mauvais fichier quand deux
+    // sous-dossiers contiennent un fichier de même nom.
+    const storedFilesArray: File[] = Array.from(storedFiles as FileList);
+    const byPath = new Map<string, File>();
+    const nameCount = new Map<string, number>();
+    for (const f of storedFilesArray) {
+      const p = (f as any).webkitRelativePath || f.name;
+      byPath.set(p, f);
+      nameCount.set(f.name, (nameCount.get(f.name) || 0) + 1);
+    }
+
     try {
       // Envoyer tous les fichiers de manière asynchrone
       // L'API retourne rapidement avec un task_id, le résultat arrive via WebSocket
@@ -314,15 +375,11 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
       for (let i = 0; i < selectedFiles.length; i++) {
         const detectedFile = selectedFiles[i];
         
-        // Trouver le fichier original
-        let originalFile: File | null = null;
-        for (let j = 0; j < storedFiles.length; j++) {
-          const f = storedFiles[j];
-          const path = (f as any).webkitRelativePath || f.name;
-          if (path === detectedFile.filePath || f.name === detectedFile.fileName) {
-            originalFile = f;
-            break;
-          }
+        // Trouver le fichier original: match exact par chemin, repli par nom seulement
+        // si ce nom est unique dans le lot (sinon on associerait le mauvais fichier).
+        let originalFile: File | null = byPath.get(detectedFile.filePath) || null;
+        if (!originalFile && (nameCount.get(detectedFile.fileName) || 0) === 1) {
+          originalFile = storedFilesArray.find(f => f.name === detectedFile.fileName) || null;
         }
 
         if (!originalFile) {
@@ -431,8 +488,10 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
         }
         setShowResults(true);
       } else if (asyncPending > 0) {
-        // Des fichiers sont en cours de traitement async
+        // Des fichiers sont en cours de traitement async → on arme le watchdog pour
+        // garantir la clôture du batch même si un event de fin n'arrive jamais.
         toast.info(`📤 ${asyncPending} fichiers en cours de traitement...`);
+        armWatchdog();
       }
 
     } catch (error: any) {
@@ -463,10 +522,11 @@ export default function ArchiveUploadPanel({ onClose }: ArchiveUploadPanelProps)
       }
     }
     
-    // Nettoyer les références locales
+    // Nettoyer les références locales et le watchdog
     taskToFileMapRef.current.clear();
     batchCountersRef.current = { success: 0, fail: 0, total: 0 };
-    
+    clearWatchdog();
+
     // Mettre à jour le state Redux
     dispatch(cancelProcessing());
     toast.info('⏹️ Traitement arrêté');

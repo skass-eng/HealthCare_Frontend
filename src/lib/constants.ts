@@ -30,13 +30,16 @@ function getApiHost(): string {
   
   // Mode Cloudflare temporaire (trycloudflare.com)
   if (currentHost.includes('trycloudflare.com')) {
-    // Vérifier si une URL backend est stockée dans localStorage
+    // URL backend personnalisée éventuelle (localStorage), sinon backend Cloudflare par défaut.
     const storedBackendUrl = localStorage.getItem('cloudflare_backend_url');
     if (storedBackendUrl) {
       return storedBackendUrl.replace(/\/$/, ''); // Enlever le slash final
     }
+    // Pas d'URL stockée: on renvoie le backend HTTPS par défaut. Évite le mixed-content
+    // (http:// appelé depuis une page https://) et reste cohérent avec api.ts/getApiBaseUrl.
+    return `https://${CLOUDFLARE_CONFIG.backendDomain}`;
   }
-  
+
   // Si l'utilisateur accède via localhost ou 127.0.0.1
   if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
     return 'http://localhost';
@@ -62,8 +65,10 @@ function getWsHost(): string {
     if (storedBackendUrl) {
       return storedBackendUrl.replace('https://', 'wss://').replace('http://', 'ws://').replace(/\/$/, '');
     }
+    // Pas d'URL stockée: WSS vers le backend Cloudflare par défaut (évite ws:// non sécurisé).
+    return `wss://${CLOUDFLARE_CONFIG.backendDomain}`;
   }
-  
+
   if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
     return 'ws://localhost';
   }

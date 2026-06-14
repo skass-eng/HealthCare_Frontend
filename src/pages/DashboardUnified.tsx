@@ -22,6 +22,7 @@ import {
 } from '@/store/slices/filtersSlice';
 import AnalyticsContent from '@/components/AnalyticsContent';
 import PlotlyChart from '@/components/PlotlyChart';
+import { scoreSentimentToScale5 } from '@/lib/metrics';
 
 // Fonction helper pour formater une date en YYYY-MM-DD
 const formatDateToISO = (date: Date): string => {
@@ -529,11 +530,18 @@ const DashboardUnified: React.FC = () => {
           },
           {
             label: 'Satisfaction patient',
-            value: `${satisfactionAvg.toFixed(1)}/5`,
+            // satisfactionAvg = moyenne de score_sentiment brut ∈ [-1,1] (backend plaintes_gestion.py:883).
+            // Conversion en note /5 via le helper partagé (cohérent avec VueEnsemble/AnalyticsContent).
+            value: `${scoreSentimentToScale5(satisfactionAvg).toFixed(1)}/5`,
             sub: 'Score agrégé multi-services',
             trend: '+0.3',
             trendPositive: true,
-            accent: '#0d9488'
+            // Seuils sur l'échelle /5 : >=3.5 vert, >=2.5 orange, sinon rouge.
+            accent: scoreSentimentToScale5(satisfactionAvg) >= 3.5
+              ? '#059669'
+              : scoreSentimentToScale5(satisfactionAvg) >= 2.5
+                ? '#d97706'
+                : '#dc2626'
           },
           {
             label: 'Plaintes en cours',
@@ -683,8 +691,9 @@ const DashboardUnified: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {sorted.map((d) => {
                   const pct = ((d.total || 0) / max) * 100;
-                  const sat = d.satisfaction_moyenne || 0;
-                  const satColor = sat >= 4 ? '#059669' : sat >= 3 ? '#b45309' : '#b91c1c';
+                  // satisfaction_moyenne = score_sentiment brut ∈ [-1,1] -> note /5 via le helper partagé
+                  const sat = scoreSentimentToScale5(d.satisfaction_moyenne);
+                  const satColor = sat >= 3.5 ? '#059669' : sat >= 2.5 ? '#b45309' : '#b91c1c';
                   return (
                     <div key={d.id}>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '4px' }}>
