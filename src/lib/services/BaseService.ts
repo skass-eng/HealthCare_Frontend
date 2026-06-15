@@ -98,15 +98,19 @@ export class BaseService {
   }
 
   // Gestion du token JWT (comme ODYSSEE)
+  // Clé unifiée avec le reste de l'app (login/authSlice/api.ts/websocket utilisent 'token').
+  // Lecture en priorité sur 'token', fallback sur l'ancienne clé JWT_STORAGE_KEY pour compat.
   protected getTokenFromLocalStorage(): string | null {
-    return localStorage.getItem(JWT_STORAGE_KEY);
+    return localStorage.getItem('token') || localStorage.getItem(JWT_STORAGE_KEY);
   }
 
   protected storeTokenInLocalStorage(token: string): void {
-    localStorage.setItem(JWT_STORAGE_KEY, token);
+    localStorage.setItem('token', token);
   }
 
   protected removeAuthToken(): void {
+    localStorage.removeItem('token');
+    // Nettoie aussi l'ancienne clé pour éviter qu'un token périmé soit relu via le fallback
     localStorage.removeItem(JWT_STORAGE_KEY);
     delete this.api.defaults.headers.common['Authorization'];
   }
