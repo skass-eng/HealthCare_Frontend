@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { scoreSentimentToPercent } from '@/lib/metrics';
+import { apiService } from '@/lib/api';
 import { 
   Box, 
   Card, 
@@ -42,6 +43,17 @@ interface AnalyticsData {
     satisfaction_client: number;
     temps_traitement_moyen: number;
   };
+  // Indicateurs de retard issus de /statistiques/performance (optionnels)
+  nbEnRetard?: number;
+  tauxEnRetard?: number;
+  // Marque les KPIs dont la valeur backend est null (afficher « N/A » au lieu d'un chiffre)
+  perfIndisponible?: {
+    temps_traitement_moyen?: boolean;
+    temps_reponse_moyen?: boolean;
+    satisfaction?: boolean;
+    qualite_soins?: boolean;
+    taux_recurrence?: boolean;
+  };
   tendances: {
     augmentation: string[];
     diminution: string[];
@@ -61,6 +73,20 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [activeTab, setActiveTab] = useState<'services' | 'trends' | 'performance'>('services');
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  // Statistiques de performance réelles issues du backend (/statistiques/performance)
+  const [performanceStats, setPerformanceStats] = useState<{
+    total: number;
+    resolues: number;
+    taux_resolution: number;
+    temps_traitement_moyen_jours: number | null;
+    nb_en_retard: number;
+    taux_en_retard: number;
+    satisfaction_pct: number | null;
+    taux_recurrence: number;
+    nb_reponses_envoyees: number;
+    nb_accuses_reception: number;
+  } | null>(null);
 
   // Récupérer les données Redux
   const { statistiquesGlobales, statistiquesDepartements, statistiquesPriorites, evolutionPlaintes } = useSelector((state: RootState) => state.dashboard);
@@ -125,27 +151,62 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
     console.log('- Satisfaction moyenne:', satisfactionMoyenne);
     console.log('- Statistiques globales:', statistiquesGlobales);
 
+    // Privilégier les vraies métriques de performance du backend lorsqu'elles sont disponibles
+    const tempsTraitementMoyen = performanceStats?.temps_traitement_moyen_jours ?? null;
+    const tauxRecurrence = performanceStats?.taux_recurrence ?? null;
+    // satisfaction_pct est déjà en % côté backend ; sinon on retombe sur la moyenne des départements
+    const satisfactionPct = performanceStats?.satisfaction_pct ?? null;
+    const tauxResolutionFinal = performanceStats?.taux_resolution ?? tauxResolution;
+
     return {
       plaintesParService,
       plaintesParPriorite,
       evolutionTemporelle,
-      tempsMoyenTraitement: 2.8, // Placeholder
-      tauxSatisfaction: satisfactionMoyenne,
+      tempsMoyenTraitement: tempsTraitementMoyen ?? 0,
+      tauxSatisfaction: satisfactionPct ?? satisfactionMoyenne,
       metriquesPerformance: {
-        taux_resolution: tauxResolution, // ✅ Vraies données calculées
-        temps_reponse_moyen: 1.8, // ⚠️ Valeur fixe - nécessite données supplémentaires
-        qualite_soins: 93, // ⚠️ Valeur fixe - nécessite données supplémentaires
-        taux_recurrence: 4, // ⚠️ Valeur fixe - nécessite données supplémentaires
-        satisfaction_client: satisfactionMoyenne, // ✅ Vraies données calculées
-        temps_traitement_moyen: 2.8 // ⚠️ Valeur fixe - nécessite données supplémentaires
+        taux_resolution: tauxResolutionFinal,
+        // Plus de valeur de réponse séparée côté backend : on reflète le délai de traitement réel
+        temps_reponse_moyen: tempsTraitementMoyen ?? 0,
+        // Pas de métrique « qualité des soins » côté backend : on s'appuie sur la satisfaction réelle
+        qualite_soins: satisfactionPct ?? 0,
+        taux_recurrence: tauxRecurrence ?? 0,
+        // satisfaction_pct est déjà en % ; on stocke ici sa valeur (le rendu n'applique plus scoreSentimentToPercent dessus)
+        satisfaction_client: satisfactionPct ?? satisfactionMoyenne,
+        temps_traitement_moyen: tempsTraitementMoyen ?? 0
+      },
+      nbEnRetard: performanceStats?.nb_en_retard,
+      tauxEnRetard: performanceStats?.taux_en_retard,
+      perfIndisponible: {
+        temps_traitement_moyen: tempsTraitementMoyen == null,
+        temps_reponse_moyen: tempsTraitementMoyen == null,
+        satisfaction: satisfactionPct == null,
+        qualite_soins: satisfactionPct == null,
+        taux_recurrence: tauxRecurrence == null
       },
       tendances: {
         augmentation: totalPlaintes > 0 ? ['Plaintes reçues'] : [],
-        diminution: tauxResolution > 80 ? ['Temps de réponse'] : [],
+        diminution: tauxResolutionFinal > 80 ? ['Temps de réponse'] : [],
         stable: ['Taux de résolution']
       }
     };
   }
+
+  // Récupérer les statistiques de performance réelles au montage
+  useEffect(() => {
+    const fetchPerformanceStats = async () => {
+      try {
+        const response = await apiService.getStatistiquesPerformance();
+        if (response.success && response.data) {
+          setPerformanceStats(response.data);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des statistiques de performance:', error);
+      }
+    };
+
+    fetchPerformanceStats();
+  }, []);
 
   useEffect(() => {
     const fetchAnalyticsData = async () => {
@@ -171,7 +232,7 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
     };
 
     fetchAnalyticsData();
-  }, [selectedPeriod, statistiquesGlobales, statistiquesDepartements, statistiquesPriorites, evolutionPlaintes]);
+  }, [selectedPeriod, statistiquesGlobales, statistiquesDepartements, statistiquesPriorites, evolutionPlaintes, performanceStats]);
 
   // Fonction pour générer des données de démonstration selon la période (fallback)
   function getDemoDataForPeriod(period: '7j' | '30j' | '90j'): AnalyticsData {
@@ -590,17 +651,75 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
 
   const renderPerformance = () => {
     // Définition des KPIs avec cible, unité, formatage
-    type Kpi = { key: string; label: string; value: number; target: number; unit: '%' | 'j' | ''; higherIsBetter: boolean };
+    type Kpi = { key: string; label: string; value: number; target: number; unit: '%' | 'j' | ''; higherIsBetter: boolean; available: boolean };
     const m = analyticsData?.metriquesPerformance;
-    // On n'affiche QUE les indicateurs réellement calculés à partir des données.
-    // qualite_soins / temps_reponse_moyen / temps_traitement_moyen / taux_recurrence
-    // n'ont aucune source de données et étaient des valeurs codées en dur trompeuses : retirés.
+    const indispo = analyticsData?.perfIndisponible;
+    // satisfaction_pct du backend est déjà en % ; on ne réapplique donc PAS scoreSentimentToPercent.
+    // Si aucune donnée backend de performance, on retombe sur l'ancienne conversion du score [-1,1].
+    const satisfactionValue = performanceStats?.satisfaction_pct != null
+      ? performanceStats.satisfaction_pct
+      : scoreSentimentToPercent(m?.satisfaction_client);
     const kpis: Kpi[] = m ? [
-      { key: 'taux_resolution', label: 'Taux de résolution', value: m.taux_resolution, target: 80, unit: '%', higherIsBetter: true },
-      { key: 'satisfaction_client', label: 'Satisfaction patient', value: scoreSentimentToPercent(m.satisfaction_client), target: 80, unit: '%', higherIsBetter: true }
+      { key: 'taux_resolution', label: 'Taux de résolution', value: m.taux_resolution, target: 80, unit: '%', higherIsBetter: true, available: true },
+      { key: 'satisfaction_client', label: 'Satisfaction patient', value: satisfactionValue, target: 80, unit: '%', higherIsBetter: true, available: !indispo?.satisfaction },
+      { key: 'qualite_soins', label: 'Qualité des soins', value: m.qualite_soins, target: 90, unit: '%', higherIsBetter: true, available: !indispo?.qualite_soins },
+      { key: 'temps_traitement_moyen', label: 'Délai de traitement', value: m.temps_traitement_moyen, target: 5, unit: 'j', higherIsBetter: false, available: !indispo?.temps_traitement_moyen },
+      { key: 'temps_reponse_moyen', label: 'Temps de réponse', value: m.temps_reponse_moyen, target: 2, unit: 'j', higherIsBetter: false, available: !indispo?.temps_reponse_moyen },
+      { key: 'taux_recurrence', label: 'Taux de récurrence', value: m.taux_recurrence, target: 5, unit: '%', higherIsBetter: false, available: !indispo?.taux_recurrence }
     ] : [];
 
+    const nbEnRetard = analyticsData?.nbEnRetard;
+    const tauxEnRetard = analyticsData?.tauxEnRetard;
+
     return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Carte « Plaintes en retard » */}
+      <Card sx={{
+        background: '#ffffff',
+        border: '1px solid #ebebef',
+        borderRadius: 3,
+        boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+        px: 3,
+        py: 2.5,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 2,
+        flexWrap: 'wrap'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{
+            width: 40,
+            height: 40,
+            borderRadius: 2,
+            bgcolor: (nbEnRetard ?? 0) > 0 ? 'rgba(220, 38, 38, 0.1)' : '#f8fafc',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <WarningIcon sx={{ color: (nbEnRetard ?? 0) > 0 ? '#dc2626' : '#86868b', fontSize: 22 }} />
+          </Box>
+          <Box>
+            <Typography sx={{ fontSize: '11px', color: '#86868b', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              Plaintes en retard
+            </Typography>
+            <Typography sx={{ fontSize: '0.8rem', color: '#86868b', fontWeight: 500, mt: 0.25 }}>
+              Dépassant la date limite de réponse
+            </Typography>
+          </Box>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+          <Box sx={{ textAlign: 'right' }}>
+            <Typography sx={{ fontSize: '1.875rem', fontWeight: 700, color: (nbEnRetard ?? 0) > 0 ? '#dc2626' : '#1d1d1f', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+              {nbEnRetard != null ? nbEnRetard : 'N/A'}
+            </Typography>
+            <Typography sx={{ fontSize: '11px', color: '#86868b', fontWeight: 500, mt: 0.5 }}>
+              {tauxEnRetard != null ? `${tauxEnRetard.toFixed(1)}% du total` : 'Taux indisponible'}
+            </Typography>
+          </Box>
+        </Box>
+      </Card>
+
       <Card sx={{
         background: '#ffffff',
         border: '1px solid #ebebef',
@@ -669,8 +788,8 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
               </Box>
 
               {/* Valeur actuelle */}
-              <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: '#1d1d1f', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
-                {kpi.value.toFixed(1)}{kpi.unit}
+              <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: kpi.available ? '#1d1d1f' : '#86868b', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+                {kpi.available ? `${kpi.value.toFixed(1)}${kpi.unit}` : 'N/A'}
               </Typography>
 
               {/* Bullet bar avec target tick */}
@@ -703,6 +822,7 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
           );
         })}
       </Card>
+      </Box>
     );
   };
 
