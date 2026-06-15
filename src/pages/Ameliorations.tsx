@@ -330,7 +330,18 @@ export default function AmeliorationsPage() {
   
   // États pour le suivi de la tâche asynchrone
   const [aiTask, setAiTask] = useState<AIAnalysisTask | null>(null)
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
+  // m7: l'intervalle de polling est conservé dans un useRef (et non dans le
+  // state) afin que sa mise à jour ne recrée pas pollTaskStatus ni les effets,
+  // ce qui pouvait lancer des intervalles multiples / laisser fuir un timer.
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Helper centralisé pour stopper proprement le polling en cours
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+    }
+  }, [])
   
   // État pour les notifications et WebSocket
   const [notification, setNotification] = useState<{open: boolean, message: string, severity: 'success' | 'info' | 'warning' | 'error'}>({
@@ -456,29 +467,23 @@ export default function AmeliorationsPage() {
             setAiLoading(false)
             setAiTask(null)
             // Nettoyer l'intervalle
-            if (pollingInterval) {
-              clearInterval(pollingInterval)
-              setPollingInterval(null)
-            }
+            stopPolling()
             // Notification de succès (optionnel)
             console.log('✅ Analyse IA terminée!')
           }
         }
-        
+
         // Si erreur, arrêter le polling
         if (taskData.status === 'error') {
           setAiError(taskData.error || 'Erreur lors de l\'analyse')
           setAiLoading(false)
-          if (pollingInterval) {
-            clearInterval(pollingInterval)
-            setPollingInterval(null)
-          }
+          stopPolling()
         }
       }
     } catch (err) {
       console.error('Erreur polling statut:', err)
     }
-  }, [pollingInterval])
+  }, [stopPolling])
 
   // Lancer l'analyse IA avancée (version asynchrone)
   const runAIAnalysis = async () => {
@@ -530,14 +535,16 @@ export default function AmeliorationsPage() {
       
       // S'abonner aux événements WebSocket pour cette tâche
       wsService.subscribeToAIAnalysis(taskId)
-      
+
+      // Stopper un éventuel polling précédent avant d'en démarrer un nouveau
+      // (évite les intervalles multiples si on relance une analyse)
+      stopPolling()
+
       // Démarrer le polling toutes les 3 secondes (comme fallback si WebSocket ne fonctionne pas)
-      const interval = setInterval(() => {
+      pollingIntervalRef.current = setInterval(() => {
         pollTaskStatus(taskId)
       }, 3000)
-      
-      setPollingInterval(interval)
-      
+
       // Faire un premier poll immédiat
       pollTaskStatus(taskId)
       
@@ -555,14 +562,14 @@ export default function AmeliorationsPage() {
     }
   }
 
-  // Nettoyer l'intervalle au démontage du composant
+  // Nettoyer l'intervalle au démontage du composant.
+  // Dépendances vides : l'effet ne se monte/démonte qu'une fois, et le ref
+  // garantit qu'on cleanup toujours le dernier interval actif (pas de fuite).
   useEffect(() => {
     return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval)
-      }
+      stopPolling()
     }
-  }, [pollingInterval])
+  }, [stopPolling])
 
   // Vérifier le statut IA au chargement
   useEffect(() => {
@@ -603,10 +610,7 @@ export default function AmeliorationsPage() {
             setAiLoading(false)
             setAiTask(null)
             // Arrêter le polling
-            if (pollingInterval) {
-              clearInterval(pollingInterval)
-              setPollingInterval(null)
-            }
+            stopPolling()
             // Notification de succès
             setNotification({
               open: true,
@@ -628,10 +632,7 @@ export default function AmeliorationsPage() {
         setAiError(data.error || 'Erreur lors de l\'analyse')
         setAiLoading(false)
         setAiTask(null)
-        if (pollingInterval) {
-          clearInterval(pollingInterval)
-          setPollingInterval(null)
-        }
+        stopPolling()
         setNotification({
           open: true,
           message: `❌ Erreur: ${data.error || 'Analyse échouée'}`,
@@ -645,7 +646,9 @@ export default function AmeliorationsPage() {
       // Nettoyer les listeners au démontage
       wsService.cleanupAIAnalysisListeners()
     }
-  }, [pollingInterval])
+    // Dépend de stopPolling (stable, ref [] ) : les listeners WS ne sont
+    // (re)montés qu'une fois, plus à chaque changement d'intervalle.
+  }, [stopPolling])
 
   // Formater le temps en jours/heures
   const formatTime = (seconds: number): string => {

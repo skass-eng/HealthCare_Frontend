@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '../lib/api';
 import { 
@@ -177,6 +177,15 @@ const PlaintesDetail: React.FC = () => {
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<number | ''>('');
   const [savingAssignment, setSavingAssignment] = useState(false);
 
+  // M14 : fallback polling borné — référence de l'intervalle + compteur d'itérations.
+  // Si le WebSocket ne livre jamais la fin de l'analyse, on interroge le détail
+  // toutes les 7 s TANT QUE statut_analyse === 'en_cours', avec un plafond
+  // d'itérations et un arrêt sur statut terminal.
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingCountRef = useRef(0);
+  const POLLING_INTERVAL_MS = 7000;
+  const POLLING_MAX_ITERATIONS = 40; // ~4,5 min de filet de sécurité
+
   useEffect(() => {
     if (id) {
       loadPlainte();
@@ -185,6 +194,66 @@ const PlaintesDetail: React.FC = () => {
       loadAssignmentOptions();
     }
   }, [id]);
+
+  // M14 : déclenche/arrête le polling de secours selon le statut de l'analyse IA.
+  useEffect(() => {
+    const statut = analyseIA?.statut_analyse;
+    const STATUTS_TERMINAUX = ['complete', 'complete_fallback', 'erreur'];
+
+    // Fonction de nettoyage de l'intervalle en cours.
+    const stopPolling = () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+
+    // On ne lance le polling que si l'analyse est explicitement en cours.
+    if (statut !== 'en_cours') {
+      stopPolling();
+      pollingCountRef.current = 0;
+      return;
+    }
+
+    // Évite de créer plusieurs intervalles concurrents.
+    if (pollingIntervalRef.current) {
+      return;
+    }
+
+    pollingCountRef.current = 0;
+    pollingIntervalRef.current = setInterval(async () => {
+      // Plafond d'itérations : on arrête le filet de sécurité au bout d'un moment.
+      pollingCountRef.current += 1;
+      if (pollingCountRef.current > POLLING_MAX_ITERATIONS) {
+        stopPolling();
+        return;
+      }
+
+      try {
+        const plainteId = parseInt(id || '0');
+        if (!plainteId) {
+          stopPolling();
+          return;
+        }
+        const response = await apiService.getPlainte(plainteId);
+        if (response.success && response.data?.analyse_ia) {
+          const nouvelleAnalyse = response.data.analyse_ia;
+          setAnalyseIA(nouvelleAnalyse);
+          // Arrêt immédiat dès qu'on atteint un statut terminal.
+          if (STATUTS_TERMINAUX.includes(nouvelleAnalyse.statut_analyse)) {
+            // Recharge l'ensemble du détail pour rafraîchir documents/PDF/réponse suggérée.
+            loadPlainte();
+            stopPolling();
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du polling de secours de l\'analyse IA:', error);
+      }
+    }, POLLING_INTERVAL_MS);
+
+    // Cleanup au démontage ou au changement de statut.
+    return stopPolling;
+  }, [analyseIA?.statut_analyse, id]);
 
   const loadPlainte = async () => {
     try {
@@ -540,7 +609,18 @@ const PlaintesDetail: React.FC = () => {
   };
 
   const toggleEdit = (section: string) => {
-    setEditingSection(editingSection === section ? null : section);
+    const nextSection = editingSection === section ? null : section;
+    // Pré-remplir le formulaire d'édition des infos plaignant à l'ouverture
+    // (m9 : on s'appuie sur les champs nom/prénom séparés, plus sur un split).
+    if (nextSection === 'patient-info' && plainte) {
+      setEditFormData(prev => ({
+        ...prev,
+        nom_plaignant: plainte.nom_plaignant || '',
+        prenom_plaignant: plainte.prenom_plaignant || '',
+        telephone_plaignant: plainte.telephone_plaignant || ''
+      }));
+    }
+    setEditingSection(nextSection);
   };
 
   const cancelEdit = () => {
@@ -550,17 +630,20 @@ const PlaintesDetail: React.FC = () => {
   const savePatientInfo = async () => {
     if (!plainte || !id) return;
     
-    // Récupérer les valeurs des inputs
-    const nomInput = document.querySelector('input[placeholder="Nom"]') as HTMLInputElement;
-    const prenomInput = document.querySelector('input[placeholder="Prénom"]') as HTMLInputElement;
-    const telephoneInput = document.querySelector('input[placeholder="Téléphone"]') as HTMLInputElement;
-    
+    // m9 : lire les valeurs depuis l'état contrôlé editFormData (champs nom/prénom
+    // séparés) au lieu de requêtes DOM par placeholder, qui étaient cassées.
     const updatedData: any = {};
-    
-    if (nomInput?.value) updatedData.nom_plaignant = nomInput.value;
-    if (prenomInput?.value) updatedData.prenom_plaignant = prenomInput.value;
-    if (telephoneInput?.value) updatedData.telephone_plaignant = telephoneInput.value;
-    
+
+    if (editFormData.nom_plaignant !== (plainte.nom_plaignant || '')) {
+      updatedData.nom_plaignant = editFormData.nom_plaignant;
+    }
+    if (editFormData.prenom_plaignant !== (plainte.prenom_plaignant || '')) {
+      updatedData.prenom_plaignant = editFormData.prenom_plaignant;
+    }
+    if (editFormData.telephone_plaignant !== (plainte.telephone_plaignant || '')) {
+      updatedData.telephone_plaignant = editFormData.telephone_plaignant;
+    }
+
     if (Object.keys(updatedData).length === 0) {
       setEditingSection(null);
       return;
@@ -571,11 +654,11 @@ const PlaintesDetail: React.FC = () => {
       const response = await apiService.updatePlainte(parseInt(id), updatedData);
       
       if (response.success) {
-        setPlainte(prev => prev ? { 
-          ...prev, 
-          nom_plaignant: updatedData.nom_plaignant || prev.nom_plaignant,
-          prenom_plaignant: updatedData.prenom_plaignant || prev.prenom_plaignant,
-          telephone_plaignant: updatedData.telephone_plaignant || prev.telephone_plaignant
+        setPlainte(prev => prev ? {
+          ...prev,
+          nom_plaignant: updatedData.nom_plaignant ?? prev.nom_plaignant,
+          prenom_plaignant: updatedData.prenom_plaignant ?? prev.prenom_plaignant,
+          telephone_plaignant: updatedData.telephone_plaignant ?? prev.telephone_plaignant
         } : null);
         setEditingSection(null);
         showNotification('Informations du patient mises à jour ✅');
@@ -1835,10 +1918,10 @@ const PlaintesDetail: React.FC = () => {
                       Nom
                     </label>
                     <p style={{ fontSize: '16px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
-                      {plainte.nom_plaignant?.split(' ')[0] || ''}
+                      {plainte.nom_plaignant || ''}
                     </p>
                   </div>
-                  
+
                   <div>
                     <label style={{
                       display: 'block',
@@ -1852,7 +1935,7 @@ const PlaintesDetail: React.FC = () => {
                       Prénom
                     </label>
                     <p style={{ fontSize: '16px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
-                      {plainte.nom_plaignant?.split(' ').slice(1).join(' ') || ''}
+                      {plainte.prenom_plaignant || ''}
                     </p>
                   </div>
                   
@@ -1889,7 +1972,9 @@ const PlaintesDetail: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      defaultValue={plainte.nom_plaignant?.split(' ')[0] || ''}
+                      placeholder="Nom"
+                      value={editFormData.nom_plaignant}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, nom_plaignant: e.target.value }))}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1917,7 +2002,9 @@ const PlaintesDetail: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      defaultValue={plainte.nom_plaignant?.split(' ').slice(1).join(' ') || ''}
+                      placeholder="Prénom"
+                      value={editFormData.prenom_plaignant}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, prenom_plaignant: e.target.value }))}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1945,7 +2032,9 @@ const PlaintesDetail: React.FC = () => {
                     </label>
                     <input
                       type="tel"
-                      defaultValue={plainte.telephone_plaignant}
+                      placeholder="Téléphone"
+                      value={editFormData.telephone_plaignant}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, telephone_plaignant: e.target.value }))}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -2160,8 +2249,12 @@ const PlaintesDetail: React.FC = () => {
                     📎 Pièces jointes ({documents.length})
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {documents.map((doc) => (
-                      <div 
+                    {documents.map((doc) => {
+                      // m8 : un fichier dont fichier_existe === false est manquant sur disque.
+                      // On désactive le téléchargement et on affiche un badge « indisponible ».
+                      const fichierIndisponible = doc.fichier_existe === false;
+                      return (
+                      <div
                         key={doc.id}
                         style={{
                           display: 'flex',
@@ -2172,18 +2265,21 @@ const PlaintesDetail: React.FC = () => {
                           background: '#f8fafc',
                           borderRadius: '12px',
                           border: '1px solid #e2e8f0',
-                          cursor: 'pointer',
+                          cursor: fichierIndisponible ? 'not-allowed' : 'pointer',
+                          opacity: fichierIndisponible ? 0.7 : 1,
                           transition: 'all 0.2s ease',
                           flexWrap: 'wrap',
                           overflow: 'hidden'
                         }}
-                        onClick={() => downloadDocument(doc)}
+                        onClick={() => { if (!fichierIndisponible) downloadDocument(doc); }}
                         onMouseOver={(e) => {
+                          if (fichierIndisponible) return;
                           e.currentTarget.style.transform = 'translateY(-2px)';
                           e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
                           e.currentTarget.style.background = '#f1f5f9';
                         }}
                         onMouseOut={(e) => {
+                          if (fichierIndisponible) return;
                           e.currentTarget.style.transform = 'translateY(0)';
                           e.currentTarget.style.boxShadow = 'none';
                           e.currentTarget.style.background = '#f8fafc';
@@ -2224,10 +2320,10 @@ const PlaintesDetail: React.FC = () => {
                             <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
                               <span>{formatFileSize(doc.taille_fichier)} • {doc.date_upload ? new Date(doc.date_upload).toLocaleDateString('fr-FR') : 'N/A'}</span>
                               {doc.est_piece_jointe_originale && (
-                                <span style={{ 
-                                  padding: '2px 6px', 
-                                  background: '#dbeafe', 
-                                  color: '#1d4ed8', 
+                                <span style={{
+                                  padding: '2px 6px',
+                                  background: '#dbeafe',
+                                  color: '#1d4ed8',
                                   borderRadius: '4px',
                                   fontSize: '10px',
                                   fontWeight: 600
@@ -2235,35 +2331,51 @@ const PlaintesDetail: React.FC = () => {
                                   Original
                                 </span>
                               )}
+                              {fichierIndisponible && (
+                                <span style={{
+                                  padding: '2px 6px',
+                                  background: '#fee2e2',
+                                  color: '#b91c1c',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: 600
+                                }}>
+                                  Indisponible
+                                </span>
+                              )}
                             </p>
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                           <button
+                            disabled={fichierIndisponible}
+                            title={fichierIndisponible ? 'Fichier indisponible' : 'Télécharger'}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
                               gap: '6px',
                               padding: '8px 12px',
-                              background: '#3b82f6',
+                              background: fichierIndisponible ? '#cbd5e1' : '#3b82f6',
                               color: 'white',
                               border: 'none',
                               borderRadius: '8px',
                               fontSize: '13px',
                               fontWeight: 600,
-                              cursor: 'pointer',
+                              cursor: fichierIndisponible ? 'not-allowed' : 'pointer',
                               transition: 'all 0.2s ease'
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              downloadDocument(doc);
+                              if (!fichierIndisponible) downloadDocument(doc);
                             }}
-                            onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
-                            onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                            onMouseOver={(e) => { if (!fichierIndisponible) e.currentTarget.style.background = '#2563eb'; }}
+                            onMouseOut={(e) => { if (!fichierIndisponible) e.currentTarget.style.background = '#3b82f6'; }}
                           >
                             <ArrowDownTrayIcon style={{ fontSize: '16px' }} />
                           </button>
                           <button
+                            disabled={fichierIndisponible}
+                            title={fichierIndisponible ? 'Fichier indisponible' : 'Visualiser'}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -2275,21 +2387,22 @@ const PlaintesDetail: React.FC = () => {
                               borderRadius: '8px',
                               fontSize: '13px',
                               fontWeight: 600,
-                              cursor: 'pointer',
+                              cursor: fichierIndisponible ? 'not-allowed' : 'pointer',
                               transition: 'all 0.2s ease'
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              downloadDocument(doc);
+                              if (!fichierIndisponible) downloadDocument(doc);
                             }}
-                            onMouseOver={(e) => e.currentTarget.style.background = '#e2e8f0'}
-                            onMouseOut={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                            onMouseOver={(e) => { if (!fichierIndisponible) e.currentTarget.style.background = '#e2e8f0'; }}
+                            onMouseOut={(e) => { if (!fichierIndisponible) e.currentTarget.style.background = '#f1f5f9'; }}
                           >
                             <EyeIcon style={{ fontSize: '16px' }} />
                           </button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ) : !pdfRapport ? (

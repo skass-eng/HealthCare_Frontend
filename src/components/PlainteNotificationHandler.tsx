@@ -323,6 +323,78 @@ const PlainteNotificationHandler: React.FC<PlainteNotificationHandlerProps> = ({
       }
     });
 
+    // ===== AI Analysis Events (analyse IA des plaintes) =====
+    //
+    // Finding M13 : ce handler global doit écouter les 4 événements 'ai_analysis_*'
+    // publiés par le worker (canal Redis 'websocket_notifications' -> API -> Socket.IO)
+    // et déclencher un refetch ciblé par plainte_id (rafraîchissement des listes ET
+    // du détail) + un toast. Le refetch ciblé est diffusé via un CustomEvent DOM
+    // 'ai-analysis-refetch' { plainte_id } que les pages listes/détail écoutent ;
+    // c'est le mécanisme déjà utilisé dans App.tsx (events 'ai-analysis-*').
+    //
+    // Contrat de payload garanti : { type, plainte_id, task_id, ...données }.
+
+    // Helper : déclenche un refetch ciblé pour une plainte donnée.
+    const triggerPlainteRefetch = (plainteId?: number) => {
+      // On rediffuse toujours l'événement, même sans plainte_id (refetch global de secours),
+      // pour que les listes se rafraîchissent dans tous les cas.
+      window.dispatchEvent(
+        new CustomEvent('ai-analysis-refetch', {
+          detail: { plainte_id: plainteId ?? null },
+        })
+      );
+    };
+
+    // Démarrage d'une analyse IA
+    wsService.onAIAnalysisStarted((data) => {
+      console.log('🧠 Analyse IA démarrée (PlainteNotificationHandler):', data);
+      // Refetch ciblé : le statut de la plainte passe « en cours d'analyse »
+      triggerPlainteRefetch(data?.plainte_id);
+    });
+
+    // Progression d'une analyse IA
+    wsService.onAIAnalysisProgress((data) => {
+      console.log('🔄 Progression analyse IA (PlainteNotificationHandler):', data);
+      // La progression peut concerner une plainte unitaire (plainte_id) ou une analyse
+      // globale (task_id only). On rafraîchit la plainte concernée si disponible.
+      triggerPlainteRefetch((data as { plainte_id?: number })?.plainte_id);
+    });
+
+    // Analyse IA terminée avec succès
+    wsService.onAIAnalysisComplete((data) => {
+      console.log('✅ Analyse IA terminée (PlainteNotificationHandler):', data);
+      // Refetch ciblé pour rafraîchir le détail (résultats IA) + les listes (statut/score)
+      triggerPlainteRefetch(data?.plainte_id);
+
+      dispatch(addNotification({
+        id: `ai_complete_${data?.plainte_id ?? data?.task_id ?? Date.now()}`,
+        type: 'success',
+        title: '🧠 Analyse IA terminée',
+        message: data?.plainte_id
+          ? `L'analyse IA de la plainte #${data.plainte_id} est terminée.`
+          : 'L\'analyse IA est terminée.',
+        timestamp: new Date().toISOString(),
+        read: false,
+      }));
+    });
+
+    // Échec d'une analyse IA (M15 : toujours notifié)
+    wsService.onAIAnalysisFailed((data) => {
+      console.log('❌ Analyse IA échouée (PlainteNotificationHandler):', data);
+      // Refetch ciblé pour que le statut « échec » remonte dans les listes / le détail
+      triggerPlainteRefetch((data as { plainte_id?: number })?.plainte_id);
+
+      dispatch(addNotification({
+        id: `ai_failed_${(data as { plainte_id?: number })?.plainte_id ?? data?.task_id ?? Date.now()}`,
+        type: 'error',
+        title: '❌ Échec de l\'analyse IA',
+        message:
+          data?.error || data?.message || 'Une erreur est survenue lors de l\'analyse IA de la plainte.',
+        timestamp: new Date().toISOString(),
+        read: false,
+      }));
+    });
+
     isListeningRef.current = true;
     console.log('✅ PlainteNotificationHandler: Listeners WebSocket configurés');
   }, [dispatch, onNotification]);
@@ -355,6 +427,8 @@ const PlainteNotificationHandler: React.FC<PlainteNotificationHandlerProps> = ({
     return () => {
       console.log('🧹 PlainteNotificationHandler: Nettoyage des listeners');
       wsService.cleanupExtractionListeners();
+      // Nettoyer aussi les listeners d'analyse IA ajoutés ci-dessus (M13)
+      wsService.cleanupAIAnalysisListeners();
       isListeningRef.current = false;
     };
   }, [token, setupWebSocketListeners]);
