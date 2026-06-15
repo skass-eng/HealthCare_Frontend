@@ -399,7 +399,7 @@ const AdminPanelV2: React.FC<AdminPanelV2Props> = ({ className = '' }) => {
                       
                       <div>
                         <label className="text-sm font-medium text-gray-500">Créé le</label>
-                        <p className="text-gray-900 text-sm">{formatDate(user.created)}</p>
+                        <p className="text-gray-900 text-sm">{formatDate((user as any).date_creation ?? user.created)}</p>
                       </div>
                     </div>
                     

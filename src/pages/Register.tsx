@@ -97,7 +97,7 @@ const Register: React.FC = () => {
         email: formData.email,
         password: formData.password,
       })).unwrap();
-      navigate('/healthcare-ai');
+      navigate('/dashboard-unified');
     } catch (error) {
       // L'erreur est gérée par le slice
     }

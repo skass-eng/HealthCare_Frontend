@@ -14,11 +14,15 @@ export default function ManualFormPanel({ onSubmit, onClose }: ManualFormPanelPr
   const [formData, setFormData] = useState({
     titre: '',
     description: '',
+    circonstances: '',
+    consequences: '',
+    demande_plaignant: '',
     nom_plaignant: '',
     prenom_plaignant: '',
     email_plaignant: '',
     telephone_plaignant: '',
     mode_reception: '',
+    priority: 'MOYEN', // Priorité par défaut (transmise au backend, modifiable)
     date_incident: new Date().toISOString().split('T')[0], // Date par défaut aujourd'hui
     documents: [] as File[],
     assigned_user: '',
@@ -84,7 +88,11 @@ export default function ManualFormPanel({ onSubmit, onClose }: ManualFormPanelPr
     if (!formData.assigned_user) {
       newErrors.assigned_user = 'L\'assignation à un utilisateur est obligatoire';
     }
-    
+
+    if (!formData.priority) {
+      newErrors.priority = 'La priorité est obligatoire';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

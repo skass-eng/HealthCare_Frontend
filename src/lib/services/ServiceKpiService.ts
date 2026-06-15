@@ -5,6 +5,7 @@
  */
 
 import { ApiResponse, Service, ServiceKPIs } from '../../types/api';
+import { API_CONSTANTS } from '../constants';
 
 export interface ServiceCreateData {
   nom: string;
@@ -25,7 +26,7 @@ class ServiceKpiService {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = 'http://localhost:8000/api/v1/services';
+    this.baseURL = `${API_CONSTANTS.apiUrlBase}/services`;
   }
 
   // ==================== CRUD SERVICES ====================

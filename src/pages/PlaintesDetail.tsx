@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '../lib/api';
 import { 
@@ -138,16 +138,106 @@ const PlaintesDetail: React.FC = () => {
   const [manualResponse, setManualResponse] = useState<string>('');
   const [showResponseEditor, setShowResponseEditor] = useState<boolean>(false);
 
+  // États contrôlés pour l'édition des infos patient
+  const [editNom, setEditNom] = useState<string>('');
+  const [editPrenom, setEditPrenom] = useState<string>('');
+  const [editTelephone, setEditTelephone] = useState<string>('');
+
+  // Indique si le polling a atteint son maximum sans analyse prête
+  const [analyseIndisponible, setAnalyseIndisponible] = useState<boolean>(false);
+
   useEffect(() => {
     if (id) {
       loadPlainte();
     }
   }, [id]);
 
-  const loadPlainte = async () => {
+  // Indique si l'analyse IA est déjà disponible (statut 'complete')
+  const isAnalyseReady = (p: Plainte | null): boolean =>
+    !!p?.analyse_ia && p.analyse_ia.statut_analyse === 'complete';
+
+  // Statuts terminaux qui doivent stopper le polling (succès ou échec)
+  const TERMINAL_STATUTS = ['complete', 'erreur', 'complete_simulation', 'echec'];
+  const isAnalyseTerminal = (p: Plainte | null): boolean =>
+    !!p?.analyse_ia && TERMINAL_STATUTS.includes(p.analyse_ia.statut_analyse);
+
+  // Nombre maximum d'itérations de polling avant abandon (~60 * 4s = 4 min)
+  const MAX_POLLING_ITERATIONS = 60;
+  const pollingCountRef = useRef(0);
+
+  // ===== RAFRAÎCHISSEMENT LIVE (CONTRAT: WebSocket + polling) =====
+
+  // (a) WebSocket : écouter l'événement DOM global 'ai-analysis-complete'
+  //     ré-émis par WebSocketManager (App.tsx) après réception du socket.
+  useEffect(() => {
+    if (!id) return;
+
+    const handleAIComplete = (event: Event) => {
+      const detail = (event as CustomEvent).detail || {};
+      const eventPlainteId = detail.plainte_id;
+      // Si l'événement concerne la plainte courante (ou n'est pas ciblé), recharger
+      if (eventPlainteId == null || String(eventPlainteId) === String(id)) {
+        console.log('🔔 ai-analysis-complete pour la plainte courante, rechargement...');
+        loadPlainte(true);
+      }
+    };
+
+    window.addEventListener('ai-analysis-complete', handleAIComplete as EventListener);
+    return () => {
+      window.removeEventListener('ai-analysis-complete', handleAIComplete as EventListener);
+    };
+  }, [id]);
+
+  // (b) POLLING filet de sécurité : recharger toutes les 4s tant que
+  //     l'analyse IA n'a pas atteint un statut terminal. Stoppé dès qu'elle
+  //     est terminée, après MAX_POLLING_ITERATIONS, ou au démontage.
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (!id) return;
+
+    const stopPolling = () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+
+    // Si l'analyse a atteint un statut terminal (succès OU échec), arrêter le polling
+    if (isAnalyseTerminal(plainte)) {
+      stopPolling();
+      // Si terminal mais non 'complete' (erreur/echec), marquer comme indisponible
+      if (!isAnalyseReady(plainte)) {
+        setAnalyseIndisponible(true);
+      }
+      return;
+    }
+
+    // Démarrer le polling s'il n'est pas déjà actif
+    if (!pollingRef.current) {
+      pollingCountRef.current = 0;
+      pollingRef.current = setInterval(() => {
+        pollingCountRef.current += 1;
+        // Garde-fou : abandonner après MAX_POLLING_ITERATIONS pour ne pas boucler à l'infini
+        if (pollingCountRef.current > MAX_POLLING_ITERATIONS) {
+          console.warn('⛔ Polling analyse IA : nombre max d\'itérations atteint, abandon.');
+          stopPolling();
+          setAnalyseIndisponible(true);
+          return;
+        }
+        console.log(`⏱️ Polling analyse IA (filet de sécurité) ${pollingCountRef.current}/${MAX_POLLING_ITERATIONS}...`);
+        loadPlainte(true);
+      }, 4000);
+    }
+
+    return () => {
+      stopPolling();
+    };
+  }, [id, plainte]);
+
+  const loadPlainte = async (silent: boolean = false) => {
     try {
-      setLoading(true);
-      
+      if (!silent) setLoading(true);
+
       // Appel API réel pour récupérer la plainte avec ses documents
       const plainteId = parseInt(id || '0');
       if (!plainteId) {
@@ -205,6 +295,10 @@ const PlaintesDetail: React.FC = () => {
           if (data.analyse_ia.reponse_suggeree) {
             setAiResponse(data.analyse_ia.reponse_suggeree);
           }
+          // Si l'analyse est désormais prête, lever l'éventuel état 'indisponible'
+          if (data.analyse_ia.statut_analyse === 'complete') {
+            setAnalyseIndisponible(false);
+          }
         }
         
         // Mettre à jour le statut
@@ -214,13 +308,13 @@ const PlaintesDetail: React.FC = () => {
         setCurrentStatus(data.statut || 'RECU');
       } else {
         console.error('Erreur lors du chargement de la plainte:', response.message);
-        showNotification('Erreur lors du chargement de la plainte');
+        if (!silent) showNotification('Erreur lors du chargement de la plainte');
       }
     } catch (error) {
       console.error('Erreur lors du chargement de la plainte:', error);
-      showNotification('Erreur lors du chargement de la plainte');
+      if (!silent) showNotification('Erreur lors du chargement de la plainte');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -325,7 +419,15 @@ const PlaintesDetail: React.FC = () => {
   };
 
   const toggleEdit = (section: string) => {
-    setEditingSection(editingSection === section ? null : section);
+    const nextSection = editingSection === section ? null : section;
+    // Pré-remplir les champs contrôlés à l'ouverture de l'édition patient
+    if (nextSection === 'patient-info' && plainte) {
+      const parts = (plainte.nom_plaignant || '').split(' ');
+      setEditNom(parts[0] || '');
+      setEditPrenom(parts.slice(1).join(' ') || '');
+      setEditTelephone(plainte.telephone_plaignant || '');
+    }
+    setEditingSection(nextSection);
   };
 
   const cancelEdit = () => {
@@ -334,33 +436,35 @@ const PlaintesDetail: React.FC = () => {
 
   const savePatientInfo = async () => {
     if (!plainte || !id) return;
-    
-    // Récupérer les valeurs des inputs
-    const nomInput = document.querySelector('input[placeholder="Nom"]') as HTMLInputElement;
-    const prenomInput = document.querySelector('input[placeholder="Prénom"]') as HTMLInputElement;
-    const telephoneInput = document.querySelector('input[placeholder="Téléphone"]') as HTMLInputElement;
-    
+
+    // Valeurs issues des champs contrôlés React (plus de querySelector)
+    const nom = editNom.trim();
+    const prenom = editPrenom.trim();
+    const telephone = editTelephone.trim();
+
+    // Le backend stocke le nom complet dans nom_plaignant ; on recompose
+    const nomComplet = [nom, prenom].filter(Boolean).join(' ');
+
     const updatedData: any = {};
-    
-    if (nomInput?.value) updatedData.nom_plaignant = nomInput.value;
-    if (prenomInput?.value) updatedData.prenom_plaignant = prenomInput.value;
-    if (telephoneInput?.value) updatedData.telephone_plaignant = telephoneInput.value;
-    
+    if (nomComplet) updatedData.nom_plaignant = nomComplet;
+    if (prenom) updatedData.prenom_plaignant = prenom;
+    updatedData.telephone_plaignant = telephone;
+
     if (Object.keys(updatedData).length === 0) {
       setEditingSection(null);
       return;
     }
-    
+
     try {
       setSaving(true);
       const response = await apiService.updatePlainte(parseInt(id), updatedData);
-      
+
       if (response.success) {
-        setPlainte(prev => prev ? { 
-          ...prev, 
-          nom_plaignant: updatedData.nom_plaignant || prev.nom_plaignant,
-          prenom_plaignant: updatedData.prenom_plaignant || prev.prenom_plaignant,
-          telephone_plaignant: updatedData.telephone_plaignant || prev.telephone_plaignant
+        setPlainte(prev => prev ? {
+          ...prev,
+          nom_plaignant: updatedData.nom_plaignant ?? prev.nom_plaignant,
+          prenom_plaignant: updatedData.prenom_plaignant ?? prev.prenom_plaignant,
+          telephone_plaignant: updatedData.telephone_plaignant ?? prev.telephone_plaignant
         } : null);
         setEditingSection(null);
         showNotification('Informations du patient mises à jour ✅');
@@ -534,6 +638,43 @@ const PlaintesDetail: React.FC = () => {
       default:
         return '#0d9488';
     }
+  };
+
+  // ===== Helpers d'affichage de l'analyse IA =====
+
+  // Couleur de badge selon le sentiment (négatif rouge / neutre gris / positif vert)
+  const getSentimentStyle = (sentiment: string): { bg: string; label: string } => {
+    const s = (sentiment || '').toLowerCase();
+    if (s.includes('neg') || s.includes('nég')) return { bg: '#dc2626', label: 'Négatif' };
+    if (s.includes('pos')) return { bg: '#059669', label: 'Positif' };
+    return { bg: '#6b7280', label: 'Neutre' };
+  };
+
+  // Score de sentiment [-1,1] converti en satisfaction /5
+  const formatSatisfaction = (score: number): string => {
+    const safe = typeof score === 'number' && !isNaN(score) ? score : 0;
+    return (((safe + 1) / 2) * 5).toFixed(1) + '/5';
+  };
+
+  // Parsing défensif des mots-clés détectés (string JSON, string CSV ou array)
+  const parseMotsCles = (raw: unknown): string[] => {
+    if (Array.isArray(raw)) {
+      return raw.map((m) => String(m).trim()).filter(Boolean);
+    }
+    if (typeof raw === 'string') {
+      const txt = raw.trim();
+      if (!txt) return [];
+      try {
+        const parsed = JSON.parse(txt);
+        if (Array.isArray(parsed)) {
+          return parsed.map((m) => String(m).trim()).filter(Boolean);
+        }
+      } catch {
+        // pas du JSON : fallback sur split par virgule
+      }
+      return txt.split(',').map((m) => m.trim()).filter(Boolean);
+    }
+    return [];
   };
 
   const handleBack = () => {
@@ -1159,6 +1300,202 @@ const PlaintesDetail: React.FC = () => {
               </div>
             )}
 
+            {/* Analyse IA détaillée */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              padding: '32px'
+            }}>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: 700,
+                color: '#1f2937',
+                margin: '0 0 24px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <SparklesIcon style={{ fontSize: '24px', color: '#8b5cf6' }} />
+                Analyse IA
+              </h2>
+
+              {isAnalyseReady(plainte) && analyseIA ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  {/* Sentiment + score de satisfaction */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '8px'
+                      }}>
+                        Sentiment
+                      </label>
+                      <span style={{
+                        padding: '6px 14px',
+                        borderRadius: '24px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: 'white',
+                        background: getSentimentStyle(analyseIA.sentiment).bg
+                      }}>
+                        {getSentimentStyle(analyseIA.sentiment).label}
+                      </span>
+                    </div>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '8px'
+                      }}>
+                        Satisfaction
+                      </label>
+                      <p style={{ fontSize: '18px', fontWeight: 700, color: '#1f2937', margin: 0 }}>
+                        {formatSatisfaction(analyseIA.score_sentiment)}
+                      </p>
+                    </div>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '8px'
+                      }}>
+                        Priorité IA
+                      </label>
+                      <span style={{
+                        padding: '6px 14px',
+                        borderRadius: '24px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: 'white',
+                        background: getPriorityColor(analyseIA.priorite_ia)
+                      }}>
+                        {analyseIA.priorite_ia || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '8px'
+                      }}>
+                        Service suggéré
+                      </label>
+                      <p style={{ fontSize: '16px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
+                        {analyseIA.service_suggere || 'Non défini'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Résumé IA */}
+                  {analyseIA.resume_ia && (
+                    <div style={{
+                      background: '#f8fafc',
+                      padding: '20px',
+                      borderRadius: '12px',
+                      borderLeft: '4px solid #8b5cf6'
+                    }}>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '12px'
+                      }}>
+                        Résumé
+                      </label>
+                      <p style={{ color: '#374151', lineHeight: 1.6, margin: 0 }}>
+                        {analyseIA.resume_ia}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Mots-clés détectés */}
+                  {parseMotsCles(analyseIA.mots_cles_detectes).length > 0 && (
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '12px'
+                      }}>
+                        Mots-clés détectés
+                      </label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {parseMotsCles(analyseIA.mots_cles_detectes).map((mot, idx) => (
+                          <span
+                            key={`${mot}-${idx}`}
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontSize: '13px',
+                              fontWeight: 500,
+                              color: '#5b21b6',
+                              background: 'rgba(139, 92, 246, 0.12)',
+                              border: '1px solid rgba(139, 92, 246, 0.25)'
+                            }}
+                          >
+                            {mot}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : analyseIndisponible ? (
+                <div style={{ textAlign: 'center', color: '#6b7280', padding: '24px 0' }}>
+                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>⚠️</div>
+                  <p style={{ margin: 0, fontWeight: 600, color: '#374151' }}>
+                    Analyse indisponible
+                  </p>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>
+                    L'analyse IA n'a pas pu être récupérée. Réessayez plus tard.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', color: '#6b7280', padding: '24px 0' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    border: '3px solid #f3f4f6',
+                    borderTop: '3px solid #8b5cf6',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    margin: '0 auto 12px auto'
+                  }} />
+                  <p style={{ margin: 0, fontWeight: 600, color: '#374151' }}>
+                    Analyse IA en cours...
+                  </p>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>
+                    Les résultats s'afficheront automatiquement une fois prêts.
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Rédaction de réponse */}
             <div style={{
               background: '#ffffff',
@@ -1447,7 +1784,9 @@ const PlaintesDetail: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      defaultValue={plainte.nom_plaignant?.split(' ')[0] || ''}
+                      placeholder="Nom"
+                      value={editNom}
+                      onChange={(e) => setEditNom(e.target.value)}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1475,7 +1814,9 @@ const PlaintesDetail: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      defaultValue={plainte.nom_plaignant?.split(' ').slice(1).join(' ') || ''}
+                      placeholder="Prénom"
+                      value={editPrenom}
+                      onChange={(e) => setEditPrenom(e.target.value)}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1503,7 +1844,9 @@ const PlaintesDetail: React.FC = () => {
                     </label>
                     <input
                       type="tel"
-                      defaultValue={plainte.telephone_plaignant}
+                      placeholder="Téléphone"
+                      value={editTelephone}
+                      onChange={(e) => setEditTelephone(e.target.value)}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1955,6 +2298,32 @@ const PlaintesDetail: React.FC = () => {
                       }}
                     >
                       Urgent
+                    </button>
+                    <button
+                      onClick={() => selectPriority('ELEVE')}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '24px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        background: currentPriority === 'ELEVE'
+                          ? '#ea580c'
+                          : '#f1f5f9',
+                        color: currentPriority === 'ELEVE' ? 'white' : '#6b7280',
+                        transform: currentPriority === 'ELEVE' ? 'scale(1.05)' : 'scale(1)',
+                        boxShadow: currentPriority === 'ELEVE' ? '0 4px 12px rgba(234, 88, 12, 0.3)' : 'none'
+                      }}
+                      onMouseOver={(e) => {
+                        if (currentPriority !== 'ELEVE') e.currentTarget.style.background = '#e2e8f0';
+                      }}
+                      onMouseOut={(e) => {
+                        if (currentPriority !== 'ELEVE') e.currentTarget.style.background = '#f1f5f9';
+                      }}
+                    >
+                      Élevé
                     </button>
                     <button
                       onClick={() => selectPriority('MOYEN')}

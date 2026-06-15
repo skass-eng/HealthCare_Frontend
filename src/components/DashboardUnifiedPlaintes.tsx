@@ -8,6 +8,7 @@ interface Plainte {
   titre: string;
   description: string;
   service_id: number;
+  service_nom?: string | null;
   cree_par_id: number;
   statut: string;
   priorite: string;
@@ -131,15 +132,18 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
   }, [externalCurrentPage]);
 
   const getPriorityColor = (priorite: string) => {
-    switch (priorite) {
+    switch ((priorite || '').toUpperCase()) {
       case 'URGENT':
         return 'bg-red-500 text-white';
       case 'ELEVE':
         return 'bg-orange-500 text-white';
+      // Enum réel = MOYEN/BAS ; on conserve MOYENNE/BASSE par sécurité.
+      case 'MOYEN':
       case 'MOYENNE':
-        return 'bg-yellow-500 text-white';
+        return 'bg-blue-500 text-white';
+      case 'BAS':
       case 'BASSE':
-        return 'bg-green-500 text-white';
+        return 'bg-green-400 text-white';
       default:
         return 'bg-gray-500 text-white';
     }
@@ -265,7 +269,7 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
             <span style={{ fontWeight: 500, color: '#1d1d1f' }}>Date:</span> {formatDate(plainte.date_creation)}
           </p>
                      <p style={{ color: '#64748b', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-             <span style={{ fontWeight: 500, color: '#1d1d1f' }}>Service:</span> {plainte.service?.nom || `Service ID: ${plainte.service_id}`}
+             <span style={{ fontWeight: 500, color: '#1d1d1f' }}>Service:</span> {plainte.service_nom || plainte.service?.nom || `Service ${plainte.service_id}`}
            </p>
           {plainte.categorie_principale && (
             <p style={{ color: '#64748b', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -926,10 +930,10 @@ const DashboardUnifiedPlaintes: React.FC<DashboardUnifiedPlaintesProps> = ({
       ) : plaintes.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
-          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#ffffff', margin: '0 0 8px 0' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#1d1d1f', margin: '0 0 8px 0' }}>
             Aucune plainte trouvée
           </h3>
-          <p style={{ color: '#f1f5f9', margin: 0 }}>
+          <p style={{ color: '#64748b', margin: 0 }}>
             Aucune plainte ne correspond aux critères de recherche actuels.
           </p>
         </div>

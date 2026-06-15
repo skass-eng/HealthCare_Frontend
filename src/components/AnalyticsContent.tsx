@@ -592,13 +592,12 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({
     // Définition des KPIs avec cible, unité, formatage
     type Kpi = { key: string; label: string; value: number; target: number; unit: '%' | 'j' | ''; higherIsBetter: boolean };
     const m = analyticsData?.metriquesPerformance;
+    // On n'affiche QUE les indicateurs réellement calculés à partir des données.
+    // qualite_soins / temps_reponse_moyen / temps_traitement_moyen / taux_recurrence
+    // n'ont aucune source de données et étaient des valeurs codées en dur trompeuses : retirés.
     const kpis: Kpi[] = m ? [
       { key: 'taux_resolution', label: 'Taux de résolution', value: m.taux_resolution, target: 80, unit: '%', higherIsBetter: true },
-      { key: 'satisfaction_client', label: 'Satisfaction patient', value: scoreSentimentToPercent(m.satisfaction_client), target: 80, unit: '%', higherIsBetter: true },
-      { key: 'qualite_soins', label: 'Qualité des soins', value: m.qualite_soins, target: 90, unit: '%', higherIsBetter: true },
-      { key: 'temps_traitement_moyen', label: 'Délai de traitement', value: m.temps_traitement_moyen, target: 5, unit: 'j', higherIsBetter: false },
-      { key: 'temps_reponse_moyen', label: 'Temps de réponse', value: m.temps_reponse_moyen, target: 2, unit: 'j', higherIsBetter: false },
-      { key: 'taux_recurrence', label: 'Taux de récurrence', value: m.taux_recurrence, target: 5, unit: '%', higherIsBetter: false }
+      { key: 'satisfaction_client', label: 'Satisfaction patient', value: scoreSentimentToPercent(m.satisfaction_client), target: 80, unit: '%', higherIsBetter: true }
     ] : [];
 
     return (

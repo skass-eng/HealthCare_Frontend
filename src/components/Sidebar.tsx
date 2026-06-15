@@ -22,7 +22,8 @@ import {
   Description as ClipboardDocumentListIcon,
   Settings as Cog8ToothIcon,
   Logout as LogoutIcon,
-  Security as SecurityIcon
+  Security as SecurityIcon,
+  Assessment as AssessmentIcon
 } from '@mui/icons-material'
 import { useAuth } from '../lib/AppClientContext'
 import { RootState } from '@/store'
@@ -51,6 +52,12 @@ const navigationItems = [
     name: 'IA & Optimisation',
     href: '/ameliorations',
     icon: LightBulbIcon,
+    badge: null
+  },
+  {
+    name: 'Services KPI',
+    href: '/services-kpi',
+    icon: AssessmentIcon,
     badge: null
   },
   {
@@ -110,7 +117,7 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <Box
-        onClick={() => navigate('/healthcare-ai')}
+        onClick={() => navigate('/dashboard-unified')}
         sx={{
           display: 'flex',
           alignItems: 'center',

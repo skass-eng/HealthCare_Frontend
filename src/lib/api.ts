@@ -391,7 +391,18 @@ class ApiService {
       // Si pas d'utilisateur assigné, ne pas envoyer le champ (le backend accepte None)
       
       formData.append('priorite', plainteData.priorite || 'MOYEN');
-      
+
+      // Champs structurés optionnels (alimentent l'analyse IA + la page détail)
+      if (plainteData.circonstances) {
+        formData.append('circonstances', plainteData.circonstances);
+      }
+      if (plainteData.consequences) {
+        formData.append('consequences', plainteData.consequences);
+      }
+      if (plainteData.demande_plaignant) {
+        formData.append('demande_plaignant', plainteData.demande_plaignant);
+      }
+
       // Ajouter les documents s'il y en a
       if (documents && documents.length > 0) {
         documents.forEach((file) => {

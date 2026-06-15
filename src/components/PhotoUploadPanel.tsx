@@ -222,11 +222,12 @@ export default function PhotoUploadPanel({ onSubmit, onClose }: PhotoUploadPanel
             wsService.subscribeToExtraction(data.task_id);
           }
           
-          // Fallback: polling si WebSocket ne répond pas dans 5 minutes
+          // Fallback: si le WebSocket ne répond pas (~90s, le temps de l'OCR + analyse),
+          // bascule automatiquement sur l'appel synchrone au lieu de figer l'écran 5 minutes.
           pollingRef.current = setTimeout(() => {
-            console.log('⏱️ [PhotoUploadPanel] Timeout WebSocket (5 min), fallback sur appel synchrone');
+            console.log('⏱️ [PhotoUploadPanel] Timeout WebSocket (90s), fallback sur appel synchrone');
             handlePreviewSync(file);
-          }, 300000); // 5 minutes
+          }, 90000); // 90s : couvre OCR + analyse IA sans bloquer l'utilisateur 5 minutes
         }
       } else {
         dispatch(setError(response.message || 'Erreur lors du lancement de l\'analyse OCR'));

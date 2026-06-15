@@ -10,7 +10,6 @@ export const login = createAsyncThunk(
     console.log('🔍 Réponse API login:', response);
     
     if (response.success) {
-      console.log('✅ Sauvegarde du token:', response.data.token);
       apiService.setAuthToken(response.data.token);
       // Sauvegarder le token dans localStorage
       localStorage.setItem('token', response.data.token);
@@ -28,7 +27,6 @@ export const register = createAsyncThunk(
     console.log('🔍 Réponse API register:', response);
     
     if (response.success) {
-      console.log('✅ Sauvegarde du token après inscription:', response.data.token);
       apiService.setAuthToken(response.data.token);
       // Sauvegarder le token dans localStorage
       localStorage.setItem('token', response.data.token);
@@ -139,7 +137,9 @@ const authSlice = createSlice({
       })
       .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
         state.error = null;
       })
       .addCase(register.rejected, (state, action) => {

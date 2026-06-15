@@ -42,7 +42,7 @@ const Login: React.FC = () => {
   // Rediriger si déjà connecté
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/healthcare-ai');
+      navigate('/dashboard-unified');
     }
   }, [isAuthenticated, navigate]);
 
@@ -66,7 +66,7 @@ const Login: React.FC = () => {
         console.log('💾 Token sauvegardé:', localStorage.getItem('token'));
       }, 100);
       
-      navigate('/healthcare-ai');
+      navigate('/dashboard-unified');
     } catch (error) {
       console.error('❌ Erreur de connexion:', error);
       // L'erreur est gérée par le slice

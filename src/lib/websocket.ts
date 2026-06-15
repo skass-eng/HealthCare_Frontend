@@ -392,12 +392,15 @@ class WebSocketService {
   // ===== MÉTHODES POUR L'ANALYSE IA =====
 
   // Écouter les événements de démarrage d'analyse IA
-  onAIAnalysisStarted(callback: (data: { 
-    task_id: string; 
-    status: string; 
-    message: string;
-    total_plaintes: number;
-    total_services: number;
+  // Note: le worker publie au format CONTRAT { plainte_id } pour une plainte unitaire,
+  // mais l'analyse globale (services) publie task_id/total_*. Les champs sont donc optionnels.
+  onAIAnalysisStarted(callback: (data: {
+    plainte_id?: number;
+    task_id?: string;
+    status?: string;
+    message?: string;
+    total_plaintes?: number;
+    total_services?: number;
   }) => void): void {
     if (!this.socket) return;
     this.socket.on('ai_analysis_started', (data) => {
@@ -424,10 +427,15 @@ class WebSocketService {
   }
 
   // Écouter la complétion d'analyse IA
+  // Format CONTRAT pour une plainte unitaire: { plainte_id, statut: 'complete', success }
+  // (les champs task_id/status/message restent supportés pour l'analyse globale)
   onAIAnalysisComplete(callback: (data: {
-    task_id: string;
-    status: string;
-    message: string;
+    plainte_id?: number;
+    statut?: string;
+    success?: boolean;
+    task_id?: string;
+    status?: string;
+    message?: string;
     result?: any;
   }) => void): void {
     if (!this.socket) return;

@@ -238,11 +238,12 @@ export default function PdfUploadPanel({ onSubmit, onClose }: PdfUploadPanelProp
             wsService.subscribeToExtraction(data.task_id);
           }
           
-          // Fallback: polling si WebSocket ne répond pas dans 5 minutes (Ollama peut être lent)
+          // Fallback: si le WebSocket ne répond pas (~90s, le temps de l'analyse Ollama),
+          // bascule automatiquement sur l'appel synchrone au lieu de figer l'écran 5 minutes.
           pollingRef.current = setTimeout(() => {
-            console.log('⏱️ [PdfUploadPanel] Timeout WebSocket (5 min), fallback sur appel synchrone');
+            console.log('⏱️ [PdfUploadPanel] Timeout WebSocket (90s), fallback sur appel synchrone');
             handlePreviewSync(file);
-          }, 300000); // 5 minutes au lieu de 60 secondes
+          }, 90000); // 90s : couvre l'analyse IA sans bloquer l'utilisateur 5 minutes
         }
       } else {
         dispatch(setError(response.message || 'Erreur lors du lancement de l\'analyse'));

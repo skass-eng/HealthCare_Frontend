@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PlusIcon, CloudArrowUpIcon, FolderOpenIcon } from '@heroicons/react/24/outline';
 import { DocumentTextIcon } from '@heroicons/react/24/solid';
 import ManualFormPanel from '../../components/ManualFormPanel';
@@ -11,6 +12,7 @@ import { apiService } from '../../lib/api';
 import { toast } from 'sonner';
 
 export default function NouvellesPlaintesPage() {
+  const navigate = useNavigate();
   const [activePanel, setActivePanel] = useState<'manual' | 'pdf' | 'photo' | 'archive' | null>('manual');
   const [loading, setLoading] = useState(false);
 
@@ -41,6 +43,9 @@ export default function NouvellesPlaintesPage() {
       const plainteCreateData = {
         titre: plainteData.titre,
         description: plainteData.contenu || plainteData.description, // Support pour différents noms de champ
+        circonstances: plainteData.circonstances,
+        consequences: plainteData.consequences,
+        demande_plaignant: plainteData.demande_plaignant,
         service_id: plainteData.service_id,
         date_incident: plainteData.date_incident,
         nom_plaignant: plainteData.nom_plaignant,
@@ -48,6 +53,7 @@ export default function NouvellesPlaintesPage() {
         email_plaignant: plainteData.email_plaignant,
         telephone_plaignant: plainteData.telephone_plaignant,
         mode_reception: plainteData.mode_reception || 'manuel',
+        priorite: plainteData.priority, // Priorité choisie dans le formulaire (était ignorée -> forcée MOYEN)
         assigned_user_id: plainteData.assigned_user,
         trigger_analyses: true // Toujours déclencher les analyses automatiques
       };
@@ -61,19 +67,28 @@ export default function NouvellesPlaintesPage() {
       const response = await apiService.createPlainte(plainteCreateData, documents);
       
       if (response.success && response.data) {
-        const plainteId = response.data.id || response.data.numero_plainte || 'N/A';
-        toast.success(`🎉 Plainte n°${plainteId} créée avec succès ! Les analyses IA sont en cours...`);
-        
+        // L'id numérique est requis pour rediriger vers le détail (/plaintes/:id).
+        // Le backend renvoie l'objet plainte créé contenant `id`.
+        const newId = response.data.id;
+        const plainteLabel = newId || response.data.numero_plainte || 'N/A';
+        toast.success(`🎉 Plainte n°${plainteLabel} créée avec succès ! Les analyses IA sont en cours...`);
+
         // Fermer le panel
         setActivePanel(null);
-        
-        // Optionnel : Rediriger vers la plainte créée
+
         console.log('Plainte créée:', response.data);
-        
-        // Optionnel : Afficher des informations sur le processus
+
+        // Afficher des informations sur le processus
         toast.info('📄 Génération du PDF en cours...', { duration: 3000 });
         toast.info('🤖 Analyse IA et classification automatique en cours...', { duration: 5000 });
-        
+
+        // Rediriger vers le détail de la plainte pour voir l'analyse IA se remplir en LIVE
+        if (newId != null) {
+          navigate(`/plaintes/${newId}`);
+        } else {
+          console.warn('⚠️ Aucun id retourné par createPlainte, redirection impossible', response.data);
+        }
+
       } else {
         toast.error('❌ Erreur lors de la création de la plainte');
       }

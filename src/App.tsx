@@ -35,6 +35,7 @@ import GlobalModals from '@/components/GlobalModals';
 import NotificationContainer from '@/components/NotificationToast';
 import PlainteNotificationHandler from '@/components/PlainteNotificationHandler';
 import PendingTasksIndicator from '@/components/PendingTasksIndicator';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { AppClientProvider } from '@/lib/AppClientContext';
 
 // Thème personnalisé inspiré de HealthCare
@@ -309,6 +310,36 @@ const WebSocketManager: React.FC = () => {
           dispatch(addNotification(notification));
         });
 
+        // Écouter le démarrage d'une analyse IA (toast info optionnel)
+        wsService.onAIAnalysisStarted((data: any) => {
+          console.log('🧠 ai_analysis_started reçu (WebSocketManager):', data);
+          dispatch(addNotification({
+            id: `ai_started_${data?.plainte_id ?? Date.now()}`,
+            type: 'info',
+            title: 'Analyse IA démarrée',
+            message: 'L\'analyse IA de la plainte est en cours...',
+            timestamp: new Date().toISOString(),
+            read: false,
+          }));
+          // Rediffuser via un événement DOM global pour les pages intéressées
+          window.dispatchEvent(new CustomEvent('ai-analysis-started', { detail: data }));
+        });
+
+        // Écouter la fin d'une analyse IA -> notification + événement DOM global
+        wsService.onAIAnalysisComplete((data: any) => {
+          console.log('✅ ai_analysis_complete reçu (WebSocketManager):', data);
+          dispatch(addNotification({
+            id: `ai_complete_${data?.plainte_id ?? Date.now()}`,
+            type: 'success',
+            title: 'Analyse IA terminée',
+            message: 'L\'analyse IA de la plainte est terminée',
+            timestamp: new Date().toISOString(),
+            read: false,
+          }));
+          // Rediffuser via un événement DOM global pour que PlaintesDetail se rafraîchisse
+          window.dispatchEvent(new CustomEvent('ai-analysis-complete', { detail: data }));
+        });
+
       }).catch((error) => {
         console.error('WebSocket connection failed:', error);
       });
@@ -316,6 +347,7 @@ const WebSocketManager: React.FC = () => {
 
     return () => {
       wsService.cleanup();
+      wsService.cleanupAIAnalysisListeners();
       wsService.disconnect();
     };
   }, [token, dispatch]);
@@ -344,26 +376,29 @@ const AppLayout: React.FC = () => {
               overflow: 'auto',
             }}
           >
-            <Routes>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/dashboard-unified" element={<DashboardUnified />} />
-              <Route path="/healthcare-ai" element={<HealthcareAI />} />
-              <Route path="/plaintes-dashboard" element={<PlaintesDashboard />} />
-              <Route path="/plaintes/nouvelles" element={<NouvellesPlaintes />} />
-              <Route path="/plaintes/en-cours" element={<EnCoursPlaintes />} />
-              <Route path="/plaintes/traitees" element={<TraiteesPlaintes />} />
-              <Route path="/plaintes/creer" element={<CreationPlaintePage />} />
-              <Route path="/plaintes/:id" element={<PlaintesDetail />} />
-              <Route path="/ameliorations" element={<Ameliorations />} />
-              <Route path="/analytics-v2" element={<Administration />} />
-              <Route path="/services-kpi" element={<ServicesKPI />} />
-              <Route path="/projects/*" element={<Projects />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/datasources/*" element={<Datasources />} />
-              <Route path="/tasks" element={<Tasks />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/" element={<Navigate to="/healthcare-ai" replace />} />
-            </Routes>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard-unified" element={<DashboardUnified />} />
+                <Route path="/healthcare-ai" element={<HealthcareAI />} />
+                <Route path="/plaintes-dashboard" element={<PlaintesDashboard />} />
+                <Route path="/plaintes/nouvelles" element={<NouvellesPlaintes />} />
+                <Route path="/plaintes/en-cours" element={<EnCoursPlaintes />} />
+                <Route path="/plaintes/traitees" element={<TraiteesPlaintes />} />
+                <Route path="/plaintes/creer" element={<CreationPlaintePage />} />
+                <Route path="/plaintes/:id" element={<PlaintesDetail />} />
+                <Route path="/ameliorations" element={<Ameliorations />} />
+                <Route path="/analytics-v2" element={<Administration />} />
+                <Route path="/services-kpi" element={<ServicesKPI />} />
+                <Route path="/projects/*" element={<Projects />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/datasources/*" element={<Datasources />} />
+                <Route path="/tasks" element={<Tasks />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/" element={<Navigate to="/dashboard-unified" replace />} />
+                <Route path="*" element={<Navigate to="/dashboard-unified" replace />} />
+              </Routes>
+            </ErrorBoundary>
           </Box>
         </Box>
         <GlobalModals />
@@ -384,7 +419,7 @@ const App: React.FC = () => {
             <CssBaseline />
             <Router>
               <AuthInitializer>
-              {/* <WebSocketManager /> */}
+              <WebSocketManager />
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />

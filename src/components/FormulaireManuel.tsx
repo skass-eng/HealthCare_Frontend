@@ -120,6 +120,54 @@ export default function FormulaireManuel({ formData, errors, handleChange, handl
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-800 mb-1">
+              Date de l'incident
+            </label>
+            <input
+              type="date"
+              value={formData.date_incident}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={(e) => handleChange('date_incident', e.target.value)}
+              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all bg-white border-gray-200 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-800 mb-1">
+              Circonstances
+            </label>
+            <textarea
+              value={formData.circonstances || ''}
+              onChange={(e) => handleChange('circonstances', e.target.value)}
+              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 resize-none transition-all bg-white border-gray-200 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Contexte, lieu, moment, personnes impliquées..."
+              rows={2}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-800 mb-1">
+              Conséquences
+            </label>
+            <textarea
+              value={formData.consequences || ''}
+              onChange={(e) => handleChange('consequences', e.target.value)}
+              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 resize-none transition-all bg-white border-gray-200 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Impact sur le patient / le plaignant..."
+              rows={2}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-800 mb-1">
+              Demande du plaignant
+            </label>
+            <textarea
+              value={formData.demande_plaignant || ''}
+              onChange={(e) => handleChange('demande_plaignant', e.target.value)}
+              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 resize-none transition-all bg-white border-gray-200 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Ce que le plaignant attend (excuses, explication, remboursement...)"
+              rows={2}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-800 mb-1">
               Mode de réception *
             </label>
             <select

@@ -136,6 +136,10 @@ export interface PlainteCreate {
   email_plaignant?: string;
   telephone_plaignant?: string;
   mode_reception?: string;
+  priorite?: string;
+  circonstances?: string;
+  consequences?: string;
+  demande_plaignant?: string;
   assigned_user_id?: number;
   trigger_analyses?: boolean;
 }

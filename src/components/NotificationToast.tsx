@@ -88,7 +88,7 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
   return (
     <div
       className={`
-        fixed top-4 right-4 z-50 max-w-sm w-full
+        relative max-w-sm w-full
         transform transition-all duration-300 ease-in-out
         ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
       `}
@@ -141,7 +141,7 @@ const NotificationContainer: React.FC = () => {
   };
 
   return (
-    <div className="fixed top-0 right-0 z-50 p-4 space-y-2">
+    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
       {notifications.map((notification) => (
         <NotificationToast
           key={notification.id}

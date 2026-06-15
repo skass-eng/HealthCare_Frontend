@@ -80,7 +80,7 @@ const HealthcareAI: React.FC = () => {
   };
 
   const handleLearnMore = () => {
-    navigate('/analytics-v2');
+    navigate('/services-kpi');
   };
 
   const handleFeatureClick = (featureTitle: string) => {
@@ -98,10 +98,10 @@ const HealthcareAI: React.FC = () => {
         navigate('/plaintes/nouvelles');
         break;
       case 'Sécurité Renforcée':
-        navigate('/parametres');
+        navigate('/settings');
         break;
       case 'Configuration Flexible':
-        navigate('/parametres');
+        navigate('/settings');
         break;
       default:
         navigate('/dashboard-unified');

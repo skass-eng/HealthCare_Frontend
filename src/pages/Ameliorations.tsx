@@ -158,6 +158,34 @@ interface AIStatus {
   error?: string
 }
 
+// --------------------------------------------------------------------------- //
+// Helpers défensifs : le schéma JSON renvoyé par /analyze/latest peut varier
+// (objets imbriqués au lieu de chaînes). On normalise tout pour éviter
+// l'affichage "[object Object]" et les listes vides non explicitées.
+// --------------------------------------------------------------------------- //
+const toDisplayText = (value: unknown, ...keys: string[]): string => {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>
+    const fallbackKeys = keys.length > 0
+      ? keys
+      : ['cause', 'libelle', 'label', 'service', 'nom', 'name', 'titre', 'description', 'value']
+    for (const key of fallbackKeys) {
+      const v = obj[key]
+      if (typeof v === 'string' && v.trim() !== '') return v
+      if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+    }
+    return ''
+  }
+  return String(value)
+}
+
+// Nom d'un service critique (string ou objet {service|nom})
+const serviceCritiqueLabel = (item: unknown): string =>
+  toDisplayText(item, 'service', 'nom', 'name', 'libelle', 'label') || 'Service'
+
 // Fonction pour générer des suggestions basées sur les données
 const generateSuggestions = (
   summary: ComplaintsSummary | null,
@@ -1392,8 +1420,7 @@ export default function AmeliorationsPage() {
                     </Card>
 
                     {/* Causes globales - Top 10 */}
-                    {aiAnalysis.causes_globales && aiAnalysis.causes_globales.length > 0 && (
-                      <Card sx={{ mb: 3, borderRadius: 3, border: '1px solid', borderColor: 'warning.200' }}>
+                    <Card sx={{ mb: 3, borderRadius: 3, border: '1px solid', borderColor: 'warning.200' }}>
                         <CardContent>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
                             <WarningIcon sx={{ color: 'warning.main' }} />
@@ -1401,6 +1428,11 @@ export default function AmeliorationsPage() {
                               🎯 Top Causes des Plaintes (Tous Services)
                             </Typography>
                           </Box>
+                          {!aiAnalysis.causes_globales || aiAnalysis.causes_globales.length === 0 ? (
+                            <Typography variant="body2" color="text.secondary">
+                              Aucune cause globale identifiée pour le moment.
+                            </Typography>
+                          ) : (
                           <TableContainer>
                             <Table size="small">
                               <TableHead>
@@ -1412,36 +1444,39 @@ export default function AmeliorationsPage() {
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {aiAnalysis.causes_globales.map((cause, idx) => (
+                                {aiAnalysis.causes_globales.map((cause, idx) => {
+                                  const gravite = toDisplayText(cause.gravite, 'gravite', 'niveau').toUpperCase()
+                                  return (
                                   <TableRow key={idx} sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
                                     <TableCell>
-                                      <Chip label={cause.service} size="small" color="primary" variant="outlined" />
+                                      <Chip label={toDisplayText(cause.service, 'service', 'nom') || '—'} size="small" color="primary" variant="outlined" />
                                     </TableCell>
                                     <TableCell>
-                                      <Typography variant="body2">{cause.cause}</Typography>
+                                      <Typography variant="body2">{toDisplayText(cause.cause, 'cause', 'libelle') || 'Cause non précisée'}</Typography>
                                     </TableCell>
                                     <TableCell>
-                                      <Chip 
-                                        label={cause.gravite} 
-                                        size="small" 
+                                      <Chip
+                                        label={gravite || 'N/A'}
+                                        size="small"
                                         color={
-                                          cause.gravite === 'CRITIQUE' ? 'error' :
-                                          cause.gravite === 'ELEVEE' ? 'warning' :
-                                          cause.gravite === 'MOYENNE' ? 'info' : 'default'
+                                          gravite === 'CRITIQUE' ? 'error' :
+                                          gravite === 'ELEVEE' ? 'warning' :
+                                          gravite === 'MOYENNE' ? 'info' : 'default'
                                         }
                                       />
                                     </TableCell>
                                     <TableCell>
-                                      <Typography variant="body2">{cause.frequence}</Typography>
+                                      <Typography variant="body2">{toDisplayText(cause.frequence, 'frequence', 'occurrences') || '—'}</Typography>
                                     </TableCell>
                                   </TableRow>
-                                ))}
+                                  )
+                                })}
                               </TableBody>
                             </Table>
                           </TableContainer>
+                          )}
                         </CardContent>
-                      </Card>
-                    )}
+                    </Card>
 
                     {/* Services critiques */}
                     {aiAnalysis.services_critiques && aiAnalysis.services_critiques.length > 0 && (
@@ -1451,10 +1486,10 @@ export default function AmeliorationsPage() {
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                           {aiAnalysis.services_critiques.map((service, idx) => (
-                            <Chip 
-                              key={idx} 
-                              label={service} 
-                              color="error" 
+                            <Chip
+                              key={idx}
+                              label={serviceCritiqueLabel(service)}
+                              color="error"
                               variant="filled"
                               icon={<BusinessIcon />}
                             />
@@ -1468,6 +1503,11 @@ export default function AmeliorationsPage() {
                       📊 Analyse Détaillée par Service
                     </Typography>
                     
+                    {(!aiAnalysis.analyses_par_service || aiAnalysis.analyses_par_service.length === 0) && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Aucune analyse par service disponible.
+                      </Typography>
+                    )}
                     <Grid container spacing={3}>
                       {aiAnalysis.analyses_par_service?.map((analyse, idx) => (
                         <Grid item xs={12} md={6} key={idx}>
@@ -1512,42 +1552,51 @@ export default function AmeliorationsPage() {
                               </Typography>
                               {analyse.causes_identifiees?.length > 0 ? (
                                 <Box sx={{ mb: 2 }}>
-                                  {analyse.causes_identifiees.map((cause, cIdx) => (
-                                    <Box key={cIdx} sx={{ 
-                                      p: 1.5, 
+                                  {analyse.causes_identifiees.map((cause, cIdx) => {
+                                    const gravite = toDisplayText(cause.gravite, 'gravite', 'niveau').toUpperCase()
+                                    const libelle = toDisplayText(cause.cause, 'cause', 'libelle') || 'Cause non précisée'
+                                    const exemple = Array.isArray(cause.exemples)
+                                      ? toDisplayText(cause.exemples[0], 'texte', 'extrait', 'description')
+                                      : ''
+                                    return (
+                                    <Box key={cIdx} sx={{
+                                      p: 1.5,
                                       mb: 1,
-                                      bgcolor: cause.gravite === 'CRITIQUE' ? 'error.50' :
-                                              cause.gravite === 'ELEVEE' ? 'warning.50' : 'grey.50',
+                                      bgcolor: gravite === 'CRITIQUE' ? 'error.50' :
+                                              gravite === 'ELEVEE' ? 'warning.50' : 'grey.50',
                                       borderRadius: 2,
                                       borderLeft: '3px solid',
-                                      borderColor: cause.gravite === 'CRITIQUE' ? 'error.main' :
-                                                  cause.gravite === 'ELEVEE' ? 'warning.main' : 'grey.400'
+                                      borderColor: gravite === 'CRITIQUE' ? 'error.main' :
+                                                  gravite === 'ELEVEE' ? 'warning.main' : 'grey.400'
                                     }}>
                                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                                         <Typography variant="body2" fontWeight={500}>
-                                          {cause.cause}
+                                          {libelle}
                                         </Typography>
-                                        <Chip 
-                                          label={cause.gravite} 
-                                          size="small" 
-                                          sx={{ fontSize: '0.65rem', height: 20 }}
-                                          color={
-                                            cause.gravite === 'CRITIQUE' ? 'error' :
-                                            cause.gravite === 'ELEVEE' ? 'warning' : 'default'
-                                          }
-                                        />
+                                        {gravite && (
+                                          <Chip
+                                            label={gravite}
+                                            size="small"
+                                            sx={{ fontSize: '0.65rem', height: 20 }}
+                                            color={
+                                              gravite === 'CRITIQUE' ? 'error' :
+                                              gravite === 'ELEVEE' ? 'warning' : 'default'
+                                            }
+                                          />
+                                        )}
                                       </Box>
-                                      {cause.exemples?.length > 0 && (
-                                        <Typography variant="caption" color="text.secondary" sx={{ 
-                                          display: 'block', 
+                                      {exemple && (
+                                        <Typography variant="caption" color="text.secondary" sx={{
+                                          display: 'block',
                                           mt: 0.5,
                                           fontStyle: 'italic'
                                         }}>
-                                          Ex: "{cause.exemples[0]?.slice(0, 100)}..."
+                                          Ex: "{exemple.slice(0, 100)}..."
                                         </Typography>
                                       )}
                                     </Box>
-                                  ))}
+                                    )
+                                  })}
                                 </Box>
                               ) : (
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -1563,10 +1612,10 @@ export default function AmeliorationsPage() {
                                   </Typography>
                                   <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                                     {analyse.problemes_recurrents.map((prob, pIdx) => (
-                                      <Chip 
-                                        key={pIdx} 
-                                        label={prob} 
-                                        size="small" 
+                                      <Chip
+                                        key={pIdx}
+                                        label={toDisplayText(prob, 'probleme', 'libelle', 'cause') || '—'}
+                                        size="small"
                                         variant="outlined"
                                         color="error"
                                         sx={{ fontSize: '0.7rem' }}
@@ -1583,13 +1632,13 @@ export default function AmeliorationsPage() {
                                     💡 Actions recommandées:
                                   </Typography>
                                   {analyse.recommandations.map((reco, rIdx) => (
-                                    <Box key={rIdx} sx={{ 
-                                      p: 1, 
-                                      bgcolor: 'success.50', 
+                                    <Box key={rIdx} sx={{
+                                      p: 1,
+                                      bgcolor: 'success.50',
                                       borderRadius: 1,
                                       mb: 0.5
                                     }}>
-                                      <Typography variant="caption">{reco}</Typography>
+                                      <Typography variant="caption">{toDisplayText(reco, 'recommandation', 'action', 'libelle') || '—'}</Typography>
                                     </Box>
                                   ))}
                                 </Box>

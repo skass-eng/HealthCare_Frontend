@@ -516,16 +516,12 @@ const DashboardUnified: React.FC = () => {
             label: 'Plaintes traitées',
             value: total.toLocaleString('fr-FR'),
             sub: `${nouvelles} nouvelles · ${enCours} en cours`,
-            trend: '+12%',
-            trendPositive: true,
             accent: '#0f172a'
           },
           {
             label: 'Taux de résolution',
             value: `${tauxResolution}%`,
             sub: `${traitees.toLocaleString('fr-FR')} dossiers clôturés`,
-            trend: '+4 pts',
-            trendPositive: true,
             accent: '#059669'
           },
           {
@@ -534,8 +530,6 @@ const DashboardUnified: React.FC = () => {
             // Conversion en note /5 via le helper partagé (cohérent avec VueEnsemble/AnalyticsContent).
             value: `${scoreSentimentToScale5(satisfactionAvg).toFixed(1)}/5`,
             sub: 'Score agrégé multi-services',
-            trend: '+0.3',
-            trendPositive: true,
             // Seuils sur l'échelle /5 : >=3.5 vert, >=2.5 orange, sinon rouge.
             accent: scoreSentimentToScale5(satisfactionAvg) >= 3.5
               ? '#059669'
@@ -547,8 +541,6 @@ const DashboardUnified: React.FC = () => {
             label: 'Plaintes en cours',
             value: enCours.toLocaleString('fr-FR'),
             sub: `dont ${nouvelles} nouvelles cette période`,
-            trend: nouvelles > 10 ? `+${nouvelles}` : 'stable',
-            trendPositive: false,
             accent: '#0f172a'
           }
         ];
@@ -580,18 +572,6 @@ const DashboardUnified: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
                   <div style={{ fontSize: '2rem', fontWeight: 700, color: kpi.accent, letterSpacing: '-0.02em', lineHeight: 1 }}>
                     {kpi.value}
-                  </div>
-                  <div style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    color: kpi.trendPositive ? '#047857' : '#b45309',
-                    background: kpi.trendPositive ? '#ecfdf5' : '#fffbeb',
-                    border: `1px solid ${kpi.trendPositive ? '#a7f3d0' : '#fde68a'}`,
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {kpi.trendPositive ? '↑' : '↗'} {kpi.trend}
                   </div>
                 </div>
                 <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
