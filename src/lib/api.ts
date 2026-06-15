@@ -137,9 +137,19 @@ class ApiService {
       (error) => {
         console.log('❌ Erreur API:', error.response?.status, error.response?.data);
         if (error.response?.status === 401) {
-          console.log('🔐 Token invalide, nettoyage...');
+          console.log('🔐 Token invalide, nettoyage et déconnexion...');
           localStorage.removeItem('token');
-          // Ne pas rediriger automatiquement, laisser le composant gérer
+
+          // Déconnexion propre: rediriger vers /login pour éviter une app "zombie".
+          // Garde-fou anti-boucle: ne pas rediriger si on est déjà sur /login,
+          // ni si l'erreur provient de l'appel d'authentification lui-même.
+          const requestUrl = (error.config?.url || '') as string;
+          const isAuthCall = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+          const alreadyOnLogin = typeof window !== 'undefined' && window.location?.pathname === '/login';
+
+          if (!isAuthCall && !alreadyOnLogin && typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }

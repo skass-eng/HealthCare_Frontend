@@ -55,6 +55,16 @@ const DashboardUnified: React.FC = () => {
     message: '',
     type: 'success'
   });
+
+  // Période sélectionnée pour la courbe d'évolution (contrat backend: '7j' | '30j' | '90j')
+  const [evolutionPeriode, setEvolutionPeriode] = useState<'7j' | '30j' | '90j'>('30j');
+
+  // Libellés lisibles pour le sous-titre dynamique de la courbe
+  const periodeLabels: Record<'7j' | '30j' | '90j', string> = {
+    '7j': '7 derniers jours',
+    '30j': '30 derniers jours',
+    '90j': '90 derniers jours'
+  };
   
   const { 
     statistiquesGlobales, 
@@ -80,12 +90,19 @@ const DashboardUnified: React.FC = () => {
         dispatch(fetchStatistiquesGlobales(params)),
         dispatch(fetchStatistiquesDepartements(params)),
         dispatch(fetchStatistiquesPriorites()),
-        dispatch(fetchEvolutionPlaintes('30j'))
+        // Défensif: si la période est absente/invalide, défaut '30j'
+        dispatch(fetchEvolutionPlaintes(evolutionPeriode || '30j'))
       ]);
       console.log('✅ Statistiques chargées avec succès');
     } catch (error) {
       console.error('❌ Erreur lors du chargement des statistiques:', error);
     }
+  };
+
+  // Changement de période de la courbe d'évolution -> recharge uniquement la courbe
+  const handleEvolutionPeriodeChange = (periode: '7j' | '30j' | '90j') => {
+    setEvolutionPeriode(periode);
+    dispatch(fetchEvolutionPlaintes(periode || '30j'));
   };
 
   // Au mount : si les dates persistées sont stales (>30 jours dans le passé),
@@ -600,12 +617,41 @@ const DashboardUnified: React.FC = () => {
                 Évolution des plaintes
               </h3>
               <p style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500, margin: '2px 0 0 0', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
-                30 derniers jours · volume quotidien
+                {periodeLabels[evolutionPeriode] || periodeLabels['30j']} · volume quotidien
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b' }}>
-              <div style={{ width: '8px', height: '8px', background: '#0d9488', borderRadius: '2px' }} />
-              <span>Plaintes / jour</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Sélecteur de période 7j / 30j / 90j */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#f1f5f9', borderRadius: '8px', padding: '2px' }}>
+                {(['7j', '30j', '90j'] as const).map((p) => {
+                  const active = evolutionPeriode === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => handleEvolutionPeriodeChange(p)}
+                      style={{
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: active ? '#ffffff' : 'transparent',
+                        color: active ? '#0d9488' : '#64748b',
+                        boxShadow: active ? '0 1px 2px rgba(16, 24, 40, 0.08)' : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b' }}>
+                <div style={{ width: '8px', height: '8px', background: '#0d9488', borderRadius: '2px' }} />
+                <span>Plaintes / jour</span>
+              </div>
             </div>
           </div>
           {evolutionPlaintes?.evolution_journaliere && evolutionPlaintes.evolution_journaliere.length > 0 ? (
